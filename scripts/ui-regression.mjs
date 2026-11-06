@@ -145,6 +145,14 @@ try {
   assert.deepEqual(policyErrors, []);
   checks.push('highlight and 8193-line fallback fit actual host policy with maximum schema, grid, tabs, connections and modal');
   assert.deepEqual(policyErrors, []); assert.ok(maxNodes <= 1024); checks.push('100 connections, 500 hosts, 32 schema objects/columns, 8 tabs and oversized mock result remain within host tree limits');
+  features.add('database.host-port-probe.v1');
+  const stressListHosts = context.database.listHostsForDatabase;
+  context.database.listHostsForDatabase = async () => (await stressListHosts()).map((h) => ({ ...h, portProbe: { revision: 'stress-revision' } }));
+  context.database.probeHostDatabasePorts = async ({ hostId }) => ({ hostId, hostname: '127.0.0.1', code: 'PROBE_OK', synthetic: false, connected: false, ports: [[5432, 'PostgreSQL'], [3306, 'MySQL / MariaDB'], [1433, 'Microsoft SQL Server'], [27017, 'MongoDB'], [6379, 'Redis']].map(([port, serviceLabel]) => ({ port, serviceLabel, status: 'closed', latencyMs: 1 })) });
+  await click('Load permitted hosts'); await change('Existing host', 'host-1'); await click('Probe common database ports');
+  assert.match(document.body.textContent, /6379 Redis: closed/); assert.deepEqual(policyErrors, []); assert.ok(maxNodes <= 1024);
+  checks.push('all five port results fit host DOM budget over maximum connections, schema, grid, tabs and SQL editor');
+  context.database.listHostsForDatabase = stressListHosts; features.delete('database.host-port-probe.v1');
   await unmount();
   // Chinese starts from the host environment, not navigator.language (JSDOM stays English).
   saved = []; bigResult = false; hostCount = 2; schemaObjects = 1; schemaColumns = 3; chosen = null;
@@ -278,6 +286,76 @@ try {
   await act(async () => { probeFinish(probeResult('SYNTHETIC_OK')); await tick(); });
   features.delete('database.tunnel-test.synthetic.v1'); context.database.listHostsForDatabase = metadataHosts;
   checks.push('synthetic tunnel feature gate, metadata-only selection, recorded success without connection, wrong auth/key failures, cancellation and stale completion, secretRef-only requests, zh-CN, close and unmount cleanup');
+
+  // Ordinary saved-host probe UI: mock races/timeouts, plus actual host RPC/TCP fixture when opted in.
+  const portFeature = 'database.host-port-probe.v1';
+  const ordinaryHost = { hostId: 'ordinary-probe', hostname: '127.0.0.1', label: 'Saved loopback host', username: 'smoketest', port: 2222, capability: 'metadata-only', tunnelAvailable: false, portProbe: { revision: 'ordinary-revision' } };
+  context.database.listHostsForDatabase = async () => [ordinaryHost];
+  const portRequests = []; const portCancels = []; let portFinish; let portPending = false;
+  const portResult = { hostId: ordinaryHost.hostId, hostname: ordinaryHost.hostname, code: 'PROBE_OK', synthetic: false, connected: false,
+    ports: [[5432, 'PostgreSQL', 'open'], [3306, 'MySQL / MariaDB', 'closed'], [1433, 'Microsoft SQL Server', 'timeout'], [27017, 'MongoDB', 'closed'], [6379, 'Redis', 'closed']].map(([port, serviceLabel, status]) => ({ port, serviceLabel, status, latencyMs: 2 })) };
+  context.database.probeHostDatabasePorts = async (request) => { portRequests.push(request); return portPending ? new Promise((resolve) => { portFinish = resolve; }) : portResult; };
+  context.database.cancelHostDatabasePorts = async ({ probeId }) => { portCancels.push(probeId); return null; };
+  await language('en'); await mount(); await click('New Connection'); await click('Next'); await click('Advanced'); await click('Load permitted hosts');
+  await change('Existing host', ordinaryHost.hostId); assert.ok('disabled' in button('Probe common database ports').attributes);
+  await unmount(); features.add(portFeature);
+  await mount(); await click('New Connection'); await click('Next'); await click('Advanced');
+  assert.ok('disabled' in button('Probe common database ports').attributes);
+  await click('Load permitted hosts'); await change('Existing host', ordinaryHost.hostId);
+  assert.equal(portRequests.length, 0); const beforePortOpens = opens;
+  assert.match(document.body.textContent, /No database connected/);
+  await click('Probe common database ports');
+  assert.equal(opens, beforePortOpens); assert.match(document.body.textContent, /5432 PostgreSQL: open/);
+  assert.match(document.body.textContent, /1433 Microsoft SQL Server: timeout/);
+  assert.match(document.body.textContent, /3306 MySQL \/ MariaDB: closed/);
+  assert.match(document.body.textContent, /An open port is not an authenticated database session or an SSH tunnel/);
+  assert.match(document.body.textContent, /No database connected/);
+  assert.deepEqual(Object.keys(portRequests[0]).sort(), ['hostId', 'probeId', 'revision']);
+  await snapshot('port-probe-en-mock-statuses');
+  await language('zh-CN');
+  assert.match(document.body.textContent, /5432 PostgreSQL: 开放/); assert.match(document.body.textContent, /1433 Microsoft SQL Server: 超时/);
+  assert.match(document.body.textContent, /端口开放不等于数据库身份验证成功/); assert.match(document.body.textContent, /未连接数据库/);
+  await snapshot('port-probe-zh-CN-mock-statuses'); await language('en');
+  portPending = true; await click('Probe common database ports'); await click('Cancel port probe');
+  assert.equal(portCancels.at(-1), portRequests.at(-1).probeId);
+  await act(async () => { portFinish(portResult); await tick(); });
+  assert.doesNotMatch(document.body.textContent, /5432 PostgreSQL: open/);
+  await click('Probe common database ports'); await change('Existing host', '');
+  await act(async () => { portFinish(portResult); await tick(); }); assert.match(document.body.textContent, /No port probe has run/);
+  await change('Existing host', ordinaryHost.hostId); await click('Probe common database ports'); await click('Load permitted hosts');
+  await act(async () => { portFinish(portResult); await tick(); }); assert.match(document.body.textContent, /No port probe has run/);
+  await click('Probe common database ports'); await click('Close'); assert.equal(portCancels.at(-1), portRequests.at(-1).probeId);
+  await act(async () => { portFinish(portResult); await tick(); });
+  await click('New Connection'); await click('Next'); await click('Advanced'); await change('Existing host', ordinaryHost.hostId);
+  await click('Probe common database ports'); await unmount(); assert.equal(portCancels.at(-1), portRequests.at(-1).probeId);
+  await act(async () => { portFinish(portResult); await tick(); });
+  checks.push('ordinary saved-host port probe: absent feature/selection gates; open/closed/timeout in en and zh-CN; no DB session; cancel, selection, reload, close and unmount races');
+  if (process.env.NETCATTY_TEST_PREPARED_DB_PROBE === '1') {
+    const { PluginSqliteFixtureService: ProbeHost } = host('./electron/plugins/sqliteFixtureService.cjs');
+    const { PluginHostRpcRegistry: ProbeRegistry } = host('./electron/plugins/hostRpcRegistry.cjs');
+    const { DatabaseHostPortProbeService } = host('./electron/plugins/databaseHostPortProbe.cjs');
+    const probeIdentity = { pluginId: 'com.binaricat.netcatty-database', pluginVersion: '0.1.0', runtimeId: 'port-probe-ui', runtimeKind: 'browser', sourceOwner: 'owner-probe', sourceId: 'probe', securityPrincipal: 'fixture', manifest: { features: { optional: [...features] } } };
+    const probeService = new ProbeHost({ enabled: true, connectionStore: {}, portProbes: new DatabaseHostPortProbeService(),
+      getDatabaseHosts: async () => ({ ok: true, hosts: [{ id: ordinaryHost.hostId, hostname: '127.0.0.1', label: 'Saved loopback host', username: 'smoketest', port: 2222 }] }),
+      database: { getActivePlugin: () => ({ enabled: true, source: { id: 'probe' } }), getRetainedPluginSource: () => ({ id: 'probe' }), privateOwner: () => 'owner-probe', publicPluginId: () => probeIdentity.pluginId },
+      runtimeSupervisor: { getRuntimeIdentity: () => probeIdentity },
+      permissionEngine: { onDidRevoke: () => ({ dispose() {} }), authorize: async (_c, d) => d.validateBeforeGrant() },
+    });
+    const probeRegistry = new ProbeRegistry(); probeService.register(probeRegistry);
+    const probeRoutes = probeRegistry.createRoutes({ ...probeIdentity, assertCurrent() {} });
+    for (const method of ['listHostsForDatabase', 'probeHostDatabasePorts', 'cancelHostDatabasePorts']) context.database[method] = (params = {}) => probeRoutes.requestHandlers[`database.${method}`](params, { signal: new AbortController().signal });
+    try {
+      await mount(); await click('New Connection'); await click('Next'); await click('Advanced'); await click('Load permitted hosts'); await change('Existing host', ordinaryHost.hostId);
+      await click('Probe common database ports');
+      for (let tries = 0; tries < 100 && !document.body.textContent.includes('Port probe complete.'); tries++) await act(async () => { await new Promise((resolve) => setTimeout(resolve, 20)); });
+      assert.match(document.body.textContent, /5432 PostgreSQL: open/);
+      for (const label of ['3306 MySQL / MariaDB: closed', '1433 Microsoft SQL Server: closed', '27017 MongoDB: closed', '6379 Redis: closed']) assert.ok(document.body.textContent.includes(label), label);
+      assert.match(document.body.textContent, /No database connected/); assert.equal(probeService.sessions.size, 0);
+      await snapshot('port-probe-en-real-tcp'); await language('zh-CN'); await snapshot('port-probe-zh-CN-real-tcp'); await language('en');
+      checks.push('prepared fixture through real host registry, authorization seam and TCP: 5432 open; 3306/1433/27017/6379 closed; session count remains zero');
+    } finally { await unmount(); probeService.shutdown(); }
+  }
+  features.delete(portFeature); context.database.listHostsForDatabase = metadataHosts;
 
   // The new multi-table lane uses the real host registry/service/subprocess.
   // Only native chooser and permission decisions are injected for this fixture.

@@ -115,3 +115,25 @@ SSH credentials were looked up or used. Next requires approval for a disposable
 local PostgreSQL package or provision of a pre-seeded local fixture with a server
 and task-owned SSH credentials. Synthetic React and host tests are not live or
 native SSH evidence.
+
+### Probe an existing host's database ports
+
+With the host database experiment enabled, open New Connection > Next > Advanced,
+then Load permitted hosts and select an already saved Netcatty host. If the host
+negotiates `database.host-port-probe.v1`, **Probe common database ports** checks
+5432 (PostgreSQL), 3306 (MySQL / MariaDB), 1433 (Microsoft SQL Server), 27017
+(MongoDB), and 6379 (Redis). The host owns the hostname and port list; the plugin
+sends only host ID, metadata revision and probe ID. Results show open, closed or
+timeout with elapsed milliseconds. Cancel, changing selection, reload and close
+invalidate pending results. English and zh-CN follow the Netcatty language.
+
+These are direct TCP checks from Netcatty, without SSH. An open port does not
+identify/authenticate a database, create a database session or establish a tunnel.
+Ordinary saved hosts remain `metadata-only` with `tunnelAvailable: false`.
+The synthetic tunnel test is separate. SQLite fixture-only file policy is unchanged.
+
+`NETCATTY_TEST_PREPARED_DB_PROBE=1 npm run test:react` additionally checks a prepared
+loopback PostgreSQL listener through real host RPC/TCP and writes English/Chinese
+HTML evidence. Permission decisions and vault metadata are fixture seams; this
+lane does not automate the native vault or permission windows. Without that flag,
+the deterministic React lane uses explicitly mocked port statuses.

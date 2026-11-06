@@ -1,6 +1,24 @@
 // Original plugin-owned copy. English source keys keep the fallback explicit.
 // Only the host environment selects language; never navigator/OS/input locale.
 export const zhCN = {
+  "Probe common database ports": "探测常用数据库端口",
+  "Cancel port probe": "取消端口探测",
+  "5432 PostgreSQL / 3306 MySQL or MariaDB / 1433 Microsoft SQL Server / 27017 MongoDB / 6379 Redis": "5432 PostgreSQL / 3306 MySQL 或 MariaDB / 1433 Microsoft SQL Server / 27017 MongoDB / 6379 Redis",
+  "Direct TCP probe from Netcatty to the saved hostname. An open port is not an authenticated database session or an SSH tunnel.": "由 Netcatty 直接对已保存的主机名进行 TCP 探测。端口开放不等于数据库身份验证成功，也不代表已建立 SSH 隧道。",
+  "No port probe has run.": "尚未进行端口探测。",
+  "Database port results": "数据库端口结果",
+  "Probed host: {hostname}": "探测主机：{hostname}",
+  "Probing common database ports...": "正在探测常用数据库端口…",
+  "Port probe complete. No database session or SSH tunnel was opened.": "端口探测完成。未建立数据库会话或 SSH 隧道。",
+  "This saved host is no longer available. Reload permitted hosts.": "此已保存主机已不可用，请重新加载已获授权的主机。",
+  "Host metadata changed. Reload permitted hosts and probe again.": "主机元数据已变更，请重新加载已获授权的主机后再探测。",
+  "Port probe cancellation requested.": "已请求取消端口探测。",
+  "Port probe deadline exceeded. No complete results are available.": "端口探测已超过截止时间，暂无完整结果。",
+  "Port probe unavailable. Check host permissions and network access.": "端口探测不可用，请检查宿主权限与网络访问。",
+  "open": "开放",
+  "closed": "关闭",
+  "timeout": "超时",
+
   "Test tunnel (synthetic)": "测试隧道（模拟）",
   "Cancel tunnel test": "取消隧道测试",
   "Synthetic adapter only. Live SSH and PostgreSQL are unavailable; selecting a host never connects.": "仅支持模拟适配器。真实 SSH 和 PostgreSQL 不可用；选择主机不会建立连接。",
@@ -52,7 +70,7 @@ export const zhCN = {
   "Existing host": "已有主机",
   "None - local SQLite": "无 - 本地 SQLite",
   "Load permitted hosts": "加载已获授权的主机",
-  "Up to 40 matches shown; filter to narrow the list. Metadata only. Choosing an SSH host does not open a tunnel or make it the database.": "最多显示 40 条匹配项，可通过筛选缩小范围。仅使用主机元数据；选择 SSH 主机不会建立隧道，也不会将其作为数据库。",
+  "Up to 20 matches shown; filter to narrow the list. Metadata only. Choosing an SSH host does not open a tunnel or make it the database.": "最多显示 20 条匹配项，可通过筛选缩小范围。仅使用主机元数据；选择 SSH 主机不会建立隧道，也不会将其作为数据库。",
   "Connection limits": "连接限制",
   "100 rows / 96 KiB / 3 seconds / 8 KiB SQL": "100 行 / 96 KiB / 3 秒 / SQL 最长 8 KiB",
   "Transport and encryption": "传输与加密",

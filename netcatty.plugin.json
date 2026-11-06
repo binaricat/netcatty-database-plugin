@@ -26,7 +26,8 @@
       "database.sqlite-fixture.v1",
       "database.sqlite-file-fixture.v1",
       "database.saved-connections.v1",
-      "database.tunnel-test.synthetic.v1"
+      "database.tunnel-test.synthetic.v1",
+      "database.host-port-probe.v1"
     ]
   },
   "main": {
@@ -45,9 +46,10 @@
         "resources": [
           "sqlite:synthetic-notes",
           "sqlite:disposable-file",
-          "database-tunnel:synthetic-loopback"
+          "database-tunnel:synthetic-loopback",
+          "database-host:common-ports"
         ],
-        "reason": "Read synthetic memory or a host-selected disposable SQLite file / 读取模拟内存数据库或宿主选择的一次性 SQLite 文件"
+        "reason": "Read disposable SQLite fixtures or probe five common TCP ports on a saved host / 读取一次性 SQLite 测试数据或探测已保存主机的五个常用 TCP 端口"
       },
       {
         "permission": "database.query.write",
