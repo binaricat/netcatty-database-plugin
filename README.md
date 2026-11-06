@@ -29,9 +29,12 @@ read permission. The host creates three clearly synthetic notes in memory.
 Run uses bound parameters and returns actual SQLite results. **Review write**
 requires a separate native review of exact SQL and parameter values on every
 call, even if the generic write permission is Allow. Cancellation closes the
-worker and discards the fixture. No file chooser, arbitrary paths, credentials,
-network connections, transactions, DDL, import/export or production data access
-are implemented.
+worker and discards the fixture. On an M2 Linux host, **Open SQLite file...** invokes a host chooser for read-only
+files in `/workspace/agent-tools/database/m2-chooser/fixtures/` only. Fixtures must
+be regular rollback-mode `.sqlite`/`.db` files with an ordinary `notes` table,
+no links and no WAL/SHM/journal sidecars. Cancel leaves the workbench disconnected.
+Files are never writable through this API. Arbitrary user paths, credentials,
+network connections, transactions, DDL and import/export remain unavailable.
 
 AI generate/explain/optimize/fix uses Netcatty's existing bounded host streaming.
 Connect first, inspect schema, and explicitly choose to share schema/SQL/request.

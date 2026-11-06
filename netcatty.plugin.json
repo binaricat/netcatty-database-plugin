@@ -18,7 +18,8 @@
       "ai.model-invocation"
     ],
     "optional": [
-      "database.sqlite-fixture.v1"
+      "database.sqlite-fixture.v1",
+      "database.sqlite-file-fixture.v1"
     ]
   },
   "main": {
@@ -35,9 +36,10 @@
       {
         "permission": "database.query.read",
         "resources": [
-          "sqlite:synthetic-notes"
+          "sqlite:synthetic-notes",
+          "sqlite:disposable-file"
         ],
-        "reason": "Read a disposable synthetic SQLite fixture"
+        "reason": "Read synthetic memory or a host-selected disposable SQLite file"
       },
       {
         "permission": "database.query.write",
