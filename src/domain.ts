@@ -9,9 +9,13 @@ export function defaultQuery(schema: DatabaseSchemaResult | null): { sql: string
 }
 export const tasks = ['generate', 'explain', 'optimize', 'fix'] as const;
 export type Task = typeof tasks[number];
+export class ParameterError extends Error {
+  constructor(readonly messageKey: 'Parameters must be valid JSON.' | 'Use a JSON array of at most 32 scalar parameters (strings: 2048 characters).') { super(messageKey); }
+}
 export function parseParameters(text: string): DatabaseScalar[] {
-  const value: unknown = JSON.parse(text);
-  if (!Array.isArray(value) || value.length > 32 || value.some((x) => !(x === null || typeof x === 'boolean' || typeof x === 'number' && Number.isFinite(x) || typeof x === 'string' && x.length <= 2048))) throw new Error('Use a JSON array of at most 32 scalar parameters (strings: 2048 characters).');
+  let value: unknown;
+  try { value = JSON.parse(text); } catch { throw new ParameterError('Parameters must be valid JSON.'); }
+  if (!Array.isArray(value) || value.length > 32 || value.some((x) => !(x === null || typeof x === 'boolean' || typeof x === 'number' && Number.isFinite(x) || typeof x === 'string' && x.length <= 2048))) throw new ParameterError('Use a JSON array of at most 32 scalar parameters (strings: 2048 characters).');
   return value;
 }
 export function buildPrompt(task: Task, schema: DatabaseSchemaResult | null, sql: string, request: string): string {

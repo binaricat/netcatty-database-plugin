@@ -31,3 +31,12 @@ chooser/permission decisions; packaged worker checks run Electron in Node mode.
 Six light/dark staged PNGs show commerce Structure/Data/bound query. None qualify
 native full-host packaged-plugin/dialog/keychain/zh-CN IME acceptance. See
 `/workspace/agent-tools/database/astra-m3b-multitable-report.md`.
+
+M5 localizes current plugin controls with an original English/zh-CN map and the
+existing host environment signal; no host or security-policy change is required.
+English and Chinese React regressions include language changes without losing
+session/tab/query state. Manifest permission reasons remain bilingual (plain
+string contract); raw host diagnostics, user data and SQL identifiers are not
+translated. Native evidence and exact test counts are recorded separately in
+`/workspace/agent-tools/database/astra-m5-plugin-zh-report.md`. This does not claim
+full product localization, OS IME candidate UI or production/DBX pixel parity.

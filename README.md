@@ -65,3 +65,32 @@ never calls a model. The existing stream helper remains covered by mock tests.
 
 PostgreSQL and MySQL are named roadmap targets with icons, not active drivers.
 See docs/architecture.md, docs/qualification.md and docs/provenance.md.
+
+## Host language
+
+Current workbench controls follow `context.environment.locale` at mount and on
+host environment changes: `zh-CN` selects Simplified Chinese; English and other
+host locales use English. Change language in Netcatty Settings; the plugin has no
+separate switch and does not use the OS input method or browser language.
+Connection names, schema identifiers, SQL, parameters and result values remain
+unchanged. Switching language preserves the active session, tabs and edits.
+The string map in `src/i18n.ts` is original plugin-owned copy.
+
+Host diagnostics are retained verbatim beneath a localized error introduction.
+The manifest's two permission reasons are bilingual because the current contract
+accepts only plain strings there. Host security dialogs and native file chooser
+text belong to the host. This covers current controls, not full product i18n or
+OS IME candidate windows.
+
+Additional React/remote-DOM regressions require the paired host checkout and its
+installed test dependencies. They run the existing English scenarios, Chinese
+controls and live language switching, plus the real allowlisted commerce fixture
+with injected chooser/approval (not native GUI):
+
+```sh
+NETCATTY_HOST_ROOT=/workspace/netcatty-database-host npm run test:react
+```
+
+The commerce fixture must exist at the host's already allowed
+`/workspace/agent-tools/database/m3b-multitable/fixtures/commerce.sqlite` path.
+Output defaults to `dist/react-regression/`; `NETCATTY_REACT_EVIDENCE` overrides it.

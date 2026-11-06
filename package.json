@@ -12,7 +12,8 @@
     "test": "node --test --import tsx tests/*.test.ts",
     "build": "node scripts/build.mjs",
     "pack": "npm run build && node scripts/pack.mjs",
-    "validate": "netcatty-plugin validate dist/netcatty-database-0.1.0-alpha.1.ncpkg"
+    "validate": "netcatty-plugin validate dist/netcatty-database-0.1.0-alpha.1.ncpkg",
+    "test:react": "node scripts/ui-regression.mjs"
   },
   "dependencies": {
     "@netcatty/plugin-contract": "file:vendor/netcatty-plugin-contract-0.1.0-internal.1.tgz",

@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
 import type { PluginContext, DatabaseOpenResult, DatabaseFileOpenResult, DatabaseHandleRequest, DatabaseSchemaResult, DatabaseSavedConnection, DatabaseHostList, DatabaseConnectionMeta, DatabaseQueryResult } from '@netcatty/plugin-sdk';
-import { parseParameters, DATABASE_FEATURE, defaultQuery, selectObject } from './domain';
+import { parseParameters, ParameterError, DATABASE_FEATURE, defaultQuery, selectObject } from './domain';
+import { translator, type Message } from './i18n';
 export const SAVED_FEATURE = 'database.saved-connections.v1';
 type Session = DatabaseOpenResult | DatabaseFileOpenResult;
-export type QueryTab = { id: number; title: string; sql: string; parameters: string; result: DatabaseQueryResult | null; objectName?: string; surface?: 'data' | 'structure' };
+export type QueryTab = { id: number; sql: string; parameters: string; result: DatabaseQueryResult | null; objectName?: string; surface?: 'data' | 'structure' };
 const target = (s: Session): DatabaseHandleRequest => ({ handleId: s.handleId, ...('revision' in s ? { revision: s.revision } : {}) });
-const initialTab = (id: number, schema: DatabaseSchemaResult | null): QueryTab => ({ id, title: `Query ${id}`, ...defaultQuery(schema), result: null });
+const initialTab = (id: number, schema: DatabaseSchemaResult | null): QueryTab => ({ id, ...defaultQuery(schema), result: null });
 export function useWorkbench(context: PluginContext) {
   const [saved, setSaved] = useState<DatabaseSavedConnection[]>([]);
   const [session, setSession] = useState<Session | null>(null);
@@ -13,11 +14,18 @@ export function useWorkbench(context: PluginContext) {
   const [connectedId, setConnectedId] = useState('');
   const [schema, setSchema] = useState<DatabaseSchemaResult | null>(null);
   const [tabs, setTabs] = useState<QueryTab[]>([]); const [activeTab, setActiveTab] = useState(1);
-  const [busy, setBusy] = useState(false); const [error, setError] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [failure, setFailure] = useState<{ key: Message; diagnostic?: string } | null>(null);
   const [modal, setModal] = useState<'picker' | 'connection' | null>(null);
   const [draftSession, setDraftSession] = useState<Session | null>(null);
   const [tested, setTested] = useState(false); const [hosts, setHosts] = useState<DatabaseHostList>([]);
   const [theme, setTheme] = useState(context.environment.theme);
+  const [locale, setLocale] = useState(context.environment.locale);
+  const t = translator(locale);
+  const error = !failure ? '' : failure.diagnostic
+    ? (locale === 'zh-CN' ? `${t(failure.key)}。${t('Host diagnostic: {message}', { message: failure.diagnostic })}` : failure.diagnostic)
+    : t(failure.key);
+  const tabTitle = (item: QueryTab) => item.objectName ?? t('Query {id}', { id: item.id });
   const live = useRef<Session | null>(null); const draft = useRef<Session | null>(null);
   const epoch = useRef(0); const locked = useRef(false); const nextTab = useRef(1);
   const enabled = context.enabledFeatures.has(DATABASE_FEATURE);
@@ -26,17 +34,17 @@ export function useWorkbench(context: PluginContext) {
   const close = async (s: Session | null, cancel = false) => { if (s) await context.database[cancel ? 'cancel' : 'close'](target(s)).catch(() => {}); };
   useEffect(() => {
     let mounted = true;
-    const sub = context.environment.onDidChange(() => setTheme(context.environment.theme));
-    if (persistence) void context.database.listSavedConnections({}).then((list) => { if (mounted) setSaved(list); }).catch(() => { if (mounted) setError('Saved connections could not be loaded. Check host permission.'); });
+    const sub = context.environment.onDidChange(() => { setTheme(context.environment.theme); setLocale(context.environment.locale); });
+    if (persistence) void context.database.listSavedConnections({}).then((list) => { if (mounted) setSaved(list); }).catch(() => { if (mounted) setFailure({ key: 'Saved connections could not be loaded. Check host permission.' }); });
     return () => { mounted = false; epoch.current++; sub.dispose(); void close(live.current); void close(draft.current); };
     // Context is stable for the lifetime of a host view.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [context, persistence]);
   const action = async (work: (rev: number) => Promise<void>) => {
     if (locked.current) return;
-    locked.current = true; setBusy(true); setError(''); const rev = epoch.current;
+    locked.current = true; setBusy(true); setFailure(null); const rev = epoch.current;
     try { await work(rev); }
-    catch (e) { if (rev === epoch.current) setError(e instanceof Error ? e.message : 'Host operation failed'); }
+    catch (e) { if (rev === epoch.current) setFailure(e instanceof ParameterError ? { key: e.messageKey } : { key: 'Host operation failed', ...(e instanceof Error ? { diagnostic: e.message } : {}) }); }
     finally { if (rev === epoch.current) { locked.current = false; setBusy(false); } }
   };
   const dismiss = async () => {
@@ -100,7 +108,7 @@ export function useWorkbench(context: PluginContext) {
     if (existing) { setActiveTab(existing.id); return; }
     if (tabs.length >= 8) return;
     const id = nextTab.current++; const item = initialTab(id, schema);
-    if (table) { item.title = table; item.objectName = table; item.surface = 'structure'; item.sql = selectObject(table); item.parameters = '[]'; }
+    if (table) { item.objectName = table; item.surface = 'structure'; item.sql = selectObject(table); item.parameters = '[]'; }
     setTabs((items) => [...items, item]); setActiveTab(id);
   };
   const closeTab = (id: number) => { const remaining = tabs.filter((t) => t.id !== id); setTabs(remaining); if (id === activeTab) setActiveTab(remaining[0]?.id ?? 0); };
@@ -110,5 +118,5 @@ export function useWorkbench(context: PluginContext) {
     const value = await context.database.query({ ...target(live.current), sql: tab.sql, parameters: parseParameters(tab.parameters), mode, maxRows: 100, timeoutMs: 3000 });
     if (rev === epoch.current) setTabs((items) => items.map((item) => item.id === id ? { ...item, result: value } : item));
   });
-  return { saved, session, connectedId, connectionName, schema, tabs, tab, activeTab, setActiveTab, addTab, closeTab, edit, busy, error, modal, setModal, draftSession, tested, hosts, theme, enabled, persistence, fileEnabled, dismiss, disconnect, selectSource, test, save, open, openUnsaved, remove, loadHosts, run };
+  return { t, locale, tabTitle, saved, session, connectedId, connectionName: session && !connectedId ? t('Disposable SQLite') : connectionName, schema, tabs, tab, activeTab, setActiveTab, addTab, closeTab, edit, busy, error, modal, setModal, draftSession, tested, hosts, theme, enabled, persistence, fileEnabled, dismiss, disconnect, selectSource, test, save, open, openUnsaved, remove, loadHosts, run };
 }

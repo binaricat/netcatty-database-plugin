@@ -2,8 +2,14 @@
   "manifestVersion": 1,
   "id": "com.binaricat.netcatty-database",
   "name": "netcatty-database",
-  "displayName": "Netcatty Database",
-  "description": "Experimental SQLite workbench with host-owned saved connections and mock-only SQL drafts.",
+  "displayName": {
+    "en": "Netcatty Database",
+    "zh-CN": "Netcatty 数据库"
+  },
+  "description": {
+    "en": "Experimental SQLite workbench with host-owned saved connections and mock-only SQL drafts.",
+    "zh-CN": "实验性 SQLite 工作台，支持宿主管理的已保存连接和仅供模拟的 SQL 草稿。"
+  },
   "version": "0.1.0-alpha.1",
   "publisher": "binaricat",
   "license": "GPL-3.0-or-later",
@@ -39,14 +45,14 @@
           "sqlite:synthetic-notes",
           "sqlite:disposable-file"
         ],
-        "reason": "Read synthetic memory or a host-selected disposable SQLite file"
+        "reason": "Read synthetic memory or a host-selected disposable SQLite file / 读取模拟内存数据库或宿主选择的一次性 SQLite 文件"
       },
       {
         "permission": "database.query.write",
         "resources": [
           "sqlite:synthetic-notes"
         ],
-        "reason": "Review each write to disposable synthetic SQLite"
+        "reason": "Review each write to disposable synthetic SQLite / 逐次审查对一次性模拟 SQLite 数据库的写入"
       },
       "storage",
       "vault.metadata",
@@ -57,7 +63,10 @@
     "views": [
       {
         "id": "com.binaricat.netcatty-database.workbench",
-        "title": "Database",
+        "title": {
+          "en": "Database",
+          "zh-CN": "数据库"
+        },
         "location": "vault-page"
       }
     ]
