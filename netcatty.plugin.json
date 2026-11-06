@@ -1,0 +1,61 @@
+{
+  "manifestVersion": 1,
+  "id": "com.binaricat.netcatty-database",
+  "name": "netcatty-database",
+  "displayName": "Netcatty Database",
+  "description": "Experimental SQL workbench with host-owned disposable SQLite and AI drafts.",
+  "version": "0.1.0-alpha.1",
+  "publisher": "binaricat",
+  "license": "GPL-3.0-or-later",
+  "engines": {
+    "netcatty": ">=0.0.0",
+    "api": ">=0.1.0-internal.1 <0.2.0"
+  },
+  "features": {
+    "required": [
+      "views.host-drawn",
+      "views.vault-pages",
+      "ai.model-invocation"
+    ],
+    "optional": [
+      "database.sqlite-fixture.v1"
+    ]
+  },
+  "main": {
+    "browser": "browser.js"
+  },
+  "activationEvents": [
+    "onView:com.binaricat.netcatty-database.workbench"
+  ],
+  "permissions": {
+    "required": [
+      "views"
+    ],
+    "optional": [
+      {
+        "permission": "database.query.read",
+        "resources": [
+          "sqlite:synthetic-notes"
+        ],
+        "reason": "Read a disposable synthetic SQLite fixture"
+      },
+      {
+        "permission": "database.query.write",
+        "resources": [
+          "sqlite:synthetic-notes"
+        ],
+        "reason": "Review each write to disposable synthetic SQLite"
+      },
+      "ai.invoke"
+    ]
+  },
+  "contributes": {
+    "views": [
+      {
+        "id": "com.binaricat.netcatty-database.workbench",
+        "title": "Database",
+        "location": "vault-page"
+      }
+    ]
+  }
+}

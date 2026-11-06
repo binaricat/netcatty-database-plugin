@@ -1,0 +1,9 @@
+import { build } from 'esbuild';
+import { mkdir, cp, readFile, writeFile } from 'node:fs/promises';
+await mkdir('dist/package', { recursive: true });
+await build({ entryPoints: ['src/index.tsx'], outfile: 'dist/package/browser.js', bundle: true, format: 'esm', platform: 'browser', target: 'es2022', loader: { '.css': 'text' }, define: { 'process.env.NODE_ENV': '"production"' }, legalComments: 'eof', metafile: true }).then(async ({ metafile }) => writeFile('dist/build-inputs.json', JSON.stringify(metafile, null, 2)));
+for (const file of ['netcatty.plugin.json', 'LICENSE', 'NOTICE', 'README.md']) await cp(file, `dist/package/${file}`);
+await cp('assets', 'dist/package/assets', { recursive: true });
+await cp('licenses', 'dist/package/licenses', { recursive: true });
+const code = await readFile('dist/package/browser.js', 'utf8');
+if (/\b(?:eval|new Function)\(/.test(code)) throw new Error('Dynamic evaluation in plugin bundle');

@@ -1,0 +1,15 @@
+Netcatty Database 0.1.0-alpha.1
+Copyright 2026 Netcatty Database contributors. GPL-3.0-or-later.
+
+New workbench/domain/service code; no DBX code or assets copied.
+Netcatty SDK, contract and CLI are vendored from Netcatty base
+7949242765a07bc2e766cd04e69eff32cf666699 plus the local SQLite foundation
+changes documented in docs/provenance.md. They are GPL-3.0-or-later.
+Vendor tarballs include corresponding TypeScript source, generated contract,
+build configuration and GPL license. Package lock pins dependency integrity.
+
+React, React DOM, Scheduler and @remote-dom/core are bundled under their
+respective MIT licenses in licenses/. Simple Icons 16.23.0 SVGs are provided
+under CC0; brand rights are not waived. See assets/icon-ledger.json for official
+brand sources, upstream license metadata, hashes and exact modifications.
+The application does not imply endorsement by database vendors.
