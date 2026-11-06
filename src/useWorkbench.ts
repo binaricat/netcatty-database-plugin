@@ -4,7 +4,7 @@ import { parseParameters, ParameterError, DATABASE_FEATURE, defaultQuery, select
 import { translator, type Message } from './i18n';
 export const SAVED_FEATURE = 'database.saved-connections.v1';
 type Session = DatabaseOpenResult | DatabaseFileOpenResult;
-export type QueryTab = { id: number; sql: string; parameters: string; result: DatabaseQueryResult | null; objectName?: string; surface?: 'data' | 'structure' };
+export type QueryTab = { id: number; sql: string; parameters: string; result: DatabaseQueryResult | null; resultSql?: string; objectName?: string; surface?: 'data' | 'structure' };
 const target = (s: Session): DatabaseHandleRequest => ({ handleId: s.handleId, ...('revision' in s ? { revision: s.revision } : {}) });
 const initialTab = (id: number, schema: DatabaseSchemaResult | null): QueryTab => ({ id, ...defaultQuery(schema), result: null });
 export function useWorkbench(context: PluginContext) {
@@ -116,7 +116,7 @@ export function useWorkbench(context: PluginContext) {
     if (!live.current || !tab) return; const id = tab.id;
     edit({ result: null });
     const value = await context.database.query({ ...target(live.current), sql: tab.sql, parameters: parseParameters(tab.parameters), mode, maxRows: 100, timeoutMs: 3000 });
-    if (rev === epoch.current) setTabs((items) => items.map((item) => item.id === id ? { ...item, result: value } : item));
+    if (rev === epoch.current) setTabs((items) => items.map((item) => item.id === id ? { ...item, result: value, resultSql: tab.sql } : item));
   });
   return { t, locale, tabTitle, saved, session, connectedId, connectionName: session && !connectedId ? t('Disposable SQLite') : connectionName, schema, tabs, tab, activeTab, setActiveTab, addTab, closeTab, edit, busy, error, modal, setModal, draftSession, tested, hosts, theme, enabled, persistence, fileEnabled, dismiss, disconnect, selectSource, test, save, open, openUnsaved, remove, loadHosts, run };
 }

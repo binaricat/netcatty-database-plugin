@@ -1,6 +1,7 @@
 // Original plugin-owned copy. English source keys keep the fallback explicit.
 // Only the host environment selects language; never navigator/OS/input locale.
 export const zhCN = {
+  "Result type unavailable": "结果列类型不可用",
   "New Connection": "新建连接",
   "SQLite / disposable fixtures": "SQLite / 一次性测试数据",
   "Database categories": "数据库分类",

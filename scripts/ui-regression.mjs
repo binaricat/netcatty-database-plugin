@@ -240,6 +240,13 @@ try {
     await snapshot('05-commerce-structure');
     checks.push('real readonly customer structure shows columns/types/nullability/PK without mutation controls');
     await click('Data'); await click('Run read query'); assert.equal(document.querySelectorAll('.results tbody tr').length, 3);
+    assert.deepEqual([...document.querySelectorAll('.result-type')].map((n) => n.textContent), ['INTEGER', 'TEXT', 'TEXT', 'TEXT']);
+    await change('SQL statement', "SELECT 'arbitrary' AS id FROM customers");
+    assert.equal(document.querySelector('.result-type').textContent, 'INTEGER', 'unexecuted edits retain the displayed result provenance');
+    await click('Run read query');
+    assert.equal(document.querySelector('.result-type').textContent, '—', 'arbitrary SQL never inherits a same-named schema type');
+    await change('SQL statement', 'SELECT * FROM "main"."customers"'); await click('Run read query');
+    checks.push('generated SELECT headers use real schema types; unexecuted edits preserve result provenance; arbitrary SQL types remain unknown');
     await snapshot('06-commerce-data');
     await event(byLabel('Open table order_items'), { type: 'click' });
     assert.equal([...document.querySelectorAll('.structure tbody tr')].filter((row) => row.lastElementChild.textContent === 'Yes').length, 2);
