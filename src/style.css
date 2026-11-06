@@ -13,3 +13,9 @@
 .connection-filter { padding: 10px 12px 0; font-size: 10px; } .connection-filter input { padding: 5px 8px; }
 
 .connection-pages { display: flex; justify-content: space-between; align-items: center; gap: 5px; } .connection-pages button { padding: 3px 5px; font-size: 10px; }
+.tree-toggle { background: transparent; color: hsl(var(--foreground)); text-align: left; padding: 4px 0; width: 100%; overflow-wrap: anywhere; }
+.schema-filter { margin: 8px 0; font-size: 10px; } .schema-filter input { padding: 4px 6px; }
+.object-tabs { display: flex; gap: 4px; padding: 6px 12px; border-bottom: 1px solid hsl(var(--border)); }
+.object-tabs button { background: transparent; color: hsl(var(--foreground)); padding: 4px 10px; }
+.object-tabs button.active { background: hsl(var(--muted)); box-shadow: inset 0 -2px hsl(var(--primary)); }
+.structure { flex: 1; min-height: 260px; display: flex; flex-direction: column; overflow: hidden; }

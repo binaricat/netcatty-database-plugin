@@ -29,9 +29,16 @@ Use the synthetic memory database or **File Path > Host-selected SQLite file**.
 The M2 Linux chooser still accepts only regular rollback-mode `.sqlite`/`.db`
 fixtures with an ordinary `notes` table under
 `/workspace/agent-tools/database/m2-chooser/fixtures/`; no links or sidecars.
+The paired M3b host additionally admits synthetic multi-table files under
+`/workspace/agent-tools/database/m3b-multitable/fixtures/` with the same identity
+and readonly gates. `commerce.sqlite` there has four tables and `order_totals`.
 **Test** validates schema through the host. **Save & Connect** persists host-owned
 metadata, then opens the schema tree and SQL editor/results workspace. Select a
-table for a Data tab, or use **New Query**. A saved connection can be reopened
+table or view for readonly **Structure** (columns/type/nullable/primary key),
+switch to **Data** to run its SELECT, or use **New Query**. The tree has separate
+Tables/Views groups, expansion controls and object search. View nullability is
+shown as Unknown; schema editing and DDL/index/default inspection are unavailable.
+A saved connection can be reopened
 from the sidebar after close or restart; memory data starts fresh each time.
 Older hosts retain **Connect without saving** when persistence is unavailable.
 

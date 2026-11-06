@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
 import type { PluginContext, DatabaseOpenResult, DatabaseFileOpenResult, DatabaseHandleRequest, DatabaseSchemaResult, DatabaseSavedConnection, DatabaseHostList, DatabaseConnectionMeta, DatabaseQueryResult } from '@netcatty/plugin-sdk';
-import { parseParameters, DATABASE_FEATURE } from './domain';
+import { parseParameters, DATABASE_FEATURE, defaultQuery, selectObject } from './domain';
 export const SAVED_FEATURE = 'database.saved-connections.v1';
 type Session = DatabaseOpenResult | DatabaseFileOpenResult;
-export type QueryTab = { id: number; title: string; sql: string; parameters: string; result: DatabaseQueryResult | null };
+export type QueryTab = { id: number; title: string; sql: string; parameters: string; result: DatabaseQueryResult | null; objectName?: string; surface?: 'data' | 'structure' };
 const target = (s: Session): DatabaseHandleRequest => ({ handleId: s.handleId, ...('revision' in s ? { revision: s.revision } : {}) });
-const initialTab = (id: number): QueryTab => ({ id, title: `Query ${id}`, sql: 'SELECT id, title, status FROM notes WHERE status = ? ORDER BY id', parameters: '["open"]', result: null });
+const initialTab = (id: number, schema: DatabaseSchemaResult | null): QueryTab => ({ id, title: `Query ${id}`, ...defaultQuery(schema), result: null });
 export function useWorkbench(context: PluginContext) {
   const [saved, setSaved] = useState<DatabaseSavedConnection[]>([]);
   const [session, setSession] = useState<Session | null>(null);
@@ -70,7 +70,7 @@ export function useWorkbench(context: PluginContext) {
       await close(live.current);
       if (rev !== epoch.current) { await close(s); return; }
       live.current = s; setSession(s); setSchema(inspected); setConnectionName(name); setConnectedId(id);
-      nextTab.current = 2; setTabs([initialTab(1)]); setActiveTab(1); setModal(null);
+      nextTab.current = 2; setTabs([initialTab(1, inspected)]); setActiveTab(1); setModal(null);
       if (draft.current === s) { draft.current = null; setDraftSession(null); }
     } catch (e) { await close(s); if (draft.current === s) { draft.current = null; setDraftSession(null); setTested(false); } throw e; }
   };
@@ -96,9 +96,11 @@ export function useWorkbench(context: PluginContext) {
   const tab = tabs.find((item) => item.id === activeTab);
   const edit = (patch: Partial<QueryTab>) => setTabs((items) => items.map((item) => item.id === activeTab ? { ...item, ...patch } : item));
   const addTab = (table?: string) => {
+    const existing = table && tabs.find((item) => item.objectName === table);
+    if (existing) { setActiveTab(existing.id); return; }
     if (tabs.length >= 8) return;
-    const id = nextTab.current++; const item = initialTab(id);
-    if (table) { item.title = `Data: ${table}`; item.sql = `SELECT * FROM "${table.replaceAll('"', '""')}"`; item.parameters = '[]'; }
+    const id = nextTab.current++; const item = initialTab(id, schema);
+    if (table) { item.title = table; item.objectName = table; item.surface = 'structure'; item.sql = selectObject(table); item.parameters = '[]'; }
     setTabs((items) => [...items, item]); setActiveTab(id);
   };
   const closeTab = (id: number) => { const remaining = tabs.filter((t) => t.id !== id); setTabs(remaining); if (id === activeTab) setActiveTab(remaining[0]?.id ?? 0); };

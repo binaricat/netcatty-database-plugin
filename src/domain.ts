@@ -1,5 +1,12 @@
 import type { DatabaseScalar, DatabaseSchemaResult, PluginAIClient } from '@netcatty/plugin-sdk';
 export const DATABASE_FEATURE = 'database.sqlite-fixture.v1';
+export const selectObject = (name: string): string => `SELECT * FROM "main"."${name.replaceAll('"', '""')}"`;
+export function defaultQuery(schema: DatabaseSchemaResult | null): { sql: string; parameters: string } {
+  if (schema?.tables.some((t) => t.name === 'notes' && ['id', 'title', 'status'].every((name) => t.columns.some((c) => c.name === name)))) {
+    return { sql: 'SELECT id, title, status FROM notes WHERE status = ? ORDER BY id', parameters: '["open"]' };
+  }
+  return { sql: schema?.tables[0] ? selectObject(schema.tables[0].name) : 'SELECT 1', parameters: '[]' };
+}
 export const tasks = ['generate', 'explain', 'optimize', 'fix'] as const;
 export type Task = typeof tasks[number];
 export function parseParameters(text: string): DatabaseScalar[] {
