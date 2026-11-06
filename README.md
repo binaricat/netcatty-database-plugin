@@ -50,7 +50,7 @@ on every call. **Cancel / close** terminates the worker. Reads retain the
 20 rows, 8 columns and 256 characters per cell to fit host remote DOM limits.
 Connections are filtered and paged in groups of 20; host filtering up to 40 matches.
 
-**Load permitted hosts** requests `vault.metadata` and exposes only labels,
+**Advanced > Load permitted hosts** requests `vault.metadata` and exposes only labels,
 SSH addresses/usernames and metadata capability flags. A selected `hostId` is
 context metadata only; no tunnel, terminal or remote database opens. **Save
 password** is a synthetic credential-storage test, not SQLite encryption. The
