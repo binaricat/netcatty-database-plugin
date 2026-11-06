@@ -94,3 +94,24 @@ NETCATTY_HOST_ROOT=/workspace/netcatty-database-host npm run test:react
 The commerce fixture must exist at the host's already allowed
 `/workspace/agent-tools/database/m3b-multitable/fixtures/commerce.sqlite` path.
 Output defaults to `dist/react-regression/`; `NETCATTY_REACT_EVIDENCE` overrides it.
+
+### Synthetic tunnel probe (live SSH + PostgreSQL blocked)
+
+The optional `database.tunnel-test.synthetic.v1` capability adds **Test tunnel
+(synthetic)** in Advanced. The host needs both `NETCATTY_EXPERIMENTAL_DATABASE=1`
+and `NETCATTY_DATABASE_TUNNEL_SYNTHETIC=1`. Only a clearly labeled host-owned
+synthetic row can run the recorded adapter. Ordinary existing hosts stay metadata
+only, with the test button disabled. Selecting a row never connects.
+
+A passing probe means an in-process fixture passed and closed. It opens no SSH or
+PostgreSQL connection and cannot enable the PG/MySQL workbench. The host owns a
+random disposable adapter credential in SecretStore; repeat requests contain
+only host ID, revision and test ID, and results never include secret bytes. The
+optional SQLite saved password remains a separate storage test, not SSH auth.
+
+Live qualification is **BLOCKED**: Docker is unavailable, PostgreSQL server is
+not installed (client only), and installation is not authorized. No disposable
+SSH credentials were looked up or used. Next requires approval for a disposable
+local PostgreSQL package or provision of a pre-seeded local fixture with a server
+and task-owned SSH credentials. Synthetic React and host tests are not live or
+native SSH evidence.

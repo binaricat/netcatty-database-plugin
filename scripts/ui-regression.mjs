@@ -225,6 +225,60 @@ try {
   checks.push('saved-list permission failure localizes immediately and follows later host language changes');
 
 
+  // Synthetic tunnel UI regression lane: recorded outcomes only, no SSH sockets.
+  await language('en'); saved = []; hostCount = 2;
+  const metadataHosts = context.database.listHostsForDatabase;
+  context.database.listHostsForDatabase = async () => [...await metadataHosts(), {
+    hostId: 'synthetic-probe', label: 'Synthetic adapter (no SSH)', hostname: '127.0.0.1', port: 2222, username: 'smoketest',
+    capability: 'metadata-only', tunnelAvailable: false, tunnelTest: { kind: 'synthetic', revision: 'revision-one' },
+  }];
+  let probeOutcome = 'SYNTHETIC_OK'; let probeFinish; const probes = []; const cancelledProbes = [];
+  const probeResult = (code) => ({ code, status: code === 'SYNTHETIC_OK' ? 'synthetic-passed' : 'failed', synthetic: true, connected: false, closed: true, ...(code === 'SYNTHETIC_OK' ? { secretRef: 'opaque-synthetic-probe-reference' } : {}) });
+  context.database.testTunnel = async (request) => { probes.push(request); return probeOutcome === 'pending' ? new Promise((resolve) => { probeFinish = resolve; }) : probeResult(probeOutcome); };
+  context.database.cancelTunnelTest = async ({ testId }) => { cancelledProbes.push(testId); return null; };
+  await mount(); await click('New Connection'); await click('Next'); await click('Advanced'); await click('Load permitted hosts');
+  await change('Existing host', 'synthetic-probe'); assert.ok('disabled' in button('Test tunnel (synthetic)').attributes);
+  await unmount(); features.add('database.tunnel-test.synthetic.v1');
+  await mount(); await click('New Connection'); await click('Next'); await click('Advanced'); await click('Load permitted hosts');
+  await change('Existing host', 'host-1'); assert.ok('disabled' in button('Test tunnel (synthetic)').attributes);
+  const opensBeforeProbe = opens;
+  await change('Existing host', 'synthetic-probe'); assert.equal(probes.length, 0);
+  assert.match(document.body.textContent, /Active connections: 0/); assert.match(document.body.textContent, /No tunnel test has run/);
+  await click('Test tunnel (synthetic)'); assert.match(document.body.textContent, /Synthetic tunnel test passed. No SSH or PostgreSQL connection was opened/);
+  assert.equal(opens, opensBeforeProbe); assert.match(document.body.textContent, /Active connections: 0/);
+  assert.deepEqual(Object.keys(probes[0]).sort(), ['hostId', 'revision', 'testId']);
+  assert.doesNotMatch(JSON.stringify(tree), /opaque-synthetic-probe-reference/);
+  await snapshot('tunnel-synthetic-passed-not-connected');
+  await click('+ New Connection'); await click('Next'); await click('Advanced');
+  assert.match(document.body.textContent, /No tunnel test has run/);
+  await change('Existing host', 'synthetic-probe');
+  for (const [code, text] of [['AUTH_FAILED', /Synthetic tunnel authentication failed/], ['UNKNOWN_HOST_KEY', /Unknown host key/], ['HOST_KEY_MISMATCH', /Host key mismatch/]]) {
+    probeOutcome = code; await click('Test tunnel (synthetic)'); assert.match(document.body.textContent, text);
+    assert.match(document.body.textContent, /Active connections: 0/);
+    if (code === 'AUTH_FAILED') await snapshot('tunnel-synthetic-wrong-auth');
+  }
+  probeOutcome = 'pending'; await click('Test tunnel (synthetic)'); await click('Cancel tunnel test');
+  assert.equal(cancelledProbes.at(-1), probes.at(-1).testId);
+  assert.match(document.body.textContent, /Tunnel test cancellation requested/);
+  await act(async () => { probeFinish(probeResult('SYNTHETIC_OK')); await tick(); });
+  assert.doesNotMatch(document.body.textContent, /Synthetic tunnel test passed/);
+  await click('Test tunnel (synthetic)'); await change('Existing host', 'host-1');
+  await act(async () => { probeFinish(probeResult('SYNTHETIC_OK')); await tick(); });
+  assert.match(document.body.textContent, /No tunnel test has run/);
+  await change('Existing host', 'synthetic-probe'); probeOutcome = 'SYNTHETIC_OK';
+  await language('zh-CN'); await click('测试隧道（模拟）'); assert.match(document.body.textContent, /模拟隧道测试通过。未建立 SSH 或 PostgreSQL 连接/);
+  probeOutcome = 'AUTH_FAILED'; await click('测试隧道（模拟）'); assert.match(document.body.textContent, /模拟隧道身份验证失败/);
+  await snapshot('tunnel-synthetic-zh-CN-failure');
+  await language('en'); probeOutcome = 'pending'; await click('Test tunnel (synthetic)'); await click('Close');
+  assert.equal(cancelledProbes.at(-1), probes.at(-1).testId);
+  await act(async () => { probeFinish(probeResult('SYNTHETIC_OK')); await tick(); });
+  assert.match(document.body.textContent, /Active connections: 0/); assert.equal(opens, opensBeforeProbe);
+  await click('New Connection'); await click('Next'); await click('Advanced'); await click('Load permitted hosts'); await change('Existing host', 'synthetic-probe');
+  await click('Test tunnel (synthetic)'); await unmount(); assert.equal(cancelledProbes.at(-1), probes.at(-1).testId);
+  await act(async () => { probeFinish(probeResult('SYNTHETIC_OK')); await tick(); });
+  features.delete('database.tunnel-test.synthetic.v1'); context.database.listHostsForDatabase = metadataHosts;
+  checks.push('synthetic tunnel feature gate, metadata-only selection, recorded success without connection, wrong auth/key failures, cancellation and stale completion, secretRef-only requests, zh-CN, close and unmount cleanup');
+
   // The new multi-table lane uses the real host registry/service/subprocess.
   // Only native chooser and permission decisions are injected for this fixture.
   const { PluginSqliteFixtureService } = host('./electron/plugins/sqliteFixtureService.cjs');

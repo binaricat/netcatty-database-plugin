@@ -25,7 +25,8 @@
     "optional": [
       "database.sqlite-fixture.v1",
       "database.sqlite-file-fixture.v1",
-      "database.saved-connections.v1"
+      "database.saved-connections.v1",
+      "database.tunnel-test.synthetic.v1"
     ]
   },
   "main": {
@@ -43,7 +44,8 @@
         "permission": "database.query.read",
         "resources": [
           "sqlite:synthetic-notes",
-          "sqlite:disposable-file"
+          "sqlite:disposable-file",
+          "database-tunnel:synthetic-loopback"
         ],
         "reason": "Read synthetic memory or a host-selected disposable SQLite file / 读取模拟内存数据库或宿主选择的一次性 SQLite 文件"
       },

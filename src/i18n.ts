@@ -1,6 +1,21 @@
 // Original plugin-owned copy. English source keys keep the fallback explicit.
 // Only the host environment selects language; never navigator/OS/input locale.
 export const zhCN = {
+  "Test tunnel (synthetic)": "测试隧道（模拟）",
+  "Cancel tunnel test": "取消隧道测试",
+  "Synthetic adapter only. Live SSH and PostgreSQL are unavailable; selecting a host never connects.": "仅支持模拟适配器。真实 SSH 和 PostgreSQL 不可用；选择主机不会建立连接。",
+  "No tunnel test has run.": "尚未运行隧道测试。",
+  "Testing synthetic tunnel adapter...": "正在测试模拟隧道适配器…",
+  "Synthetic tunnel test passed. No SSH or PostgreSQL connection was opened.": "模拟隧道测试通过。未建立 SSH 或 PostgreSQL 连接。",
+  "Synthetic tunnel authentication failed.": "模拟隧道身份验证失败。",
+  "Unknown host key. Tunnel test refused.": "未知主机密钥，已拒绝隧道测试。",
+  "Host key mismatch. Tunnel test refused.": "主机密钥不匹配，已拒绝隧道测试。",
+  "This host is not an allowed tunnel fixture.": "此主机不在隧道测试的允许范围内。",
+  "Host selection changed. Reload hosts and test again.": "主机选择已变更，请重新加载主机后测试。",
+  "Tunnel test cancellation requested.": "已请求取消隧道测试。",
+  "Tunnel test timed out.": "隧道测试超时。",
+  "Tunnel test unavailable. Check host permissions and secure storage.": "隧道测试不可用，请检查宿主权限与安全存储。",
+  "Tunnel testing is unavailable for this metadata-only host.": "此主机仅提供元数据，不支持隧道测试。",
   "Result type unavailable": "结果列类型不可用",
   "New Connection": "新建连接",
   "SQLite / disposable fixtures": "SQLite / 一次性测试数据",
