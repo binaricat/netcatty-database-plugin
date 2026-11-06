@@ -4,14 +4,18 @@ The plugin publishes React UI through Netcatty SDK `registerHostReactView`.
 React executes in the offline plugin sandbox and host code validates and renders
 the remote DOM. No iframe, Vue, Tauri, raw IPC, Node builtins or direct network
 is present in plugin source. Host theme tokens and package SVG resources drive
-the UI. The plain textarea/table are intentionally bounded M0 controls, not a
+the UI. The plain textarea/table are intentionally bounded fixture controls, not a
 rich SQL editor or virtual result grid.
 
 The SDK database interface is generated from the host contract and exposed by
 the runtime peer. `database.sqlite-fixture.v1` is optional so a default host can
-show an honest unavailable state. Host AI invocation is required because the
-current package validator requires its feature whenever `ai.invoke` is declared;
-provider availability remains a runtime condition and no provider is fabricated.
+show an honest unavailable state. The optional
+`database.saved-connections.v1` adds a host JSON store of source-owned metadata.
+Saving derives the target from a live handle; no plugin-supplied path is accepted.
+`PluginSecretStore` holds ciphertext separately using Electron safeStorage and
+rejects unavailable/basic-text backends. Only opaque references reach results.
+The UI state/lifecycle lives in `useWorkbench`; components render the shell.
+AI features/permissions are absent from this milestone's manifest.
 
 The host alone starts a fixed SQLite subprocess with an in-memory fixture or
 an M2 host-chosen disposable file. It
@@ -30,13 +34,10 @@ before broadening the target surface.
 
 ## AI boundary
 
-Schema sharing is off until a connected schema is explicitly selected. Prompts
-include task, SQLite dialect, actual schema, selected SQL and user request as
-bounded untrusted JSON. Row values and credentials are excluded. Generate,
-explain, optimize and fix share the existing host openChat/startTurn/readTurn/
-stopTurn/closeChat transport. Streams are bounded, sequence checked, cancellable
-and invalidated after close. Output stays in a separate unexecuted draft panel.
-There is no automatic insertion or execution, and no hidden EXPLAIN ANALYZE.
+M3 uses only a local mock draft. No schema, SQL, rows or credentials are sent
+to a provider. Earlier bounded stream/prompt helpers remain as mock-tested
+library code, disconnected from the workbench. Real-provider acceptance is
+outside this milestone.
 
 ## Extension path
 
@@ -70,3 +71,25 @@ pass; the native open pathname race/ABA window against a hostile local writer
 is not solved. Concurrent sidecars, WAL readers/writers, hostile/corrupt files,
 resource quotas and general schemas remain production gates. The M2 tests use
 only generated disposable files and mock AI; no user files or live AI are used.
+
+## M3 saved connections
+
+The host stores version-1 JSON at `userData/plugins/database-connections.json`.
+Entries carry the host's source owner, non-secret metadata, and for files the
+original canonical identity tuple. Listing strips private target/owner fields;
+reopen repeats feature, owner, read permission and file checks. New runtime
+handles and revisions are issued. Memory contents and active sessions are not
+persisted. Metadata writes use an exclusive staging file and atomic rename.
+Credentials use a host-generated `database-connection:<id>` secret key and are
+never decrypted by this service. Delete removes the associated credential.
+
+The host metadata adapter reuses the existing authenticated renderer vault
+bridge for `host.list`, then allowlists only id/label/hostname/port/username.
+It gates disclosure and save-time host binding with `vault.metadata` and repeats
+runtime/source checks after awaited work. No script execution, tunnel, network
+connection or host credential resolution is part of this path.
+
+UI results and choice lists are bounded for the host's 1024-node remote DOM
+limit. Notes-only schema is unchanged; Views explicitly reports zero exposed
+views. Advanced settings, history, structure and ER are unavailable. Stale labels
+after a host timeout still require Close/reopen; host authority is already gone.

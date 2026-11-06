@@ -24,22 +24,37 @@ advanced plugin mode is needed. This milestone requires the host changes on
 explicitly synthetic test launch set `NETCATTY_EXPERIMENTAL_DATABASE=1`.
 A normal host keeps the console visible but its database controls unavailable.
 
-Open the Database Vault page, select **Open synthetic SQLite**, and approve the
-read permission. The host creates three clearly synthetic notes in memory.
-Run uses bound parameters and returns actual SQLite results. **Review write**
-requires a separate native review of exact SQL and parameter values on every
-call, even if the generic write permission is Allow. Cancellation closes the
-worker and discards the fixture. On an M2 Linux host, **Open SQLite file...** invokes a host chooser for read-only
-files in `/workspace/agent-tools/database/m2-chooser/fixtures/` only. Fixtures must
-be regular rollback-mode `.sqlite`/`.db` files with an ordinary `notes` table,
-no links and no WAL/SHM/journal sidecars. Cancel leaves the workbench disconnected.
-Files are never writable through this API. Arbitrary user paths, credentials,
-network connections, transactions, DDL and import/export remain unavailable.
+Open the Database Vault page and choose **New Connection > SQLite > Next**.
+Use the synthetic memory database or **File Path > Host-selected SQLite file**.
+The M2 Linux chooser still accepts only regular rollback-mode `.sqlite`/`.db`
+fixtures with an ordinary `notes` table under
+`/workspace/agent-tools/database/m2-chooser/fixtures/`; no links or sidecars.
+**Test** validates schema through the host. **Save & Connect** persists host-owned
+metadata, then opens the schema tree and SQL editor/results workspace. Select a
+table for a Data tab, or use **New Query**. A saved connection can be reopened
+from the sidebar after close or restart; memory data starts fresh each time.
+Older hosts retain **Connect without saving** when persistence is unavailable.
 
-AI generate/explain/optimize/fix uses Netcatty's existing bounded host streaming.
-Connect first, inspect schema, and explicitly choose to share schema/SQL/request.
-No result rows are sent. A configured host model and AI permission are required.
-Output remains labeled **Unexecuted AI draft** and never runs automatically.
+The host rechecks source ownership, permission and recorded file identity on
+reopen. Changed files require selecting and saving again. File writes are
+unavailable. Memory **Review write** requires exact native SQL/parameter review
+on every call. **Cancel / close** terminates the worker. Reads retain the
+100-row / 96 KiB / 3-second host budgets; the rendered preview shows at most
+20 rows, 8 columns and 256 characters per cell to fit host remote DOM limits.
+Connections are filtered and paged in groups of 20; host filtering up to 40 matches.
+
+**Load permitted hosts** requests `vault.metadata` and exposes only labels,
+SSH addresses/usernames and metadata capability flags. A selected `hostId` is
+context metadata only; no tunnel, terminal or remote database opens. **Save
+password** is a synthetic credential-storage test, not SQLite encryption. The
+host requires `secrets` permission and an OS-backed keychain; it returns only a
+`secretRef`. The input is cleared when save is attempted, including failures.
+Connection metadata mutations require `storage` permission. No real credentials
+or user databases are qualified by this release.
+
+The secondary **AI SQL assistant / mock only** panel emits one local unexecuted
+example. The manifest requests no AI feature or permission, and the workbench
+never calls a model. The existing stream helper remains covered by mock tests.
 
 PostgreSQL and MySQL are named roadmap targets with icons, not active drivers.
 See docs/architecture.md, docs/qualification.md and docs/provenance.md.

@@ -1,7 +1,7 @@
 import { packPlugin, validateTarget, checkPluginCompatibility } from '@netcatty/plugin-cli';
 import { writeFile } from 'node:fs/promises';
 const stage = await validateTarget('dist/package');
-const supported = ['views.host-drawn', 'views.vault-pages', 'database.sqlite-fixture.v1', 'database.sqlite-file-fixture.v1', 'ai.model-invocation'];
+const supported = ['views.host-drawn', 'views.vault-pages', 'database.sqlite-fixture.v1', 'database.sqlite-file-fixture.v1', 'database.saved-connections.v1'];
 for (const features of [supported, supported.filter((f) => f !== "database.sqlite-file-fixture.v1"), supported.filter((f) => !f.startsWith("database."))]) {
   const result = checkPluginCompatibility(stage.manifest, { netcattyVersion: '0.0.0', apiVersion: '0.1.0-internal.1', features });
   if (!result.compatible) throw new Error(result.errors.join('\n'));

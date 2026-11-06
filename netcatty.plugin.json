@@ -3,7 +3,7 @@
   "id": "com.binaricat.netcatty-database",
   "name": "netcatty-database",
   "displayName": "Netcatty Database",
-  "description": "Experimental SQL workbench with host-owned disposable SQLite and AI drafts.",
+  "description": "Experimental SQLite workbench with host-owned saved connections and mock-only SQL drafts.",
   "version": "0.1.0-alpha.1",
   "publisher": "binaricat",
   "license": "GPL-3.0-or-later",
@@ -14,12 +14,12 @@
   "features": {
     "required": [
       "views.host-drawn",
-      "views.vault-pages",
-      "ai.model-invocation"
+      "views.vault-pages"
     ],
     "optional": [
       "database.sqlite-fixture.v1",
-      "database.sqlite-file-fixture.v1"
+      "database.sqlite-file-fixture.v1",
+      "database.saved-connections.v1"
     ]
   },
   "main": {
@@ -48,7 +48,9 @@
         ],
         "reason": "Review each write to disposable synthetic SQLite"
       },
-      "ai.invoke"
+      "storage",
+      "vault.metadata",
+      "secrets"
     ]
   },
   "contributes": {

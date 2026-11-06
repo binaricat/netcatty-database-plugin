@@ -1,81 +1,60 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { definePlugin, type PluginContext, type DatabaseOpenResult, type DatabaseFileOpenResult, type DatabaseHandleRequest, type DatabaseQueryResult, type DatabaseSchemaResult } from '@netcatty/plugin-sdk';
+import React, { useState } from 'react';
+import { definePlugin, type PluginContext, type DatabaseConnectionMeta } from '@netcatty/plugin-sdk';
 import { registerHostReactView } from '@netcatty/plugin-sdk/host-react';
-import { DATABASE_FEATURE, DraftStream, buildPrompt, parseParameters, tasks, type Task } from './domain';
+import { useWorkbench } from './useWorkbench';
 import css from './style.css';
+type Model = ReturnType<typeof useWorkbench>;
+const colors: DatabaseConnectionMeta['color'][] = ['default', 'blue', 'green', 'purple', 'orange'];
+function ConnectionDialog({ vm }: { vm: Model }) {
+  const [page, setPage] = useState<'connection' | 'advanced'>('connection');
+  const [name, setName] = useState('Synthetic SQLite'); const [color, setColor] = useState<DatabaseConnectionMeta['color']>('default');
+  const [source, setSource] = useState<'memory' | 'file'>('memory');
+  const [hostId, setHostId] = useState(''); const [hostFilter, setHostFilter] = useState(''); const [savePassword, setSavePassword] = useState(false); const [password, setPassword] = useState('');
+  const ready = source === 'memory' || Boolean(vm.draftSession && 'readOnly' in vm.draftSession);
+  return <div className="modal-shade"><section className="modal" role="dialog" aria-modal="true" aria-label="New Connection">
+    <header className="modal-heading"><h2>New Connection</h2><span>SQLite / disposable fixtures</span></header>
+    {vm.modal === 'picker' ? <><div className="type-picker"><nav aria-label="Database categories"><strong>Database Types</strong><p>Relational</p><p className="selected-category">Lightweight</p></nav><div className="type-list"><h3>Lightweight</h3><button className="type-option selected" onClick={() => vm.setModal('connection')}><strong>SQLite</strong><small>Embedded / disposable fixtures</small></button><h3>Relational</h3>{['PostgreSQL', 'MySQL'].map((engine) => <button key={engine} className="type-option" disabled><strong>{engine}</strong><small>Driver not implemented</small></button>)}</div></div><footer className="modal-footer"><span>Selected: SQLite</span><button onClick={() => vm.setModal('connection')}>Next</button><button className="secondary" onClick={() => void vm.dismiss()}>Close</button></footer></> : <>
+      <nav className="modal-tabs" aria-label="Connection settings"><button className={page === 'connection' ? 'active' : ''} onClick={() => setPage('connection')}>Connection</button><button className={page === 'advanced' ? 'active' : ''} onClick={() => setPage('advanced')}>Advanced</button></nav>
+      <div className="modal-content">{page === 'connection' ? <>
+        <label>Name<input aria-label="Connection name" value={name} maxLength={128} disabled={vm.busy} onChange={(e) => setName(e.currentTarget.value)} /></label>
+        <div className="form-row"><label>Type<input value="SQLite" readOnly /></label><div><span className="field-label">Color</span><div className="swatches">{colors.map((c) => <button key={c} aria-label={`Color ${c}`} aria-pressed={color === c} className={`swatch color-${c} ${color === c ? 'chosen' : ''}`} onClick={() => setColor(c)} />)}</div></div></div>
+        <label>File Path<select aria-label="SQLite source" value={source} disabled={vm.busy} onChange={(e) => { const file = e.currentTarget.value === 'file'; setSource(file ? 'file' : 'memory'); void vm.selectSource(file); }}><option value="memory">:memory: - disposable synthetic notes</option><option value="file" disabled={!vm.fileEnabled}>Host-selected SQLite file (read-only)</option></select></label>
+        {source === 'file' && <div className="file-choice"><span>{ready ? vm.draftSession?.label : 'No file selected'}</span><button className="secondary" disabled={!vm.fileEnabled || vm.busy} onClick={() => void vm.selectSource(true)}>Choose file...</button></div>}
+        <p className="hint">The host accepts only M2 disposable fixtures. File paths stay with the host. Memory data resets on every open.</p>
+        <label>Filter hosts<input aria-label="Filter hosts" value={hostFilter} maxLength={128} onChange={(e) => setHostFilter(e.currentTarget.value)} /></label><label>Existing host (optional SSH context)<select aria-label="Existing host" disabled={vm.busy} value={hostId} onChange={(e) => setHostId(e.currentTarget.value)}><option value="">None - local SQLite</option>{vm.hosts.filter((h) => `${h.label} ${h.hostname}`.toLowerCase().includes(hostFilter.toLowerCase()) || h.hostId === hostId).slice(0, 40).map((h) => <option key={h.hostId} value={h.hostId}>{`${h.label.slice(0, 100)} / ${h.username.slice(0, 40)}@${h.hostname.slice(0, 100)}:${h.port}`}</option>)}</select></label>
+        <button className="secondary" disabled={!vm.persistence || vm.busy} onClick={() => void vm.loadHosts()}>Load permitted hosts</button><p className="hint">Up to 40 matches shown; filter to narrow the list. Metadata only. Choosing an SSH host does not open a tunnel or make it the database.</p>
+        <label className="check"><input type="checkbox" checked={savePassword} disabled={!vm.persistence || vm.busy} onChange={(e) => { setSavePassword(e.currentTarget.checked); setPassword(''); }} />Save password</label>
+        {savePassword && <label>Synthetic credential (storage test only)<input type="password" aria-label="Synthetic password" autoComplete="off" value={password} maxLength={4096} disabled={vm.busy} onChange={(e) => setPassword(e.currentTarget.value)} /></label>}
+        <p className="hint">SQLite needs no password. Optional synthetic credentials use host OS encryption and return only an opaque secretRef; no SQLCipher or remote authentication.</p>
+      </> : <div className="advanced"><h3>Connection limits</h3><p>100 rows / 96 KiB / 3 seconds / 8 KiB SQL</p><h3>Transport and encryption</h3><p>SSH tunnels, TLS, SQLite encryption and extensions are unavailable in this fixture release.</p><h3>Advanced settings</h3><p>No additional settings are implemented.</p></div>}
+      <p role="status" className="test-status">{vm.tested ? 'Connection successful - host schema validated' : 'Test the selected fixture before connecting.'}</p>
+      {vm.error && <p className="error" role="alert">{vm.error}</p>}</div>
+      <footer className="modal-footer"><button className="secondary" disabled={!ready || vm.busy} onClick={() => void vm.test()}>Test</button><button disabled={!ready || vm.busy || !name.trim() || (savePassword && !password)} onClick={() => { const secret = savePassword ? password : undefined; setPassword(''); if (vm.persistence) void vm.save({ name: name.trim(), color, ...(hostId ? { hostId } : {}) }, secret); else void vm.openUnsaved(); }}>{vm.persistence ? 'Save & Connect' : 'Connect without saving'}</button><button className="secondary" disabled={vm.busy} onClick={() => void vm.dismiss()}>Close</button></footer>
+    </>}
+  </section></div>;
+}
 function Workbench({ context }: { context: PluginContext }) {
-  const [session, setSession] = useState<DatabaseOpenResult | DatabaseFileOpenResult | null>(null);
-  const [schema, setSchema] = useState<DatabaseSchemaResult | null>(null);
-  const [sql, setSql] = useState('SELECT id, title, status FROM notes WHERE status = ? ORDER BY id');
-  const [parameters, setParameters] = useState('["open"]');
-  const [result, setResult] = useState<DatabaseQueryResult | null>(null);
-  const [busy, setBusy] = useState(false); const [error, setError] = useState('');
-  const [task, setTask] = useState<Task>('generate'); const [request, setRequest] = useState('');
-  const [share, setShare] = useState(false); const [draft, setDraft] = useState(''); const [aiBusy, setAiBusy] = useState(false);
-  const [theme, setTheme] = useState(context.environment.theme);
-  const handle = useRef<DatabaseHandleRequest | null>(null); const revision = useRef(0); const ai = useRef(new DraftStream(context.ai));
-  useEffect(() => {
-    const sub = context.environment.onDidChange(() => setTheme(context.environment.theme));
-    return () => { revision.current++; sub.dispose(); void ai.current.stop(); if (handle.current) void context.database.close(handle.current).catch(() => {}); };
-  }, [context]);
-  const enabled = context.enabledFeatures.has(DATABASE_FEATURE);
-  const reset = async () => {
-    revision.current++; const id = handle.current; handle.current = null;
-    setSession(null); setSchema(null); setResult(null); setShare(false); setDraft(''); setBusy(false); setAiBusy(false); await ai.current.stop();
-    if (id) await context.database.close(id).catch(() => {});
-  };
-  const connect = async (file = false) => {
-    setBusy(true); setError(''); const rev = revision.current;
-    try {
-      const opened = file ? await context.database.openSqliteFile({}) : await context.database.openFixture({});
-      if (!opened) return;
-      const target = { handleId: opened.handleId, ...("revision" in opened ? { revision: opened.revision } : {}) };
-      if (rev !== revision.current) { await context.database.close(target); return; }
-      handle.current = target; setSession(opened);
-      const inspected = await context.database.readSchema(target);
-      if (rev === revision.current) setSchema(inspected);
-    } catch (e) { if (rev === revision.current) { setError(e instanceof Error ? e.message : 'Database connection failed'); await reset(); } }
-    finally { if (rev === revision.current) setBusy(false); }
-  };
-  const run = async (mode: 'read' | 'write') => {
-    if (!session || !handle.current || busy) return; const rev = revision.current; setBusy(true); setError(''); setResult(null);
-    try { const value = await context.database.query({ ...handle.current, sql, parameters: parseParameters(parameters), mode, maxRows: 100, timeoutMs: 3000 }); if (rev === revision.current) setResult(value); }
-    catch (e) { if (rev === revision.current) setError(e instanceof Error ? e.message : 'Query failed'); }
-    finally { if (rev === revision.current) setBusy(false); }
-  };
-  const ask = async () => {
-    if (!share || !schema || aiBusy) return; setAiBusy(true); setDraft(''); setError(''); const rev = revision.current;
-    try { await ai.current.run(buildPrompt(task, schema, sql, request), (text) => { if (rev === revision.current) setDraft(text); }); }
-    catch (e) { if (rev === revision.current) setError(e instanceof Error ? e.message : 'Host AI unavailable'); }
-    finally { if (rev === revision.current) setAiBusy(false); }
-  };
-  const icon = (engine: string) => `asset:assets/icons/${engine}-${theme === 'light' ? 'light' : 'dark'}.svg`;
+  const vm = useWorkbench(context); const [connectionFilter, setConnectionFilter] = useState(''); const [connectionPage, setConnectionPage] = useState(0);
+  const matches = vm.saved.filter((c) => c.name.toLowerCase().includes(connectionFilter.toLowerCase()));
+  const page = Math.min(connectionPage, Math.max(0, Math.ceil(matches.length / 20) - 1)); const [draft, setDraft] = useState(''); const [showAI, setShowAI] = useState(false);
+  const result = vm.tab?.result;
+  const icon = `asset:assets/icons/sqlite-${vm.theme === 'light' ? 'light' : 'dark'}.svg`;
   return <main className="database-workbench">
-    <header><div><p className="eyebrow">NETCATTY / DATABASE LAB</p><h1>Database workbench</h1><p>Explore a disposable SQLite database. Keep execution and AI drafts under your control.</p></div><span className="badge">M2 · EXPERIMENTAL</span></header>
-    <div className="layout"><aside>
-      <h2>Connections</h2><section className="engine selected"><img src={icon('sqlite')} alt="SQLite" width="28" height="28"/><div><strong>SQLite</strong><small>Disposable fixtures only</small></div></section>
-      {['postgresql', 'mysql'].map((engine) => <section className="engine unavailable" key={engine}><img src={icon(engine)} alt={engine} width="28" height="28"/><div><strong>{engine === 'postgresql' ? 'PostgreSQL' : 'MySQL'}</strong><small>Driver not implemented</small></div></section>)}
-      <p className="hint">File chooser accepts only host-approved disposable fixtures. User databases and remote connections remain unavailable.</p>
-      <h2>Schema</h2>{schema ? schema.tables.map((table) => <div className="schema" key={table.name}><strong>{table.name}</strong>{table.columns.map((column) => <small key={column.name}>{column.primaryKey ? 'PK · ' : ''}{column.name}<span>{column.type}</span></small>)}</div>) : <p className="hint">Connect to inspect actual schema.</p>}
+    <header className="app-toolbar"><strong className="brand"><img src={icon} alt="" width="20" height="20" />Database</strong><button className="toolbar-button" disabled={!vm.enabled || vm.busy} onClick={() => vm.setModal('picker')}>+ New Connection</button><button className="toolbar-button" disabled={!vm.session || vm.busy || vm.tabs.length >= 8} onClick={() => vm.addTab()}>+ New Query</button><span className="experimental">M3 / EXPERIMENTAL</span></header>
+    <div className="shell"><aside className="connection-sidebar"><div className="sidebar-heading"><strong>Connections</strong><span>{vm.saved.length}</span></div><p className="sidebar-status">Active connections: {vm.session ? 1 : 0}</p>
+      <label className="connection-filter">Filter connections<input aria-label="Filter connections" value={connectionFilter} maxLength={128} onChange={(e) => { setConnectionFilter(e.currentTarget.value); setConnectionPage(0); }} /></label><div className="connection-list">{vm.saved.length ? matches.slice(page * 20, (page + 1) * 20).map((c) => <div key={c.id} className={`saved-connection ${vm.connectedId === c.id ? 'selected' : ''}`}><button className="connection-name" disabled={vm.busy || vm.connectedId === c.id} onClick={() => void vm.open(c)}><span className={`color-dot color-${c.color}`} /><span>{c.name}</span></button><button className="delete-connection" aria-label={`Delete ${c.name}`} disabled={vm.busy} onClick={() => void vm.remove(c.id)}>x</button></div>) : <p className="empty-sidebar">No connections yet</p>}</div>
+      {vm.session && <div className="schema-tree"><div className="tree-connection"><img src={icon} alt="SQLite" width="16" height="16" /><strong>{vm.connectionName}</strong></div><div className="database-node"><strong>main</strong><div className="tree-group">Tables <span>{vm.schema?.tables.length ?? 0}</span></div>{vm.schema?.tables.map((table) => <div key={table.name} className="table-node"><button disabled={vm.busy || vm.tabs.length >= 8} onClick={() => vm.addTab(table.name)}>{table.name}</button>{table.columns.slice(0, 8).map((c) => <small key={c.name}>{c.primaryKey ? 'PK ' : ''}{c.name}<span>{c.type}</span></small>)}{table.columns.length > 8 && <small>First 8 of {table.columns.length} columns</small>}</div>)}<div className="tree-group">Views <span>0</span></div><small>No views exposed by fixture service</small><div className="tree-group">Queries <span>{vm.tabs.length}</span></div></div></div>}
+      <div className="sidebar-footer">{matches.length > 20 && <div className="connection-pages"><button className="secondary" aria-label="Previous connections" disabled={page === 0} onClick={() => setConnectionPage(page - 1)}>Previous</button><span>{page + 1} / {Math.ceil(matches.length / 20)}</span><button className="secondary" aria-label="Next connections" disabled={(page + 1) * 20 >= matches.length} onClick={() => setConnectionPage(page + 1)}>Next</button></div>}SQLite fixtures only{vm.session && <><span>{'readOnly' in vm.session ? 'Read-only file' : 'Disposable memory'}</span><button className="secondary" disabled={vm.busy} onClick={() => void vm.disconnect()}>Close connection</button></>}</div>
     </aside><section className="workspace">
-      <section className="connection"><div><strong>{session ? `Connected · ${session.label}` : 'No database connected'}</strong><p>{enabled ? 'readOnly' in (session ?? {}) ? 'Read-only file fixture. Writes are unavailable.' : 'Memory changes are discarded on close. File fixtures open read-only.' : 'Host SQLite experiment is disabled or unavailable. No query will execute.'}</p></div>{session ? <button disabled={busy} onClick={() => void reset()}>Close fixture</button> : <div className="actions"><button disabled={!enabled || busy} onClick={() => void connect()}>Open synthetic SQLite</button><button disabled={!enabled || busy || !context.enabledFeatures.has('database.sqlite-file-fixture.v1')} onClick={() => void connect(true)}>Open SQLite file…</button></div>}</section>
-      <section className="editor"><div className="section-title"><h2>SQL editor</h2><span>SQLite · positional parameters · one statement</span></div><label>Statement<textarea aria-label="SQL statement" value={sql} maxLength={8192} onChange={(e) => setSql(e.currentTarget.value)} /></label>
-        <label>Bound parameters (JSON array)<input aria-label="SQL parameters" value={parameters} maxLength={8192} onChange={(e) => setParameters(e.currentTarget.value)} /></label>
-        <div className="actions"><button disabled={!session || busy} onClick={() => void run('read')}>Run read query</button><button className="secondary" disabled={!session || busy || 'readOnly' in session} onClick={() => void run('write')}>Review write…</button><button className="secondary" disabled={!session} onClick={() => void reset()}>Cancel / close fixture</button><small>100 rows · 96 KiB · 3 seconds</small></div>
-      </section>
-      {error && <p className="error" role="alert">{error}</p>}
-      <section className="results"><div className="section-title"><h2>Results</h2><span role="status">{busy ? 'Waiting for host…' : result ? `${result.rows.length} rows · ${result.changes} changes · ${result.elapsedMs} ms${result.truncated ? ' · truncated preview' : ''}` : 'Nothing executed'}</span></div>
-        {result?.columns.length ? <div className="table-scroll"><table><thead><tr>{result.columns.slice(0, 8).map((col, i) => <th key={i}>{col}</th>)}</tr></thead><tbody>{result.rows.slice(0, 20).map((row, i) => <tr key={i}>{row.slice(0, 8).map((cell, j) => <td key={j}>{cell === null ? 'NULL' : String(cell)}</td>)}</tr>)}</tbody></table><p className="hint">Table preview: up to 20 rows and 8 columns.</p></div> : <p className="hint">{result ? 'Statement completed. No result rows.' : 'Run an explicit query to see real SQLite results here.'}</p>}
-      </section>
-      <section className="ai"><div className="section-title"><h2>AI SQL assistant</h2><span>Host model · text only</span></div>
-        <label>Task<select aria-label="AI SQL task" value={task} onChange={(e) => setTask(e.currentTarget.value as Task)}>{tasks.map((v) => <option key={v} value={v}>{v}</option>)}</select></label>
-        <label>Request<textarea aria-label="AI SQL request" rows={2} maxLength={1500} value={request} onChange={(e) => setRequest(e.currentTarget.value)} placeholder="Describe the query, explanation or correction you need" /></label>
-        <label className="check"><input type="checkbox" checked={share} disabled={!schema} onChange={(e) => setShare(e.currentTarget.checked)} />Share the inspected notes schema, SQL and request with the configured host model. No result rows.</label>
-        <div className="actions"><button disabled={!schema || !share || aiBusy || !context.enabledFeatures.has('ai.model-invocation')} onClick={() => void ask()}>Create AI draft</button><button className="secondary" disabled={!aiBusy} onClick={() => { void ai.current.stop(); setAiBusy(false); }}>Stop AI</button></div>
-        <p className="hint">{context.enabledFeatures.has('ai.model-invocation') ? 'Requires a configured host model and AI permission. Generated SQL is never executed automatically.' : 'Host AI streaming is unavailable.'}</p>
-        <h3>Unexecuted AI draft</h3><pre aria-label="Unexecuted AI draft">{draft ? draft.match(/[\s\S]{1,4096}/g)?.map((chunk, i) => <span key={i}>{chunk}</span>) : 'No draft generated.'}</pre>
-      </section>
-    </section></div>
+      {!vm.session ? <div className="home"><div className="home-metrics"><div><span>Connections</span><strong>{vm.saved.length}</strong></div><div><span>Connected</span><strong>0</strong></div><div><span>Database Types</span><strong>{vm.saved.length ? 1 : 0}</strong></div></div><h2>Quick Start</h2><div className="home-welcome"><img src={icon} alt="SQLite" width="40" height="40" /><h1>{vm.saved.length ? 'Your connections, ready to reopen' : 'No connections yet'}</h1><p>{vm.saved.length ? 'Select a saved connection on the left. The host validates its target again.' : 'Create a connection to explore disposable SQLite data.'}</p><button disabled={!vm.enabled || vm.busy} onClick={() => vm.setModal('picker')}>New Connection</button></div><h2>Shortcuts</h2><div className="shortcut-row"><button className="shortcut" disabled={!vm.enabled || vm.busy} onClick={() => vm.setModal('picker')}>+ New Connection<small>SQLite / local fixtures</small></button><button className="shortcut" disabled>History<small>Not available in this milestone</small></button></div><p className="hint">{!vm.enabled ? 'The host SQLite experiment is disabled or unavailable.' : !vm.persistence ? 'This host does not support saved connections. Temporary connections remain available.' : 'Saved connections contain metadata only. Memory contents are never persisted.'}</p></div> : <>
+        <nav className="tab-strip" aria-label="Workspace tabs">{vm.tabs.map((tab) => <div key={tab.id} className={vm.activeTab === tab.id ? 'workspace-tab active' : 'workspace-tab'}><button aria-pressed={vm.activeTab === tab.id} onClick={() => vm.setActiveTab(tab.id)}>{tab.title}</button><button aria-label={`Close ${tab.title}`} disabled={vm.busy} onClick={() => vm.closeTab(tab.id)}>x</button></div>)}</nav>
+        {vm.tab ? <><section className="editor"><div className="query-toolbar"><button disabled={vm.busy} onClick={() => void vm.run('read')}>Run read query</button><button className="secondary" disabled={vm.busy || 'readOnly' in vm.session} onClick={() => void vm.run('write')}>Review write...</button><button className="secondary" onClick={() => void vm.disconnect(true)}>Cancel / close</button><span>{vm.connectionName} / main</span></div><label className="sql-label">SQL editor<textarea aria-label="SQL statement" value={vm.tab.sql} maxLength={8192} disabled={vm.busy} onChange={(e) => vm.edit({ sql: e.currentTarget.value })} /></label><label className="parameters">Parameters<input aria-label="SQL parameters" value={vm.tab.parameters} maxLength={8192} disabled={vm.busy} onChange={(e) => vm.edit({ parameters: e.currentTarget.value })} /></label></section>
+        <section className="results"><div className="results-heading"><strong>{vm.tab.title.startsWith('Data:') ? 'Table Data' : 'Results'}</strong><span>Preview: 20 rows / 8 columns / 256 chars per cell</span></div>{result?.columns.length ? <div className="table-scroll"><table><thead><tr><th>#</th>{result.columns.slice(0, 8).map((col, i) => <th key={i}>{col}</th>)}</tr></thead><tbody>{result.rows.slice(0, 20).map((row, i) => <tr key={i}><td className="row-index">{i + 1}</td>{row.slice(0, 8).map((cell, j) => <td key={j}>{cell === null ? 'NULL' : String(cell).length > 256 ? String(cell).slice(0, 256) + '...' : String(cell)}</td>)}</tr>)}</tbody></table></div> : <div className="empty-results">{result ? 'Statement completed. No result rows.' : 'Run a query to view results.'}</div>}<div className="result-status" role="status">{vm.busy ? 'Waiting for host...' : result ? `${result.rows.length} rows / ${result.columns.length} columns / ${result.elapsedMs} ms / ${result.changes} changes${result.truncated ? ' / truncated' : ''}` : 'Nothing executed'}</div></section></> : <div className="empty-results">Open a table or create a new query.</div>}
+        <section className="ai-secondary"><button className="toolbar-button" onClick={() => setShowAI(!showAI)}>AI SQL assistant / mock only</button>{showAI && <div><p>No provider is called. This local example is an unexecuted draft.</p><button className="secondary" onClick={() => setDraft('SELECT id, title, status FROM notes ORDER BY id;')}>Create mock draft</button><pre aria-label="Unexecuted AI draft">{draft || 'No draft generated.'}</pre></div>}</section>
+      </>}
+      {vm.error && !vm.modal && <p className="error" role="alert">{vm.error}</p>}
+    </section></div><footer className="app-status">{vm.session ? vm.connectionName : 'No database connected'}<span>Netcatty host permissions / SQLite fixture service</span></footer>
+    {vm.modal && <ConnectionDialog vm={vm} />}
   </main>;
 }
 export default definePlugin({ activate(context) { context.subscriptions.add(registerHostReactView(context.views, 'com.binaricat.netcatty-database.workbench', () => <Workbench context={context} />, css)); } });
