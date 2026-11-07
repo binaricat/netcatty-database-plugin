@@ -493,3 +493,5 @@ pre { padding: 12px; background: hsl(var(--muted)/.4); border: 1px solid hsl(var
 .library-secondary { margin-top:20px; padding-top:14px; border-top:1px solid hsl(var(--border)); }
 .library-secondary > summary { cursor:pointer; font-weight:500; padding:4px 0 12px; color:hsl(var(--muted-foreground)); }
 .library-secondary .library-toolbar { flex-wrap:wrap; }
+.metadata-panel .sql-preview, .metadata-relationships { margin-top:8px; max-height:180px; overflow:auto; font-size:11px; line-height:1.55; }
+.metadata-relationships { white-space:pre-wrap; font-family:monospace; color:hsl(var(--muted-foreground)); }
