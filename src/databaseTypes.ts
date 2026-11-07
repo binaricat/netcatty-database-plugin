@@ -288,3 +288,7 @@ export type {DatabaseCreateIndexDraft,DatabaseCreateIndexReview} from './schemaC
 export type DatabaseCreateIndexRequest={handleId:DatabaseHandle;draft:import('./schemaCreateIndex').DatabaseCreateIndexDraft};
 export type DatabaseCreateIndexApplyRequest={handleId:DatabaseHandle;review:import('./schemaCreateIndex').DatabaseCreateIndexReview};
 export type DatabaseCreateIndexResult={changes:0;schema:DatabaseSchemaResult;sql:string};
+export type GridMutationReview={handleId:DatabaseHandle;draft:import('./gridMutation').GridMutationDraft;sql:string;parameters:DatabaseScalar[];schemaRevision:number};
+export type GridMutationRequest={handleId:DatabaseHandle;draft:import('./gridMutation').GridMutationDraft};
+export type GridMutationApplyRequest={handleId:DatabaseHandle;review:GridMutationReview};
+export type GridMutationResult={changes:1};

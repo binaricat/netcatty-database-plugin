@@ -3,6 +3,8 @@
 export const zhCN = {
   "New table":"新建表",
   "New index":"新建索引",
+  "Edit":"编辑",
+  "Edit or delete row {row}":"编辑或删除第 {row} 行",
   "Redis workbench":"Redis 工作台",
   "Inspect Redis":"查看 Redis",
   "Back to host connections":"返回主机连接",

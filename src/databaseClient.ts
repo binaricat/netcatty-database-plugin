@@ -3,7 +3,10 @@ import type { DatabaseConnectionIdRequest, DatabaseConnectionMeta, DatabaseDrive
 export type * from './databaseTypes';
 import type {DatabaseCreateTableRequest,DatabaseCreateTableApplyRequest,DatabaseCreateTableResult,DatabaseCreateTableReview} from './databaseTypes';
 import type {DatabaseCreateIndexRequest,DatabaseCreateIndexApplyRequest,DatabaseCreateIndexResult,DatabaseCreateIndexReview} from './databaseTypes';
+import type {GridMutationRequest,GridMutationApplyRequest,GridMutationReview,GridMutationResult} from './databaseTypes';
 export interface PluginDatabaseClient {
+  previewGridMutation(params:GridMutationRequest):Promise<GridMutationReview>;
+  applyGridMutation(params:GridMutationApplyRequest):Promise<GridMutationResult>;
   previewCreateIndex(params:DatabaseCreateIndexRequest):Promise<DatabaseCreateIndexReview>;
   applyCreateIndex(params:DatabaseCreateIndexApplyRequest):Promise<DatabaseCreateIndexResult>;
   previewCreateTable(params:DatabaseCreateTableRequest):Promise<DatabaseCreateTableReview>;

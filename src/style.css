@@ -404,3 +404,8 @@ pre { padding: 12px; background: hsl(var(--muted)/.4); border: 1px solid hsl(var
 .database-workbench .create-index-definition .create-table-constraint {display:flex;flex-direction:row;align-items:center;min-height:34px;white-space:nowrap;}
 .database-workbench .create-index-definition input[type="checkbox"] {width:14px;height:14px;margin:0;}
 .database-workbench .create-index-column {grid-template-columns:minmax(160px,2fr) minmax(160px,1fr) 80px;}
+.database-workbench .row-mutation-field {grid-template-columns:minmax(90px,1fr) minmax(120px,2fr) 100px minmax(120px,2fr);align-items:center;gap:12px;}
+.database-workbench .row-mutation-field strong {overflow-wrap:anywhere;}
+.database-workbench .row-mutation-field textarea {min-width:0;width:100%;box-sizing:border-box;resize:vertical;min-height:34px;font-size:12px;}
+.database-workbench .row-mutation .create-table-review textarea {min-height:88px;}
+.database-workbench .row-mutation .create-table-columns {gap:16px;}

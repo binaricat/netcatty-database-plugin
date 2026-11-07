@@ -1,3 +1,5 @@
+import {previewGridMutation,GridMutationError} from './gridMutation';
+import type {GridMutationRequest,GridMutationApplyRequest,GridMutationReview,GridMutationResult} from './databaseTypes';
 import {previewCreateIndexSql,CreateIndexError} from './schemaCreateIndex';
 import type {DatabaseCreateIndexRequest,DatabaseCreateIndexApplyRequest,DatabaseCreateIndexReview,DatabaseCreateIndexResult} from './databaseTypes';
 import {previewCreateTableSql,CreateTableError} from './schemaCreateTable';
@@ -282,9 +284,43 @@ export function createWorkbenchContext(context: PluginContext): WorkbenchContext
       if(sessions.has(request.handleId)){try{db.run('PRAGMA query_only=ON');}catch{tableReviews.delete(request.handleId);sessions.delete(request.handleId);db.close();throw new Error('SQLite read protection could not be restored; session closed.');}}
     }
   };
+  const previewGridRow=async(request:GridMutationRequest):Promise<GridMutationReview>=>{
+    const db=get(request);tableReviews.delete(request.handleId);
+    const preview=previewGridMutation(request.draft,inspectSqliteSchema(db));
+    const quoted=(value:string)=>'"'+value.replaceAll('"','""')+'"';
+    const keys=Object.keys(preview.draft.original);
+    const statement=db.prepare(`SELECT COUNT(*) FROM ${quoted(preview.draft.table)} WHERE ${keys.map(key=>`${quoted(key)} COLLATE BINARY IS ?`).join(' AND ')}`);
+    try{statement.bind(keys.map(key=>{const value=preview.draft.original[key];return typeof value==='boolean'?Number(value):value;}));if(!statement.step()||statement.get()[0]!==1)throw new GridMutationError('conflict');}finally{statement.free();}
+    const review={handleId:request.handleId,...preview,schemaRevision:schemaRevision(db)};
+    tableReviews.set(request.handleId,JSON.stringify(review));return review;
+  };
+  const applyGridMutation=async(request:GridMutationApplyRequest):Promise<GridMutationResult>=>{
+    const db=get(request),review=request.review;
+    if(!review||review.handleId!==request.handleId||review.schemaRevision!==schemaRevision(db))throw new GridMutationError('stale');
+    if(tableReviews.get(request.handleId)!==JSON.stringify(review))throw new GridMutationError('review');
+    tableReviews.delete(request.handleId);
+    const preview=previewGridMutation(review.draft,inspectSqliteSchema(db));
+    if(preview.sql!==review.sql||JSON.stringify(preview.parameters)!==JSON.stringify(review.parameters)||JSON.stringify(preview.draft)!==JSON.stringify(review.draft))throw new GridMutationError('review');
+    let transaction=false;
+    try{
+      db.run('PRAGMA query_only=OFF');db.run('SAVEPOINT plugin_grid_mutation');transaction=true;
+      const statement=db.prepare(preview.sql);
+      try{statement.bind(preview.parameters.map(value=>typeof value==='boolean'?Number(value):value));while(statement.step()){} }finally{statement.free();}
+      if(db.getRowsModified()!==1)throw new GridMutationError('conflict');
+      const size=Number(db.exec('PRAGMA page_count')[0].values[0][0])*Number(db.exec('PRAGMA page_size')[0].values[0][0]);
+      if(size>1024*1024)throw new GridMutationError('budget');
+      inspectSqliteSchema(db);
+      db.run('RELEASE plugin_grid_mutation');transaction=false;return {changes:1};
+    }catch(error){
+      if(transaction){try{db.run('ROLLBACK TO plugin_grid_mutation; RELEASE plugin_grid_mutation');}catch{tableReviews.delete(request.handleId);sessions.delete(request.handleId);db.close();}}
+      throw error;
+    }finally{
+      if(sessions.has(request.handleId)){try{db.run('PRAGMA query_only=ON');}catch{tableReviews.delete(request.handleId);sessions.delete(request.handleId);db.close();throw new Error('SQLite read protection could not be restored; session closed.');}}
+    }
+  };
   const database: PluginDatabaseClient & {capabilities: ReadonlySet<string>} = {
-    capabilities: new Set(['database.sqlite-fixture.v1','database.saved-connections.v1','database.sqlite-reviewed-writes.v1','database.sqlite-create-table.v1','database.sqlite-create-index.v1']),
-    previewCreateTable,applyCreateTable,previewCreateIndex,applyCreateIndex,
+    capabilities: new Set(['database.sqlite-fixture.v1','database.saved-connections.v1','database.sqlite-reviewed-writes.v1','database.sqlite-create-table.v1','database.sqlite-create-index.v1','database.sqlite-grid-mutation.v1']),
+    previewCreateTable,applyCreateTable,previewCreateIndex,applyCreateIndex,previewGridMutation:previewGridRow,applyGridMutation,
     openFixture: open, readSchema, query, close, cancel:close,
     listSavedConnections:list,
     saveConnection: (request: DatabaseSaveConnectionRequest) => mutate(async () => {
