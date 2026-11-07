@@ -1,4 +1,4 @@
-# PostgreSQL protocol slice: offline only
+# PostgreSQL protocol slice and independent real-server validation
 
 `postgresProtocol.ts` encodes PostgreSQL v3 StartupMessage and extended-query Parse/Bind/Describe(portal)/Execute/Sync. It incrementally decodes selected authentication, ParameterStatus, ReadyForQuery, RowDescription, DataRow and ErrorResponse frames. Error output retains only SQLSTATE, not potentially sensitive server messages. Text fields use fatal UTF-8 decoding; DataRow cells remain bytes because formats/OIDs determine whether they represent text or binary. `pgTextValue` is explicit text decoding, not general typed conversion.
 
@@ -8,11 +8,11 @@ Tests use standard protocol byte layouts and adversarial fragments/budgets. They
 
 Current main public network.connect accepts only an exact endpoint. TCP cannot be upgraded to TLS after PostgreSQL SSLRequest; direct TLS has certificate verification but no exposed ALPN option. PG17 direct TLS must not be claimed compatible without verified `postgresql` ALPN support and actual service tests. PostgreSQL 15 in the proposed Docker fixture is not a direct-TLS substitute. Generic host STARTTLS or a validated ALPN path would require a separately authorized host change, not insecure fallback, proxy, hostname alias or policy bypass.
 
-The separate SCRAM module now supplies offline vectors, server-signature checks and bounded iterations/cancellation; integration still needs a verified compatible TLS transport and real fixture. Byte-stream AUTH cannot use the separate HTTP credential-lease substitution automatically. Secrets must remain explicitly supplied session memory, without logging or automatic persistence. Closing a connection is not proof that server-side CancelRequest succeeded. No manifest permissions or host capabilities were changed for this codec.
+The separate SCRAM module now supplies offline vectors, server-signature checks and bounded iterations/cancellation; native plugin integration still needs a compatible host-verified TLS transport. A separate Node integration lane now validates the modules against a real fixture; it does not resolve main's transport gap. Byte-stream AUTH cannot use the separate HTTP credential-lease substitution automatically. Secrets must remain explicitly supplied session memory, without logging or automatic persistence. Closing a connection is not proof that server-side CancelRequest succeeded. No manifest permissions or host capabilities were changed for this codec.
 
 ## SCRAM-SHA-256 foundation
 
-`postgresScram.ts` implements a bounded authentication state machine without opening a connection. Five tests include the RFC 7677 client proof/server verifier transcript, malicious nonce/salt/iteration inputs, invalid ordering, concurrency/cancellation and server signature rejection. Credentials are ASCII-only until SASLprep is implemented. SCRAM-PLUS/channel binding is not available. This is not usable PostgreSQL connectivity: verified TLS and the transport limitations above remain unresolved.
+`postgresScram.ts` implements a bounded authentication state machine without opening a connection. Five tests include the RFC 7677 client proof/server verifier transcript, malicious nonce/salt/iteration inputs, invalid ordering, concurrency/cancellation and server signature rejection. Credentials are ASCII-only until SASLprep is implemented. SCRAM-PLUS/channel binding is not available. This module alone is not usable native-plugin PostgreSQL connectivity: the main transport limitations above remain unresolved.
 
 ## Browser WebCrypto source audit
 
@@ -39,10 +39,9 @@ the write remains pending. WebCrypto cancellation is best effort: closing does
 not abort already-issued cryptographic computation, but prevents later success
 or additional writes.
 
-All these tests use fabricated bytes and credentials. No real PostgreSQL server,
-native PostgreSQL connection UI or usable production driver is claimed.
+The session unit tests use fabricated bytes and credentials. Separately, the real-server integration lane below has now passed. No native PostgreSQL connection UI or usable production plugin driver is claimed.
 
-## Bounded authenticated table reads (offline qualification)
+## Bounded authenticated table reads
 
 `postgresQuery.ts` executes a generated, fixed Simple Query sequence on an
 exclusively owned authenticated TLS stream: BEGIN READ ONLY, bounded local
@@ -61,4 +60,30 @@ owned by the receiver. JavaScript strings, engine internals and cryptographic
 implementation copies cannot be guaranteed erasable. Eleven fabricated-stream
 query tests cover successful fragmented reads, strict command sequencing,
 conversion, error-message redaction, cancellation, budgets and byte cleanup.
-These are not real server, plugin connection or production driver evidence.
+Those unit tests are not real-server evidence. The separate real-server lane below qualifies only its tested protocol subset, not plugin connectivity or a production driver.
+
+## Real PostgreSQL 17.6: independent Node integration lane
+
+On 2026-11-07, the coordinating worker executed all three modes of
+`scripts/postgres-local-protocol.ts` inside the actual Netcatty native SSH terminal.
+The existing `authenticatePostgresTls` and `executePostgresRead` modules passed
+against PostgreSQL 17.6 at the explicitly authorized local test service:
+
+- Standard SSLRequest followed by verified TLS 1.3, using the fixture certificate
+  as trust anchor and exact `127.0.0.1` certificate identity verification.
+- SCRAM authentication with the runtime-only password file, then generated
+  read-only query of `public.netcatty_smoke`; expected label and NULL verified.
+- Invalid-password startup rejected; untrusted-certificate mode rejected by
+  certificate verification, not counted successful on connection refusal/timeout.
+
+The password is not embedded in source, command arguments or report output. The
+script opens Node sockets only when manually executed; it is not imported into the
+plugin or ordinary unit tests. **Node supplies the SSLRequest-to-TLS upgrade that
+main's public plugin API currently lacks.** Therefore these results are real
+server protocol-integration evidence, not a main-broker workaround, native plugin
+database connection, Docker run, arbitrary-SQL acceptance or full DBX parity.
+
+Separately, native SSH `psql` tests covered table creation/UPSERT, NULL, prepared
+parameters and refusal of non-TLS access. See
+[native SSH PostgreSQL acceptance](native-ssh-postgres-acceptance.md) for evidence
+and the distinction between terminal, independent protocol and plugin lanes.

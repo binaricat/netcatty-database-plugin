@@ -1,3 +1,5 @@
+import {previewRenameColumnSql,RenameColumnError,type RenameColumnDraft} from './schemaRenameColumn';
+import type {RenameColumnRequest,RenameColumnReview,RenameColumnApplyRequest,RenameColumnResult} from './databaseTypes';
 import {previewAddColumnSql,AddColumnError} from './alterTableModel';
 import type {AddColumnRequest,AddColumnApplyRequest,AddColumnReview,AddColumnResult} from './databaseTypes';
 import {previewCsvImport as buildCsvImport} from './csvImportModel';
@@ -133,6 +135,56 @@ export function assertPlainAddColumnTable(db:Database,table:string):void {
   const columns=db.prepare('SELECT hidden FROM pragma_table_xinfo(?)');let count=0;
   try{columns.bind([table]);while(columns.step()){if(++count>=64)throw new AddColumnError('budget');if(columns.get()[0]!==0)throw new AddColumnError('table');}if(!count)throw new AddColumnError('table');}finally{columns.free();}
 }
+/** Full authoritative metadata for rename; UI schema alone is not dependency proof. */
+export function inspectRenameColumnAuthority(db:Database,table:string){
+  const all:Array<{schema:string;type:string;name:string;table:string;rootpage:number;sql:string|null}>=[];let bytes=0;
+  for(const scope of ['main','temp']){
+    const statement=db.prepare(`SELECT type,name,tbl_name,rootpage,sql FROM ${scope}.sqlite_schema ORDER BY type,name`);
+    try{while(statement.step()){
+      const [type,name,tbl_name,rootpage,sql]=statement.get();
+      if(all.length>=128)throw new RenameColumnError('budget');
+      const object={schema:scope,type:String(type),name:String(name),table:String(tbl_name),rootpage:Number(rootpage),sql:sql===null?null:String(sql)};
+      bytes+=new TextEncoder().encode(JSON.stringify(object)).length;if(bytes>96*1024)throw new RenameColumnError('budget');
+      // TEMP dependencies/shadowing cannot be inferred from main's UI schema.
+      if(scope==='temp')throw new RenameColumnError('dependency');all.push(object);
+    }}finally{statement.free();}
+  }
+  const list=db.prepare("SELECT type,strict FROM pragma_table_list WHERE schema='main' AND name=? COLLATE BINARY");
+  try{list.bind([table]);if(!list.step())throw new RenameColumnError('table');const row=list.get();if(row[0]!=='table'||row[1]!==0||list.step())throw new RenameColumnError('table');}finally{list.free();}
+  const statement=db.prepare("SELECT cid,name,type,[notnull],dflt_value,pk,hidden FROM pragma_table_xinfo(?, 'main') ORDER BY cid");const columns:unknown[][]=[];
+  try{statement.bind([table]);while(statement.step()){const row=statement.get();if(columns.length>=64)throw new RenameColumnError('budget');if(row[6]!==0||row[4]!==null)throw new RenameColumnError('table');columns.push(row);}}finally{statement.free();}
+  if(!columns.length)throw new RenameColumnError('table');return {all,columns};
+}
+/** Plugin-local structured operation, not an arbitrary DDL execution API. */
+export function applySqliteRenameColumn(db:Database,draft:RenameColumnDraft):RenameColumnResult{
+  let transaction=false;
+  try{
+    db.run('PRAGMA query_only=OFF');db.run('SAVEPOINT plugin_rename_column');transaction=true;
+    const before=inspectSqliteSchema(db),preview=previewRenameColumnSql(draft,before),authority=inspectRenameColumnAuthority(db,preview.draft.table);
+    db.run(preview.sql);
+    const after=inspectSqliteSchema(db),next=inspectRenameColumnAuthority(db,preview.draft.table);
+    const others=(objects:typeof authority.all)=>objects.filter(o=>!(o.schema==='main'&&o.type==='table'&&o.name===preview.draft.table));
+    if(JSON.stringify(others(authority.all))!==JSON.stringify(others(next.all)))throw new RenameColumnError('dependency');
+    const targetIdentity=(objects:typeof authority.all)=>objects.filter(o=>o.schema==='main'&&o.type==='table'&&o.name===preview.draft.table).map(({sql: _sql,...identity})=>identity);
+    if(JSON.stringify(targetIdentity(authority.all))!==JSON.stringify(targetIdentity(next.all)))throw new RenameColumnError('dependency');
+    const metadataOthers=(schema:DatabaseSchemaResult)=>schema.tables.filter(t=>t.name!==preview.draft.table);
+    if(JSON.stringify(metadataOthers(before))!==JSON.stringify(metadataOthers(after)))throw new RenameColumnError('dependency');
+    const expectedColumns=authority.columns.map(c=>c[1]===preview.draft.from?c.map((v,i)=>i===1?preview.draft.to:v):c);
+    if(JSON.stringify(expectedColumns)!==JSON.stringify(next.columns))throw new RenameColumnError('dependency');
+    const beforeTarget=before.tables.find(t=>t.name===preview.draft.table)!,afterTarget=after.tables.find(t=>t.name===preview.draft.table)!;
+    const expected={...beforeTarget,columns:beforeTarget.columns.map(c=>c.name===preview.draft.from?{...c,name:preview.draft.to}:c),definition:undefined};
+    if(JSON.stringify(expected)!==JSON.stringify({...afterTarget,definition:undefined}))throw new RenameColumnError('dependency');
+    // Reparse post-ALTER DDL through the same narrow grammar; no added constraints.
+    previewRenameColumnSql({table:preview.draft.table,from:preview.draft.to,to:preview.draft.from},after);
+    const size=Number(db.exec('PRAGMA page_count')[0].values[0][0])*Number(db.exec('PRAGMA page_size')[0].values[0][0]);
+    if(size>1024*1024)throw new RenameColumnError('budget');
+    db.run('RELEASE plugin_rename_column');transaction=false;return {changes:0,schema:after,sql:preview.sql};
+  }catch(error){
+    if(transaction){try{db.run('ROLLBACK TO plugin_rename_column; RELEASE plugin_rename_column');}catch{db.close();throw new Error('SQLite rename rollback failed; session closed.');}}
+    throw error;
+  }finally{try{db.run('PRAGMA query_only=ON');}catch{try{db.close();}catch{}throw new Error('SQLite read protection could not be restored; session closed.');}}
+}
+
 export function createWorkbenchContext(context: PluginContext): WorkbenchContext {
   const sessions = new Map<string, Database>();
   const tableReviews=new Map<string,string>();
@@ -295,6 +347,19 @@ export function createWorkbenchContext(context: PluginContext): WorkbenchContext
       if(sessions.has(request.handleId)){try{db.run('PRAGMA query_only=ON');}catch{tableReviews.delete(request.handleId);sessions.delete(request.handleId);db.close();throw new Error('SQLite read protection could not be restored; session closed.');}}
     }
   };
+  const tempRevision=(db:Database):number=>{const value=db.exec('PRAGMA temp.schema_version')[0]?.values[0]?.[0];if(typeof value!=='number'||!Number.isSafeInteger(value)||value<0)throw new RenameColumnError('stale');return value;};
+  const previewRenameColumn=async(request:RenameColumnRequest):Promise<RenameColumnReview>=>{
+    const db=get(request);tableReviews.delete(request.handleId);const preview=previewRenameColumnSql(request.draft,inspectSqliteSchema(db));inspectRenameColumnAuthority(db,preview.draft.table);
+    const review={handleId:request.handleId,...preview,schemaRevision:schemaRevision(db),tempSchemaRevision:tempRevision(db)};tableReviews.set(request.handleId,JSON.stringify(review));return review;
+  };
+  const applyRenameColumn=async(request:RenameColumnApplyRequest):Promise<RenameColumnResult>=>{
+    const db=get(request),review=request.review;
+    if(!review||review.handleId!==request.handleId||review.schemaRevision!==schemaRevision(db)||review.tempSchemaRevision!==tempRevision(db))throw new RenameColumnError('stale');
+    if(tableReviews.get(request.handleId)!==JSON.stringify(review))throw new RenameColumnError('review');tableReviews.delete(request.handleId);
+    const preview=previewRenameColumnSql(review.draft,inspectSqliteSchema(db));
+    if(JSON.stringify(preview)!==JSON.stringify({draft:review.draft,sql:review.sql,dependencyValidation:review.dependencyValidation}))throw new RenameColumnError('review');
+    try{return applySqliteRenameColumn(db,preview.draft);}catch(error){try{db.exec('SELECT 1');}catch{sessions.delete(request.handleId);tableReviews.delete(request.handleId);}throw error;}
+  };
   const previewAddColumn=async(request:AddColumnRequest):Promise<AddColumnReview>=>{
     const db=get(request);tableReviews.delete(request.handleId);
     const preview=previewAddColumnSql(request.draft,inspectSqliteSchema(db));
@@ -390,8 +455,8 @@ export function createWorkbenchContext(context: PluginContext): WorkbenchContext
     }
   };
   const database: PluginDatabaseClient & {capabilities: ReadonlySet<string>} = {
-    capabilities: new Set(['database.sqlite-fixture.v1','database.saved-connections.v1','database.sqlite-reviewed-writes.v1','database.sqlite-create-table.v1','database.sqlite-create-index.v1','database.sqlite-grid-mutation.v1','database.sqlite-csv-import.v1','database.sqlite-add-column.v1']),
-    previewAddColumn,applyAddColumn,previewCsvImport,applyCsvImport,previewCreateTable,applyCreateTable,previewCreateIndex,applyCreateIndex,previewGridMutation:previewGridRow,applyGridMutation,
+    capabilities: new Set(['database.sqlite-fixture.v1','database.saved-connections.v1','database.sqlite-reviewed-writes.v1','database.sqlite-create-table.v1','database.sqlite-create-index.v1','database.sqlite-grid-mutation.v1','database.sqlite-csv-import.v1','database.sqlite-rename-column.v1','database.sqlite-add-column.v1']),
+    previewRenameColumn,applyRenameColumn,previewAddColumn,applyAddColumn,previewCsvImport,applyCsvImport,previewCreateTable,applyCreateTable,previewCreateIndex,applyCreateIndex,previewGridMutation:previewGridRow,applyGridMutation,
     openFixture: open, readSchema, query, close, cancel:close,
     listSavedConnections:list,
     saveConnection: (request: DatabaseSaveConnectionRequest) => mutate(async () => {

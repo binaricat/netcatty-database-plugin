@@ -1,3 +1,4 @@
+import type {RenameColumnRequest,RenameColumnReview,RenameColumnApplyRequest,RenameColumnResult} from './databaseTypes';
 import type {AddColumnRequest,AddColumnApplyRequest,AddColumnResult,AddColumnReview} from './databaseTypes';
 import type { PluginContext as HostPluginContext } from '@netcatty/plugin-sdk';
 import type { DatabaseConnectionIdRequest, DatabaseConnectionMeta, DatabaseDriverId, DatabaseDriverProfile, DatabaseDriverVariant, DatabaseEmptyRequest, DatabaseFileFixtureFeature, DatabaseFileOpenResult, DatabaseFixtureFeature, DatabaseHandle, DatabaseHandleRequest, DatabaseHostList, DatabaseHostLiveSshPgCancelRequest, DatabaseHostLiveSshPgCapability, DatabaseHostLiveSshPgCloseRequest, DatabaseHostLiveSshPgCloseResult, DatabaseHostLiveSshPgFeature, DatabaseHostLiveSshPgOpenRequest, DatabaseHostLiveSshPgOpenResult, DatabaseHostMeta, DatabaseHostPortProbeCancelRequest, DatabaseHostPortProbeCapability, DatabaseHostPortProbeFeature, DatabaseHostPortProbeRequest, DatabaseHostPortProbeResult, DatabaseHostPortResult, DatabaseOpenResult, DatabaseQueryRequest, DatabaseQueryResult, DatabaseSaveConnectionRequest, DatabaseSavedConnection, DatabaseSavedConnectionList, DatabaseSavedConnectionsFeature, DatabaseScalar, DatabaseSchemaResult, DatabaseTcpFeature, DatabaseTcpOpenRequest, DatabaseTcpOpenResult, DatabaseTunnelCancelRequest, DatabaseTunnelTestCapability, DatabaseTunnelTestFeature, DatabaseTunnelTestRequest, DatabaseTunnelTestResult, DatabaseVariantId } from './databaseTypes';
@@ -7,6 +8,8 @@ import type {DatabaseCreateIndexRequest,DatabaseCreateIndexApplyRequest,Database
 import type {GridMutationRequest,GridMutationApplyRequest,GridMutationReview,GridMutationResult} from './databaseTypes';
 import type {CsvImportRequest,CsvImportApplyRequest,CsvImportReview,CsvImportResult} from './databaseTypes';
 export interface PluginDatabaseClient {
+  previewRenameColumn(params:RenameColumnRequest):Promise<RenameColumnReview>;
+  applyRenameColumn(params:RenameColumnApplyRequest):Promise<RenameColumnResult>;
   previewAddColumn(params:AddColumnRequest):Promise<AddColumnReview>;
   applyAddColumn(params:AddColumnApplyRequest):Promise<AddColumnResult>;
   previewCsvImport(params:CsvImportRequest):Promise<CsvImportReview>;

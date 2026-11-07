@@ -301,3 +301,8 @@ export type {AddColumnDraft,AddColumnReview} from './alterTableModel';
 export type AddColumnRequest={handleId:DatabaseHandle;draft:import('./alterTableModel').AddColumnDraft};
 export type AddColumnApplyRequest={handleId:DatabaseHandle;review:import('./alterTableModel').AddColumnReview};
 export type AddColumnResult={changes:0;schema:DatabaseSchemaResult;sql:string};
+
+export type RenameColumnReview=import('./schemaRenameColumn').RenameColumnPreview & {handleId:DatabaseHandle;schemaRevision:number;tempSchemaRevision:number};
+export type RenameColumnRequest={handleId:DatabaseHandle;draft:import('./schemaRenameColumn').RenameColumnDraft};
+export type RenameColumnApplyRequest={handleId:DatabaseHandle;review:RenameColumnReview};
+export type RenameColumnResult={changes:0;schema:DatabaseSchemaResult;sql:string};

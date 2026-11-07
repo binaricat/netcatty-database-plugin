@@ -1,3 +1,4 @@
+import {serialPreview} from './schemaPreviewQueue';
 import React,{useEffect,useMemo,useRef,useSyncExternalStore} from 'react';
 import type {WorkbenchContext} from './databaseClient';
 import type {DatabaseSchemaResult,AddColumnDraft,AddColumnReview} from './databaseTypes';
@@ -7,12 +8,6 @@ import {SqlPreview} from './SqlPreview';
 type State={draft:AddColumnDraft;review:AddColumnReview|null;busy:'idle'|'preview'|'apply';done:boolean;notice:string;};
 // Serial per adapter/connection, including unmount/reopen. A stale in-flight
 // preview may finish, but can never overwrite a newer ADD preview issued here.
-const previewQueues=new WeakMap<object,Map<string,Promise<void>>>();
-async function serialPreview<T>(database:object,handleId:string,run:()=>Promise<T>):Promise<T>{
- let queues=previewQueues.get(database);if(!queues){queues=new Map();previewQueues.set(database,queues);}
- const previous=queues.get(handleId)??Promise.resolve();const current=previous.then(run);const tail=current.then(()=>{},()=>{});queues.set(handleId,tail);
- try{return await current;}finally{if(queues.get(handleId)===tail)queues.delete(handleId);}
-}
 export function addColumnErrorText(code:string,zh:boolean):string {
  const messages:Record<string,[string,string]>={
  draft:['Use one nullable INTEGER, REAL, TEXT, BLOB or NUMERIC column without constraints or defaults.','请仅添加一个可空的 INTEGER、REAL、TEXT、BLOB 或 NUMERIC 列，不含约束或默认值。'],
@@ -42,10 +37,11 @@ export function addColumnController(database:Pick<WorkbenchContext['database'],'
  dispose(){disposed=true;epoch++;state={...state,review:null};listeners.clear();},
  };
 }
-export function AddColumn({context,handleId,schema,onApplied,onClose}:{context:WorkbenchContext;handleId:string;schema:DatabaseSchemaResult;onApplied:(schema:DatabaseSchemaResult)=>void;onClose:()=>void}){
+export function AddColumn({context,handleId,schema,onApplied,onClose,onBusyChange}:{context:WorkbenchContext;handleId:string;schema:DatabaseSchemaResult;onApplied:(schema:DatabaseSchemaResult)=>void;onClose:()=>void;onBusyChange?:(busy:boolean)=>void}){
  const callback=useRef(onApplied);callback.current=onApplied;
  const controller=useMemo(()=>addColumnController(context.database,handleId,schema,s=>callback.current(s)),[context.database,handleId]);
  const state=useSyncExternalStore(controller.subscribe,controller.getSnapshot,controller.getSnapshot);useEffect(()=>()=>controller.dispose(),[controller]);
+ useEffect(()=>{onBusyChange?.(state.busy==='apply');return()=>onBusyChange?.(false);},[state.busy,onBusyChange]);
  const zh=context.environment?.locale?.toLowerCase().startsWith('zh'),tr=(en:string,cn:string)=>zh?cn:en;
  const locked=state.busy==='apply'||state.done;
  const notices:Record<string,string>={cancelled:tr('Preview cancelled; no ALTER submitted.','预览已取消，未提交 ALTER。'),'review-ready':tr('Review the exact SQL, then confirm once.','请审阅完整 SQL，再确认一次。'),done:tr('Column added. Schema refreshed and prior query results invalidated.','列已添加，结构已刷新，旧查询结果已失效。'),refresh:tr('Column added, but refresh failed. Reopen the schema browser.','列已添加，但刷新失败。请重新打开结构浏览器。'),failed:tr('Operation failed. Prepare a new preview before retrying.','操作失败，请重新预览后再试。')};
