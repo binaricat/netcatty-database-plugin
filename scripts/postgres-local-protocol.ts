@@ -9,7 +9,7 @@ import tls from 'node:tls';
 import {readFile} from 'node:fs/promises';
 import {fileURLToPath} from 'node:url';
 import type {PluginByteConnection} from '@netcatty/plugin-sdk';
-import {authenticatePostgresTls} from '../src/postgresSession';
+import {authenticatePostgresTls,PostgresStartupError} from '../src/postgresSession';
 import {executePostgresRead} from '../src/postgresQuery';
 const hostname='127.0.0.1',port=15432;
 const base=fileURLToPath(new URL('../../local-db-host/pg-test/',import.meta.url));
@@ -63,7 +63,7 @@ try{
    password=passwordBytes.toString('utf8').replace(/\r?\n$/,'');
    if(mode==='--bad-password')password+='-intentional-invalid';
    try{await authenticatePostgresTls(connection,{user:'netcatty_test',database:'postgres',password,timeoutMs:5000});}
-   catch(error){if(mode==='--bad-password'&&error instanceof Error&&error.message==='PG startup server'){console.log(JSON.stringify({status:'PASS',lane:'independent-node-protocol',check:'bad-password-rejected',nativePluginConnected:false}));stage='expected-rejection';}else throw error;}
+   catch(error){if(mode==='--bad-password'&&error instanceof PostgresStartupError&&error.code==='server'&&error.sqlState==='28P01'){console.log(JSON.stringify({status:'PASS',lane:'independent-node-protocol',check:'bad-password-rejected',nativePluginConnected:false}));stage='expected-rejection';}else throw error;}
   }finally{passwordBytes?.fill(0);password='';}
   if(stage!=='expected-rejection'){
    if(mode==='--bad-password')throw new Error('Unexpected credential acceptance');

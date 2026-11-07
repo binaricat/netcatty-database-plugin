@@ -5,6 +5,25 @@ export class MysqlAuthError extends Error {
 const fail=(code:MysqlAuthError['code']):never=>{throw new MysqlAuthError(code);};
 const te=new TextEncoder();
 async function sha(bytes:Uint8Array){return new Uint8Array(await crypto.subtle.digest('SHA-256',bytes as BufferSource));}
+/** Shared fixed header parameters for SSLRequest and HandshakeResponse41.
+ * The caller must send the returned packet unchanged before verified TLS. This
+ * contract cannot attest which bytes an external transport actually sent. */
+export interface MysqlSslRequestDescriptor {sequence:1;capabilities:number;characterSet:45;maxPacketBytes:number;}
+const CAPS=0x200|0x800|0x8000|0x80000;
+function descriptor(value:unknown):MysqlSslRequestDescriptor{
+ if(!value||typeof value!=='object'||Array.isArray(value))fail('input');
+ const d=value as MysqlSslRequestDescriptor;
+ if(Object.keys(d).length!==4||d.sequence!==1||d.capabilities!==CAPS||d.characterSet!==45||d.maxPacketBytes!==96*1024)fail('input');
+ return Object.freeze({sequence:1,capabilities:CAPS,characterSet:45,maxPacketBytes:96*1024});
+}
+function header(d:MysqlSslRequestDescriptor){const body=new Uint8Array(32);const view=new DataView(body.buffer);view.setUint32(0,d.capabilities,true);view.setUint32(4,d.maxPacketBytes,true);body[8]=d.characterSet;return body;}
+export function planMysqlSslRequest(greeting:MysqlPacket):{descriptor:MysqlSslRequestDescriptor;packet:Uint8Array}{
+ if(!greeting||greeting.sequence!==0)fail('protocol');
+ let hello;try{hello=parseMysqlHandshake(greeting.payload);}catch{return fail('protocol');}
+ try{if(!hello.tlsAdvertised||hello.authPlugin!=='caching_sha2_password'||(hello.capabilities&CAPS)!==CAPS)fail('unsupported');
+ const d=descriptor({sequence:1,capabilities:CAPS,characterSet:45,maxPacketBytes:96*1024});const body=header(d);try{return {descriptor:d,packet:encodeMysqlPacket(body,d.sequence)};}finally{body.fill(0);}
+ }finally{hello.authPluginData.fill(0);}
+}
 /** Pure protocol slice, not a connection API. The caller must have sent
  * SSLRequest sequence 1 and completed independently verified TLS (certificate
  * chain + hostname). verifiedTls is a precondition assertion, NOT verification.
@@ -14,18 +33,19 @@ async function sha(bytes:Uint8Array){return new Uint8Array(await crypto.subtle.d
 export class MysqlTlsFastAuth {
  private phase:'new'|'computing'|'fast'|'ok'|'authenticated'|'failed'|'closed'='new';
  private password!:Uint8Array;private challenge!:Uint8Array;private generation=0;
- private decoder=new MysqlPacketDecoder(3);private username!:string;private charset!:number;private serverCapabilities!:number;
+ private decoder=new MysqlPacketDecoder(3);private username!:string;private parameters!:MysqlSslRequestDescriptor;private serverCapabilities!:number;
  get state(){return this.phase;}
- constructor(greeting:MysqlPacket,username:string,password:string,options:{verifiedTls:true}){
+ constructor(greeting:MysqlPacket,username:string,password:string,options:{verifiedTls:true;sslRequest:MysqlSslRequestDescriptor}){
   if(options?.verifiedTls!==true)fail('tls-required');
+  const parameters=descriptor(options.sslRequest);
   if(!greeting||greeting.sequence!==0)fail('protocol');
   let hello;try{hello=parseMysqlHandshake(greeting.payload);}catch{return fail('protocol');}
   if(!hello.tlsAdvertised||hello.authPlugin!=='caching_sha2_password') {hello.authPluginData.fill(0);fail('unsupported');}
   if(typeof username!=='string'||!username||username.length>128||!username.trim()||!/^[\x20-\x7e]+$/.test(username)||typeof password!=='string'||!password||password.length>1024||!/^[\x20-\x7e]+$/.test(password)){hello.authPluginData.fill(0);fail('input');}
-  this.username=username;this.password=te.encode(password);this.challenge=hello.authPluginData;this.charset=hello.characterSet;this.serverCapabilities=hello.capabilities;
+  this.username=username;this.password=te.encode(password);this.challenge=hello.authPluginData;this.parameters=parameters;this.serverCapabilities=hello.capabilities;
  }
  private wipe(){this.password.fill(0);this.challenge.fill(0);this.username='';}
- private reject(code:MysqlAuthError['code']):never{this.phase='failed';++this.generation;this.wipe();try{this.decoder.finish();}catch{}return fail(code);}
+ private reject(code:MysqlAuthError['code']):never{if(this.phase!=='closed')this.phase='failed';++this.generation;this.wipe();try{this.decoder.finish();}catch{}return fail(code);}
  /** Returned sequence-2 wire is caller-owned; send once over verified TLS, then
   * clear it. It includes username and a challenge response, never password bytes. */
  async start():Promise<Uint8Array>{
@@ -36,10 +56,10 @@ export class MysqlTlsFastAuth {
    a=await sha(this.password);check();b=await sha(a);check();mixed=new Uint8Array(52);mixed.set(b);mixed.set(this.challenge,32);c=await sha(mixed);check();token=a.map((v,i)=>v^c![i]);
    // Protocol41 | SSL | SecureConnection | PluginAuth; no database, session-track,
    // multi-statements, compression, local-file or optional server extensions.
-   const capabilities=0x200|0x800|0x8000|0x80000;
+   const capabilities=this.parameters.capabilities;
    if((this.serverCapabilities&capabilities)!==capabilities)fail('unsupported');
    const user=te.encode(this.username+'\0'),plugin=te.encode('caching_sha2_password\0');body=new Uint8Array(32+user.length+1+32+plugin.length);
-   const view=new DataView(body.buffer);view.setUint32(0,capabilities,true);view.setUint32(4,96*1024,true);body[8]=this.charset;body.set(user,32);let p=32+user.length;body[p++]=32;body.set(token,p);p+=32;body.set(plugin,p);
+   body.set(header(this.parameters));body.set(user,32);let p=32+user.length;body[p++]=32;body.set(token,p);p+=32;body.set(plugin,p);
    const result=encodeMysqlPacket(body,2);this.phase='fast';return result;
   }catch(error){if((this.phase as string)==='closed')throw new MysqlAuthError('state');return this.reject(error instanceof MysqlAuthError?error.code:'crypto');}
   finally{this.wipe();a?.fill(0);b?.fill(0);c?.fill(0);mixed?.fill(0);token?.fill(0);body?.fill(0);}

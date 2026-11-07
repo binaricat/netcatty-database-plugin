@@ -1,11 +1,11 @@
 import test from 'node:test';import assert from 'node:assert/strict';import {createHash} from 'node:crypto';
-import {MysqlTlsFastAuth} from '../src/mysqlAuth';import {encodeMysqlPacket} from '../src/mysqlProtocol';
+import {MysqlTlsFastAuth,planMysqlSslRequest} from '../src/mysqlAuth';import {encodeMysqlPacket} from '../src/mysqlProtocol';
 const text=(s:string)=>new TextEncoder().encode(s);
 function hello(plugin='caching_sha2_password'){
  const prefix=Uint8Array.of(10,...text('8.0.36\0'),1,0,0,0,1,2,3,4,5,6,7,8,0,0,0x8a,45,2,0,8,0,21,...new Uint8Array(10),9,10,11,12,13,14,15,16,17,18,19,20,0,...text(plugin+'\0'));
  return {sequence:0,payload:prefix};
 }
-const make=()=>new MysqlTlsFastAuth(hello(),'fixture','test-only-password',{verifiedTls:true});
+const make=()=>new MysqlTlsFastAuth(hello(),'fixture','test-only-password',{verifiedTls:true,sslRequest:planMysqlSslRequest(hello()).descriptor});
 const more=encodeMysqlPacket(Uint8Array.of(1,3),3),ok=encodeMysqlPacket(Uint8Array.of(0,0,0,2,0,0,0),4);
 test('challenge proof agrees with independent Node SHA256 construction and never contains raw password',async()=>{
  const c=make(),wire=await c.start();assert.equal(wire[3],2);const p=wire.subarray(4),view=new DataView(p.buffer,p.byteOffset,p.length);assert.equal(view.getUint32(0,true),0x88a00);assert.equal(p[32+8],32);
@@ -17,8 +17,8 @@ test('strict fast-auth then OK supports arbitrary byte fragmentation and coalesc
 });
 test('no verified TLS, old plugins, Unicode credentials, full auth, switch and wrong sequence fail closed',async()=>{
  assert.throws(()=>new MysqlTlsFastAuth(hello(),'u','p',{verifiedTls:false} as never),/tls-required/);
- assert.throws(()=>new MysqlTlsFastAuth(hello('mysql_native_password'),'u','p',{verifiedTls:true}),/unsupported/);
- assert.throws(()=>new MysqlTlsFastAuth(hello(),'u','秘密',{verifiedTls:true}),/input/);
+ assert.throws(()=>new MysqlTlsFastAuth(hello('mysql_native_password'),'u','p',{verifiedTls:true,sslRequest:planMysqlSslRequest(hello()).descriptor}),/unsupported/);
+ assert.throws(()=>new MysqlTlsFastAuth(hello(),'u','秘密',{verifiedTls:true,sslRequest:planMysqlSslRequest(hello()).descriptor}),/input/);
  for(const response of [encodeMysqlPacket(Uint8Array.of(1,4),3),encodeMysqlPacket(Uint8Array.of(254,0),3),encodeMysqlPacket(Uint8Array.of(0,0,0,2,0,0,0),3),encodeMysqlPacket(Uint8Array.of(1,3),4)]){const c=make();await c.start();assert.throws(()=>c.receive(response));assert.equal(c.state,'failed');}
 });
 test('server error content never escapes and trailing/oversized/duplicate messages reject',async()=>{
@@ -27,4 +27,15 @@ test('server error content never escapes and trailing/oversized/duplicate messag
 test('close during crypto and repeated starts cannot yield a usable authentication result',async()=>{
  const c=make();const pending=c.start();c.close();await assert.rejects(pending);assert.equal(c.state,'closed');
  const d=make();const first=d.start();await assert.rejects(d.start());await assert.rejects(first);assert.equal(d.state,'failed');
+});
+
+test('fixed utf8mb4 descriptor makes SSLRequest and response headers identical despite server charset',async()=>{
+ const greeting=hello();const charsetOffset=1+text('8.0.36\0').length+4+8+1+2;greeting.payload[charsetOffset]=0;
+ const plan=planMysqlSslRequest(greeting);assert.equal(plan.descriptor.characterSet,45);assert.equal(plan.packet[3],1);assert.ok(Object.isFrozen(plan.descriptor));
+ const c=new MysqlTlsFastAuth(greeting,'u','p',{verifiedTls:true,sslRequest:plan.descriptor});const response=await c.start();assert.deepEqual(response.slice(4,36),plan.packet.slice(4));assert.equal(response[3],2);c.close();
+ for(const patch of [{characterSet:0},{capabilities:0},{sequence:2},{maxPacketBytes:100},{extra:true}])assert.throws(()=>new MysqlTlsFastAuth(greeting,'u','p',{verifiedTls:true,sslRequest:{...plan.descriptor,...patch} as never}),/input/);
+ assert.throws(()=>new MysqlTlsFastAuth(greeting,'u','p',{verifiedTls:true} as never),/input/);
+});
+test('closed remains terminal after invalid start/receive and repeated close',async()=>{
+ const c=make();c.close();await assert.rejects(c.start());assert.equal(c.state,'closed');assert.throws(()=>c.receive(more));assert.equal(c.state,'closed');c.close();assert.equal(c.state,'closed');
 });

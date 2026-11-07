@@ -18,3 +18,5 @@ This implementation does not weaken that policy, send credentials over plaintext
 or claim a production driver. The historical plugin used an experimental host's
 `context.database.openTcp`; that RPC is absent in the requested main SDK. DBX uses
 `mysql_async`, which is not available in the plugin's browser runtime.
+
+A subsequent pure TLS-preconditioned fast-auth slice exists in `mysqlAuth.ts`; see `mysql-auth-boundaries.md`. Its five offline tests do not change the absence of real server, full-auth, TLS upgrade or query qualification.

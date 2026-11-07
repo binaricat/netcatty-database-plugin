@@ -8,6 +8,15 @@ MariaDB as usable plugin drivers.
 
 The caller must first receive HandshakeV10 at sequence 0, send SSLRequest at
 sequence 1, and complete certificate-chain and exact-hostname-verified TLS.
+Use `planMysqlSslRequest(greeting)` to obtain the sequence-1 packet and immutable
+parameter descriptor. Pass the same descriptor as `sslRequest` when constructing
+`MysqlTlsFastAuth`. Both packets use identical 32-byte fixed headers: capabilities
+`0x88a00`, maximum packet size 96 KiB, and collation ID **45**
+(`utf8mb4_general_ci`). The server's default charset byte is not blindly echoed.
+Only this descriptor configuration is supported; changed/missing/extra fields
+are rejected. The external transport must send the generated SSLRequest unchanged;
+a pure protocol module cannot attest what a caller actually transmitted.
+
 `verifiedTls: true` is only the caller's assertion of that prerequisite, not a
 certificate check performed by this module. Current main plugin transport cannot
 perform the MySQL greeting → SSLRequest → TLS upgrade; this work does not change
@@ -47,13 +56,27 @@ zeroized. Errors never include server error text or credentials.
 
 ## Evidence and references
 
-Five offline tests compare challenge bytes against independent Node SHA256,
+Seven offline tests compare challenge bytes against independent Node SHA256,
 exercise fragmented/coalesced success, reject missing TLS assertion/full-auth/
 auth-switch/sequence errors, redact server text, and test cancellation/concurrent
-starts. No real MySQL or MariaDB server acceptance has been run for this module.
+starts, stable closed state and SSLRequest/response header equality. No real MySQL or MariaDB server acceptance has been run for this module.
 
 DBX uses `mysql_async` rather than this handwritten protocol slice; see
 `dbx-driver-mysql/src/mysql.rs` around connection/TLS setup at lines 2342–2480.
 Protocol reference: MySQL server developer documentation, **Caching SHA-2
 Pluggable Authentication** and **Protocol::HandshakeResponse41**. Implementing
 these structures does not establish complete compatibility with their full flows.
+
+## Intentional DBX compatibility gap
+
+DBX `crates/dbx-driver-mysql/src/mysql.rs:10864–10877` includes
+`mysql_caching_sha2_immediate_ok_returns_a_working_pool`: a Router may send OK
+immediately after HandshakeResponse. This slice still rejects immediate OK and
+requires AuthMoreData fast-auth-success first. That is a conservative documented
+compatibility limit, not proof that all caching_sha2 servers follow this path.
+The referenced DBX test also uses plaintext mode; this implementation does **not**
+adopt that policy or relax its verified-TLS prerequisite.
+
+`close()` is stable: later `start()`/`receive()` calls reject without changing the
+closed state. Repeated starts during asynchronous hashing still fail closed; no
+late wire result may be returned after cancellation.

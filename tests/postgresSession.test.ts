@@ -100,3 +100,21 @@ test('Ready plus trailing frame in same chunk is rejected rather than losing byt
  h.connection.readable.read=async()=>{const b=await read();if(b?.[0]!==90)return b;const tail=auth(0),both=new Uint8Array(b.length+tail.length);both.set(b);both.set(tail,b.length);return both;};
  await assert.rejects(authenticatePostgresTls(h.connection,opts),{message:'PG startup sequence'});assert.equal(h.closes,1);
 });
+
+test('server errors retain only validated SQLSTATE, never diagnostic text',async()=>{
+ const h=harness((_,push)=>push(frame('E',bytes('SERROR\0C28P01\0Mprivate-password-detail\0\0'))));
+ await assert.rejects(authenticatePostgresTls(h.connection,opts),e=>e instanceof Error&&e.message==='PG startup server'&&(e as {sqlState?:string}).sqlState==='28P01'&&!JSON.stringify(e).includes('private'));
+ assert.equal(h.closes,1);
+});
+
+test('owned startup reads are wiped after server failure and late timeout arrival',async()=>{
+ const owned=frame('E',bytes('C28P01\0Mprivate-diagnostic\0\0'));
+ const h=harness((_,push)=>push(owned));
+ await assert.rejects(authenticatePostgresTls(h.connection,opts));
+ assert.ok(owned.every(byte=>byte===0));
+ let resolveRead!:(value:Uint8Array)=>void;
+ const late=harness(()=>{});late.connection.readable.read=()=>new Promise<Uint8Array>(resolve=>resolveRead=resolve);
+ await assert.rejects(authenticatePostgresTls(late.connection,{...opts,timeoutMs:5}),{message:'PG startup timeout'});
+ const secret=bytes('late-private');resolveRead(secret);await new Promise(resolve=>setTimeout(resolve,0));
+ assert.ok(secret.every(byte=>byte===0));
+});
