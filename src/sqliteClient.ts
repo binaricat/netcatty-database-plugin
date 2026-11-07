@@ -1,3 +1,5 @@
+import {previewDropIndexSql,DropIndexError,type DropIndexDraft} from './schemaDropIndex';
+import type {DropIndexRequest,DropIndexReview,DropIndexApplyRequest,DropIndexResult} from './databaseTypes';
 import {previewRenameColumnSql,RenameColumnError,type RenameColumnDraft} from './schemaRenameColumn';
 import type {RenameColumnRequest,RenameColumnReview,RenameColumnApplyRequest,RenameColumnResult} from './databaseTypes';
 import {previewAddColumnSql,AddColumnError} from './alterTableModel';
@@ -185,6 +187,40 @@ export function applySqliteRenameColumn(db:Database,draft:RenameColumnDraft):Ren
   }finally{try{db.run('PRAGMA query_only=ON');}catch{try{db.close();}catch{}throw new Error('SQLite read protection could not be restored; session closed.');}}
 }
 
+/** Reused authority helpers must not leak another operation's error taxonomy. */
+function dropIndexCheck<T>(work:()=>T):T {
+  try{return work();}catch(error){
+    if(error instanceof RenameColumnError){
+      const codes:Partial<Record<RenameColumnError['code'],DropIndexError['code']>>={draft:'draft',identifier:'identifier',schema:'schema',table:'table',column:'schema',exists:'index',unchanged:'draft',dependency:'dependency',definition:'table',budget:'budget',stale:'stale',review:'review'};
+      const code=codes[error.code];if(code)throw new DropIndexError(code);
+      throw new Error('SQLite index operation failed.');
+    }
+    throw error;
+  }
+}
+/** Confirmed structured index removal with authority and unchanged-object checks. */
+export function applySqliteDropIndex(db:Database,draft:DropIndexDraft):DropIndexResult{
+  let transaction=false;
+  try{
+    db.run('PRAGMA query_only=OFF');db.run('SAVEPOINT plugin_drop_index');transaction=true;
+    const before=inspectSqliteSchema(db),preview=previewDropIndexSql(draft,before),authority=dropIndexCheck(()=>inspectRenameColumnAuthority(db,preview.draft.table));
+    const target=authority.all.filter(o=>o.schema==='main'&&o.type==='index'&&o.name===preview.draft.name&&o.table===preview.draft.table);
+    if(target.length!==1||target[0].sql===null)throw new DropIndexError('index');
+    db.run(preview.sql);
+    const after=inspectSqliteSchema(db),next=dropIndexCheck(()=>inspectRenameColumnAuthority(db,preview.draft.table));
+    const expectedObjects=authority.all.filter(o=>!(o.schema==='main'&&o.type==='index'&&o.name===preview.draft.name));
+    if(JSON.stringify(expectedObjects)!==JSON.stringify(next.all)||JSON.stringify(authority.columns)!==JSON.stringify(next.columns))throw new DropIndexError('dependency');
+    const expected={tables:before.tables.map(t=>t.name===preview.draft.table?{...t,indexes:t.indexes!.filter(i=>i.name!==preview.draft.name)}:t)};
+    // index_list seq affects ordering only; inspect sorts indexes by seq. Removal
+    // must leave the relative ordering and every remaining index field intact.
+    if(JSON.stringify(expected)!==JSON.stringify(after))throw new DropIndexError('dependency');
+    const size=Number(db.exec('PRAGMA page_count')[0].values[0][0])*Number(db.exec('PRAGMA page_size')[0].values[0][0]);if(size>1024*1024)throw new DropIndexError('budget');
+    db.run('RELEASE plugin_drop_index');transaction=false;return {changes:0,schema:after,sql:preview.sql};
+  }catch(error){
+    if(transaction){try{db.run('ROLLBACK TO plugin_drop_index; RELEASE plugin_drop_index');}catch{db.close();throw new Error('SQLite drop-index rollback failed; session closed.');}}throw error;
+  }finally{try{db.run('PRAGMA query_only=ON');}catch{try{db.close();}catch{}throw new Error('SQLite read protection could not be restored; session closed.');}}
+}
+
 export function createWorkbenchContext(context: PluginContext): WorkbenchContext {
   const sessions = new Map<string, Database>();
   const tableReviews=new Map<string,string>();
@@ -348,6 +384,18 @@ export function createWorkbenchContext(context: PluginContext): WorkbenchContext
     }
   };
   const tempRevision=(db:Database):number=>{const value=db.exec('PRAGMA temp.schema_version')[0]?.values[0]?.[0];if(typeof value!=='number'||!Number.isSafeInteger(value)||value<0)throw new RenameColumnError('stale');return value;};
+  const previewDropIndex=async(request:DropIndexRequest):Promise<DropIndexReview>=>{
+    const db=get(request);tableReviews.delete(request.handleId);const preview=previewDropIndexSql(request.draft,inspectSqliteSchema(db));dropIndexCheck(()=>inspectRenameColumnAuthority(db,preview.draft.table));
+    const review={handleId:request.handleId,...preview,schemaRevision:schemaRevision(db),tempSchemaRevision:dropIndexCheck(()=>tempRevision(db))};tableReviews.set(request.handleId,JSON.stringify(review));return review;
+  };
+  const applyDropIndex=async(request:DropIndexApplyRequest):Promise<DropIndexResult>=>{
+    const db=get(request),review=request.review;
+    if(!review||review.handleId!==request.handleId||review.schemaRevision!==schemaRevision(db)||review.tempSchemaRevision!==dropIndexCheck(()=>tempRevision(db)))throw new DropIndexError('stale');
+    if(tableReviews.get(request.handleId)!==JSON.stringify(review))throw new DropIndexError('review');tableReviews.delete(request.handleId);
+    const preview=previewDropIndexSql(review.draft,inspectSqliteSchema(db));
+    if(JSON.stringify(preview)!==JSON.stringify({draft:review.draft,sql:review.sql,unique:review.unique}))throw new DropIndexError('review');
+    try{return applySqliteDropIndex(db,preview.draft);}catch(error){try{db.exec('SELECT 1');}catch{sessions.delete(request.handleId);tableReviews.delete(request.handleId);}throw error;}
+  };
   const previewRenameColumn=async(request:RenameColumnRequest):Promise<RenameColumnReview>=>{
     const db=get(request);tableReviews.delete(request.handleId);const preview=previewRenameColumnSql(request.draft,inspectSqliteSchema(db));inspectRenameColumnAuthority(db,preview.draft.table);
     const review={handleId:request.handleId,...preview,schemaRevision:schemaRevision(db),tempSchemaRevision:tempRevision(db)};tableReviews.set(request.handleId,JSON.stringify(review));return review;
@@ -455,8 +503,8 @@ export function createWorkbenchContext(context: PluginContext): WorkbenchContext
     }
   };
   const database: PluginDatabaseClient & {capabilities: ReadonlySet<string>} = {
-    capabilities: new Set(['database.sqlite-fixture.v1','database.saved-connections.v1','database.sqlite-reviewed-writes.v1','database.sqlite-create-table.v1','database.sqlite-create-index.v1','database.sqlite-grid-mutation.v1','database.sqlite-csv-import.v1','database.sqlite-rename-column.v1','database.sqlite-add-column.v1']),
-    previewRenameColumn,applyRenameColumn,previewAddColumn,applyAddColumn,previewCsvImport,applyCsvImport,previewCreateTable,applyCreateTable,previewCreateIndex,applyCreateIndex,previewGridMutation:previewGridRow,applyGridMutation,
+    capabilities: new Set(['database.sqlite-fixture.v1','database.saved-connections.v1','database.sqlite-reviewed-writes.v1','database.sqlite-create-table.v1','database.sqlite-create-index.v1','database.sqlite-grid-mutation.v1','database.sqlite-csv-import.v1','database.sqlite-rename-column.v1','database.sqlite-drop-index.v1','database.sqlite-add-column.v1']),
+    previewDropIndex,applyDropIndex,previewRenameColumn,applyRenameColumn,previewAddColumn,applyAddColumn,previewCsvImport,applyCsvImport,previewCreateTable,applyCreateTable,previewCreateIndex,applyCreateIndex,previewGridMutation:previewGridRow,applyGridMutation,
     openFixture: open, readSchema, query, close, cancel:close,
     listSavedConnections:list,
     saveConnection: (request: DatabaseSaveConnectionRequest) => mutate(async () => {

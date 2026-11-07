@@ -306,3 +306,8 @@ export type RenameColumnReview=import('./schemaRenameColumn').RenameColumnPrevie
 export type RenameColumnRequest={handleId:DatabaseHandle;draft:import('./schemaRenameColumn').RenameColumnDraft};
 export type RenameColumnApplyRequest={handleId:DatabaseHandle;review:RenameColumnReview};
 export type RenameColumnResult={changes:0;schema:DatabaseSchemaResult;sql:string};
+
+export type DropIndexReview=import('./schemaDropIndex').DropIndexPreview & {handleId:DatabaseHandle;schemaRevision:number;tempSchemaRevision:number};
+export type DropIndexRequest={handleId:DatabaseHandle;draft:import('./schemaDropIndex').DropIndexDraft};
+export type DropIndexApplyRequest={handleId:DatabaseHandle;review:DropIndexReview};
+export type DropIndexResult={changes:0;schema:DatabaseSchemaResult;sql:string};

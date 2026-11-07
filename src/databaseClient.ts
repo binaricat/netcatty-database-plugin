@@ -1,3 +1,4 @@
+import type {DropIndexRequest,DropIndexReview,DropIndexApplyRequest,DropIndexResult} from './databaseTypes';
 import type {RenameColumnRequest,RenameColumnReview,RenameColumnApplyRequest,RenameColumnResult} from './databaseTypes';
 import type {AddColumnRequest,AddColumnApplyRequest,AddColumnResult,AddColumnReview} from './databaseTypes';
 import type { PluginContext as HostPluginContext } from '@netcatty/plugin-sdk';
@@ -8,6 +9,8 @@ import type {DatabaseCreateIndexRequest,DatabaseCreateIndexApplyRequest,Database
 import type {GridMutationRequest,GridMutationApplyRequest,GridMutationReview,GridMutationResult} from './databaseTypes';
 import type {CsvImportRequest,CsvImportApplyRequest,CsvImportReview,CsvImportResult} from './databaseTypes';
 export interface PluginDatabaseClient {
+  previewDropIndex(params:DropIndexRequest):Promise<DropIndexReview>;
+  applyDropIndex(params:DropIndexApplyRequest):Promise<DropIndexResult>;
   previewRenameColumn(params:RenameColumnRequest):Promise<RenameColumnReview>;
   applyRenameColumn(params:RenameColumnApplyRequest):Promise<RenameColumnResult>;
   previewAddColumn(params:AddColumnRequest):Promise<AddColumnReview>;
