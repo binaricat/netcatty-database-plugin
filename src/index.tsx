@@ -17,7 +17,10 @@ const MODAL_VIEW = 'com.binaricat.netcatty-database.new-connection';
 type ModalChannel = ReturnType<typeof createConnectionModalChannel<Model>>;
 function EngineIcon({ engine, theme }: { engine: DriverId | 'postgresql'; theme: string }) {
   const driver = driverById(engine === 'postgresql' ? 'postgres' : engine);
-  return driver.icon ? <img className="engine-icon" src={`brand:assets/icons/${driver.icon}-${theme === 'dark' ? 'dark' : 'light'}.png`} alt="" width={32} height={32} /> : <span className={`engine-fallback engine-${driver.id}`}><Icon name="database" /></span>;
+  // These seven marks are recorded separately for this local noncommercial build.
+  const domesticMarks: readonly DriverId[] = ['goldendb', 'gaussdb', 'kingbase', 'highgo', 'vastbase', 'gbase8c', 'opengauss'];
+  const icon = driver.icon ?? (domesticMarks.includes(driver.id) ? driver.id : null);
+  return icon ? <img className={`engine-icon engine-${driver.id}`} src={`brand:assets/icons/${icon}-${theme === 'dark' ? 'dark' : 'light'}.png`} alt="" width={32} height={32} /> : <span className={`engine-fallback engine-${driver.id}`}><Icon name="database" /></span>;
 }
 function ConnectionModal({ channel, controller }: { channel: ModalChannel; controller: HostViewController }) {
   const vm = useSyncExternalStore(channel.subscribe, channel.getSnapshot);

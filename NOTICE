@@ -1,7 +1,7 @@
 Netcatty Database 0.1.0-alpha.1
 Copyright 2026 Netcatty Database contributors. GPL-3.0-or-later.
 
-New workbench/domain/service code; no DBX code or assets copied.
+New workbench/domain/service code. DBX-derived brand assets are identified below.
 Netcatty SDK, contract and CLI are vendored from Netcatty base
 7949242765a07bc2e766cd04e69eff32cf666699 plus the local SQLite foundation
 changes documented in docs/provenance.md. They are GPL-3.0-or-later.
@@ -19,4 +19,18 @@ fills. See assets/brand-icon-ledger.json for raster and source hashes.
 
 T306/T309 engine marks: Simple Icons CC0 assets retain fixed brand colors, with transparent backgrounds. Brand/trademark rights remain with their owners. See assets/icon-ledger.json and assets/brand-icon-ledger.json.
 Firebird icon: Copyright 2000-2023 JetBrains s.r.o. and contributors. Apache-2.0; explicit DBX SVG header retained. License: licenses/Apache-2.0.txt.
-No GoldenDB, openGauss, GaussDB, Kingbase, HighGo, Vastbase, UXDB, GBase, Dameng or Oracle vendor artwork copied from unlabelled DBX assets. These entries use a host database glyph, not a vendor logo.
+T314 LOCAL NONCOMMERCIAL IDENTIFICATION BUILD: six marks (GoldenDB, GaussDB,
+KingbaseES, HighGo, Vastbase, GBase) derive from DBX revision
+01b5452f6e9c79388f3488466c5bd810366c872b. DBX Apache-2.0 applies only to eligible
+contributions contributors may license; it does not establish ownership of all
+third-party artwork or grant trademarks (§6). Copy in licenses/DBX-Apache-2.0.txt.
+Vastbase source notice retained: Vastbase brand mark sourced from the vendor website.
+Modification: static PNG conversion/equal scaling; HighGo exact-white canvas
+removed. Original sources and exact transformations/hashes: assets/domestic-icon-ledger.json.
+openGauss uses official logo1.svg graphic paths, not recolored DBX artwork.
+The Chinese official policy permits personal/educational/noncommercial purposes;
+its shape/color/proportion/protection-space rules apply. See licenses/domestic-brands.txt
+and licenses/openGauss-brand-policy.txt. All brand rights remain with their owners.
+This bundle is solely for Qi's explicitly authorized local noncommercial testing.
+NOT_CLEARED_FOR_GENERAL_DISTRIBUTION: no unrestricted brand redistribution claim.
+UXDB, Dameng, Oracle continue using a host glyph.

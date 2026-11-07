@@ -190,6 +190,7 @@ pre { padding: 12px; background: hsl(var(--muted)/.4); border: 1px solid hsl(var
 .selected-engine-copy strong { color: hsl(var(--foreground)); font-size: 12px; font-weight: 500; }
 .selected-engine-copy small { font-size: 11px; }
 .selected-engine .engine-icon { width: 20px; height: 20px; }
+.engine-icon.engine-opengauss { width: 32px; height: 32px; margin: 8px; }
 .modal-footer .back-button { margin-right: auto; }
 .advanced label { margin-bottom: 14px; } .advanced p { color: hsl(var(--muted-foreground)); font-size: 12px; } .port-probe,.tunnel-test,.live-fixture-test { border-top: 1px solid hsl(var(--border)); padding-top: 14px; margin-top: 14px; } .advanced .hint { margin: 10px 0; }
 /* SQL display uses one native scrollport: no forwarded scroll/pointer events. */

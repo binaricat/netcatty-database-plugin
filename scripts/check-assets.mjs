@@ -18,3 +18,14 @@ for (const entry of rasters) {
   if (width !== 128 || height !== 128) throw new Error('Engine mark dimensions changed');
 }
 console.log(`Validated ${rasters.length} static brand PNGs with metadata.brand-icon contract and source hashes`);
+const domestic = JSON.parse(await readFile('assets/domestic-icon-ledger.json', 'utf8'));
+for (const entry of domestic) {
+  if (!entry.distributionBasis.includes('NOT_CLEARED_FOR_GENERAL_DISTRIBUTION')) throw new Error('Missing domestic usage boundary');
+  if (createHash('sha256').update(await readFile(entry.sourceFile)).digest('hex') !== entry.sourceSha256) throw new Error('Domestic source drift');
+  for (const output of entry.outputs) {
+    const png = await readFile(output.file);
+    if (createHash('sha256').update(png).digest('hex') !== output.sha256) throw new Error('Domestic PNG drift');
+    inspectPluginBrandIcon(png, output.file);
+  }
+}
+console.log(`Validated ${domestic.length} domestic marks, local noncommercial use only`);

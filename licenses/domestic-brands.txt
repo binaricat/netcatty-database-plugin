@@ -1,0 +1,26 @@
+Local identification use, Qi t314 (noncommercial; no publication authorized)
+
+The seven brand marks identify selectable database products. Neither Netcatty nor
+this package claims affiliation, endorsement or ownership. The six DBX-derived
+sources have no per-asset license metadata. Root Apache-2.0 §2/4 permits eligible
+contributions with license, relevant notices and modifications; §6 does not grant
+trademark rights. Absence of exceptions does not prove ownership of third-party
+artwork. Conversely copyright reservations do not by themselves forbid every
+local identifying use. This local bundle relies on the expressly authorized
+noncommercial reference/identification scope, not an unrestricted redistribution
+license. General distribution of these marks has NOT been cleared.
+
+openGauss official artwork and policy:
+https://opengauss.org/zh/brand/
+https://opengauss.org/category/brand/view/logo1.svg
+https://opengauss.org/file/brand/openGauss%E5%95%86%E6%A0%87%E4%BD%BF%E7%94%A8%E8%A7%84%E8%8C%83.pdf
+The Chinese page expressly permits personal, educational and noncommercial use.
+Official A-2 permits using graphic and wordmark separately. Only the wordmark was
+omitted; graphic paths, ratios and gradient colors remain unchanged. The graphic
+uses 32px display size with surrounding UI clearspace. No general commercial
+permission is inferred. Policy extraction retained in openGauss-brand-policy.txt.
+
+Per-engine original URL, SHA256, source notices, transformations, local usage
+status and distribution boundary: assets/domestic-icon-ledger.json.
+DBX NOTICE reviewed: its PL/SQL debugger attribution does not concern these icons;
+no debugger code is copied. Original Vastbase source comment is retained.

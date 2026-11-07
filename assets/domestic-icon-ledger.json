@@ -1,0 +1,170 @@
+[
+  {
+    "id": "opengauss",
+    "title": "openGauss",
+    "sourceFile": "assets/domestic-sources/opengauss.svg",
+    "sourceSha256": "14f4a6039fdcdb9c1e6ba1633a5b8dc0bb306ef3147ea87a9d8ce26fe68d05c4",
+    "sourceUrl": "https://opengauss.org/category/brand/view/logo1.svg",
+    "officialUrl": "https://opengauss.org/zh/brand/",
+    "copyright": "Brand artwork and trademarks remain with their respective owners; no individual copyright notice in source.",
+    "license": "Official conditional brand policy (not an open license)",
+    "usageStatus": "LOCAL_NONCOMMERCIAL_IDENTIFICATION_AUTHORIZED",
+    "distributionBasis": "NOT_CLEARED_FOR_GENERAL_DISTRIBUTION. This local test bundle is for Qi's expressly authorized noncommercial identifying use; no endorsement or unrestricted redistribution claim. Official Chinese policy expressly permits personal/educational/noncommercial use; preserve artwork, colors, ratio and protection space.",
+    "transformation": "Static offline rasterization, equal scale, no color changes; transparent 128x128 canvas, no added frame. Official policy A-2 permits separate graphic: omitted wordmark path only; four graphic paths/gradients unchanged. Graphic displayed at 32px with surrounding clearspace.",
+    "outputs": [
+      {
+        "file": "assets/icons/opengauss-light.png",
+        "sha256": "2af8ffc416766e7bc6b87947382328e0c7dfdaf637e252e3c8e20a2e48098c98"
+      },
+      {
+        "file": "assets/icons/opengauss-dark.png",
+        "sha256": "2af8ffc416766e7bc6b87947382328e0c7dfdaf637e252e3c8e20a2e48098c98"
+      }
+    ],
+    "renderFile": "assets/domestic-sources/opengauss-graphic.svg"
+  },
+  {
+    "id": "goldendb",
+    "title": "GoldenDB",
+    "sourceFile": "assets/domestic-sources/goldendb.png",
+    "sourceSha256": "e2ba394f6515f6a0c8e9ac5980c9d14dbcbe3d36160008edf14f4951ec01ddad",
+    "sourceUrl": "https://github.com/t8y2/dbx/blob/01b5452f6e9c79388f3488466c5bd810366c872b/apps/desktop/public/icons/database/goldendb.png",
+    "officialUrl": "https://www.goldendb.com/",
+    "copyright": "Brand artwork and trademarks remain with their respective owners; no individual copyright notice in source.",
+    "license": "DBX Apache-2.0, only to extent contributors may license eligible contributions; no trademark grant (§6).",
+    "usageStatus": "LOCAL_NONCOMMERCIAL_IDENTIFICATION_AUTHORIZED",
+    "distributionBasis": "NOT_CLEARED_FOR_GENERAL_DISTRIBUTION. This local test bundle is for Qi's expressly authorized noncommercial identifying use; no endorsement or unrestricted redistribution claim. DBX §2/4 permits eligible contributions with license/notices/modification note. Third-party brand rights not established by root license. Local reference use only; broader distribution requires review.",
+    "transformation": "Static offline rasterization, equal scale, no color changes; transparent 128x128 canvas, no added frame.",
+    "outputs": [
+      {
+        "file": "assets/icons/goldendb-light.png",
+        "sha256": "a069ec46d128e733e5b7a4f831688f11582ba6ef7be754c26c3354c46404cd60"
+      },
+      {
+        "file": "assets/icons/goldendb-dark.png",
+        "sha256": "a069ec46d128e733e5b7a4f831688f11582ba6ef7be754c26c3354c46404cd60"
+      }
+    ],
+    "renderFile": "assets/domestic-sources/goldendb.png"
+  },
+  {
+    "id": "gaussdb",
+    "title": "GaussDB",
+    "sourceFile": "assets/domestic-sources/gaussdb.svg",
+    "sourceSha256": "c73871c4432cab3459014e554c76718bd97a5f3ee7c290ae3a7a929099238e59",
+    "sourceUrl": "https://github.com/t8y2/dbx/blob/01b5452f6e9c79388f3488466c5bd810366c872b/apps/desktop/public/icons/database/gaussdb.svg",
+    "officialUrl": "https://www.huaweicloud.com/product/gaussdb.html",
+    "copyright": "Brand artwork and trademarks remain with their respective owners; no individual copyright notice in source.",
+    "license": "DBX Apache-2.0, only to extent contributors may license eligible contributions; no trademark grant (§6).",
+    "usageStatus": "LOCAL_NONCOMMERCIAL_IDENTIFICATION_AUTHORIZED",
+    "distributionBasis": "NOT_CLEARED_FOR_GENERAL_DISTRIBUTION. This local test bundle is for Qi's expressly authorized noncommercial identifying use; no endorsement or unrestricted redistribution claim. DBX §2/4 permits eligible contributions with license/notices/modification note. Third-party brand rights not established by root license. Local reference use only; broader distribution requires review.",
+    "transformation": "Static offline rasterization, equal scale, no color changes; transparent 128x128 canvas, no added frame.",
+    "outputs": [
+      {
+        "file": "assets/icons/gaussdb-light.png",
+        "sha256": "7bcc4584688e6e65b8136e65466cc3f6d6608c789f1bc769300b81536e8193b7"
+      },
+      {
+        "file": "assets/icons/gaussdb-dark.png",
+        "sha256": "7bcc4584688e6e65b8136e65466cc3f6d6608c789f1bc769300b81536e8193b7"
+      }
+    ],
+    "renderFile": "assets/domestic-sources/gaussdb.svg"
+  },
+  {
+    "id": "kingbase",
+    "title": "KingbaseES",
+    "sourceFile": "assets/domestic-sources/kingbase.svg",
+    "sourceSha256": "b7d39427d8b760bd4003385ae8e644ed65b9f10a41861d1a154d52a61f6c6122",
+    "sourceUrl": "https://github.com/t8y2/dbx/blob/01b5452f6e9c79388f3488466c5bd810366c872b/apps/desktop/public/icons/database/kingbase.svg",
+    "officialUrl": "https://www.kingbase.com.cn/product/details_549_476.html",
+    "copyright": "Brand artwork and trademarks remain with their respective owners; no individual copyright notice in source.",
+    "license": "DBX Apache-2.0, only to extent contributors may license eligible contributions; no trademark grant (§6).",
+    "usageStatus": "LOCAL_NONCOMMERCIAL_IDENTIFICATION_AUTHORIZED",
+    "distributionBasis": "NOT_CLEARED_FOR_GENERAL_DISTRIBUTION. This local test bundle is for Qi's expressly authorized noncommercial identifying use; no endorsement or unrestricted redistribution claim. DBX §2/4 permits eligible contributions with license/notices/modification note. Third-party brand rights not established by root license. Local reference use only; broader distribution requires review.",
+    "transformation": "Static offline rasterization, equal scale, no color changes; transparent 128x128 canvas, no added frame.",
+    "outputs": [
+      {
+        "file": "assets/icons/kingbase-light.png",
+        "sha256": "5f97f0266c2e724588992694ad8ca0656fea088b495c80f9828a5d370b66ad89"
+      },
+      {
+        "file": "assets/icons/kingbase-dark.png",
+        "sha256": "5f97f0266c2e724588992694ad8ca0656fea088b495c80f9828a5d370b66ad89"
+      }
+    ],
+    "renderFile": "assets/domestic-sources/kingbase.svg"
+  },
+  {
+    "id": "highgo",
+    "title": "HighGo",
+    "sourceFile": "assets/domestic-sources/highgo.png",
+    "sourceSha256": "ff144cd7b045dab6978ee4fd92d781319650b53223cb4f0a4489adf7ea4f5b51",
+    "sourceUrl": "https://github.com/t8y2/dbx/blob/01b5452f6e9c79388f3488466c5bd810366c872b/apps/desktop/public/icons/database/highgo.png",
+    "officialUrl": "https://www.highgo.com/en/",
+    "copyright": "Brand artwork and trademarks remain with their respective owners; no individual copyright notice in source.",
+    "license": "DBX Apache-2.0, only to extent contributors may license eligible contributions; no trademark grant (§6).",
+    "usageStatus": "LOCAL_NONCOMMERCIAL_IDENTIFICATION_AUTHORIZED",
+    "distributionBasis": "NOT_CLEARED_FOR_GENERAL_DISTRIBUTION. This local test bundle is for Qi's expressly authorized noncommercial identifying use; no endorsement or unrestricted redistribution claim. DBX §2/4 permits eligible contributions with license/notices/modification note. Third-party brand rights not established by root license. Local reference use only; broader distribution requires review.",
+    "transformation": "Static offline rasterization, equal scale, no color changes; transparent 128x128 canvas, no added frame. Removed exact-white source canvas only; black/orange mark pixels unchanged. Dark contrast limitation retained rather than recolored.",
+    "outputs": [
+      {
+        "file": "assets/icons/highgo-light.png",
+        "sha256": "094455a09391fa74f0272e9d8348144f656329df843d83d547a1354af42434ef"
+      },
+      {
+        "file": "assets/icons/highgo-dark.png",
+        "sha256": "094455a09391fa74f0272e9d8348144f656329df843d83d547a1354af42434ef"
+      }
+    ],
+    "renderFile": "assets/domestic-sources/highgo-transparent.png"
+  },
+  {
+    "id": "vastbase",
+    "title": "Vastbase",
+    "sourceFile": "assets/domestic-sources/vastbase.svg",
+    "sourceSha256": "4e4c5cad72b4d6f8388e0bb64ad541c0cc763528f4a4a818db9357890b9d7c60",
+    "sourceUrl": "https://github.com/t8y2/dbx/blob/01b5452f6e9c79388f3488466c5bd810366c872b/apps/desktop/public/icons/database/vastbase.svg",
+    "officialUrl": "https://docs.vastdata.com.cn/zh_CN/VastbaseG100/V2.2.17%20",
+    "copyright": "Original source comment retained: Vastbase brand mark sourced from the vendor website.",
+    "license": "DBX Apache-2.0, only to extent contributors may license eligible contributions; no trademark grant (§6).",
+    "usageStatus": "LOCAL_NONCOMMERCIAL_IDENTIFICATION_AUTHORIZED",
+    "distributionBasis": "NOT_CLEARED_FOR_GENERAL_DISTRIBUTION. This local test bundle is for Qi's expressly authorized noncommercial identifying use; no endorsement or unrestricted redistribution claim. DBX §2/4 permits eligible contributions with license/notices/modification note. Third-party brand rights not established by root license. Local reference use only; broader distribution requires review.",
+    "transformation": "Static offline rasterization, equal scale, no color changes; transparent 128x128 canvas, no added frame.",
+    "outputs": [
+      {
+        "file": "assets/icons/vastbase-light.png",
+        "sha256": "fc65317e9662987b85864d85faabcfc38302c02c369b79a58a8cdf79380fae84"
+      },
+      {
+        "file": "assets/icons/vastbase-dark.png",
+        "sha256": "fc65317e9662987b85864d85faabcfc38302c02c369b79a58a8cdf79380fae84"
+      }
+    ],
+    "renderFile": "assets/domestic-sources/vastbase.svg"
+  },
+  {
+    "id": "gbase8c",
+    "title": "GBase",
+    "sourceFile": "assets/domestic-sources/gbase8c.png",
+    "sourceSha256": "67c29941dd4c3b14518971a5b96a0c795df553ea5ea45bcd2cd410ef320b180d",
+    "sourceUrl": "https://github.com/t8y2/dbx/blob/01b5452f6e9c79388f3488466c5bd810366c872b/apps/desktop/public/icons/database/gbase.png",
+    "officialUrl": "https://www.gbase.cn/",
+    "copyright": "Brand artwork and trademarks remain with their respective owners; no individual copyright notice in source.",
+    "license": "DBX Apache-2.0, only to extent contributors may license eligible contributions; no trademark grant (§6).",
+    "usageStatus": "LOCAL_NONCOMMERCIAL_IDENTIFICATION_AUTHORIZED",
+    "distributionBasis": "NOT_CLEARED_FOR_GENERAL_DISTRIBUTION. This local test bundle is for Qi's expressly authorized noncommercial identifying use; no endorsement or unrestricted redistribution claim. DBX §2/4 permits eligible contributions with license/notices/modification note. Third-party brand rights not established by root license. Local reference use only; broader distribution requires review.",
+    "transformation": "Static offline rasterization, equal scale, no color changes; transparent 128x128 canvas, no added frame.",
+    "outputs": [
+      {
+        "file": "assets/icons/gbase8c-light.png",
+        "sha256": "250bacd91345c05312d1c46ee0cf9d0ec9ce9ae17e12809d854e6c365205b4df"
+      },
+      {
+        "file": "assets/icons/gbase8c-dark.png",
+        "sha256": "250bacd91345c05312d1c46ee0cf9d0ec9ce9ae17e12809d854e6c365205b4df"
+      }
+    ],
+    "renderFile": "assets/domestic-sources/gbase8c.png"
+  }
+]
