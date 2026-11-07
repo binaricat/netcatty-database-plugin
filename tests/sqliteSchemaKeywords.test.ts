@@ -12,3 +12,19 @@ test('keywords in comments and string expressions are not mistaken for restricti
 test('real SQL.js metadata with quoted keyword names supports ADD and CSV while actual conflict clauses refuse',async()=>{const {default:initSqlJs}=await import('sql.js/dist/sql-asm.js');const {inspectSqliteSchema,assertPlainAddColumnTable}=await import('../src/sqliteClient');const SQL=await initSqlJs();const db=new SQL.Database();try{for(const name of ['strict','generated','default']){db.run(`CREATE TABLE "${name}" (id INTEGER, "default" TEXT, "generated" TEXT)`);const metadata=inspectSqliteSchema(db);const target=metadata.tables.find(t=>t.name===name)!;const addPlan=previewAddColumnSql({table:name,name:'extra',type:'TEXT'},metadata);assertPlainAddColumnTable(db,name);db.run(addPlan.sql);const plan=previewCsvImport({table:name,csv:'id,default,generated,extra\n1,a,b,c',nullMode:'backslash-N'},inspectSqliteSchema(db));db.run(plan.sql,plan.rows[0].map(value=>typeof value==='boolean'?Number(value):value));assert.equal(db.getRowsModified(),1);assert.equal(target.columns.length,3);}db.run('CREATE TABLE reject_conflict (id INTEGER UNIQUE ON /* separator */ CONFLICT REPLACE)');assert.throws(()=>previewCsvImport({table:'reject_conflict',csv:'id\n1',nullMode:'backslash-N'},inspectSqliteSchema(db)),/table/);}finally{db.close();}});
 
 test('CSV refuses missing, empty, wrong-kind and lexically malformed schema definitions',()=>{for(const definition of [undefined,'','  ','CREATE TABLE','CREATE TABLE notes','CREATE TABLE notes ()','CREATE TABLE notes (id INTEGER','CREATE TABLE notes (id INTEGER))','CREATE VIEW notes AS SELECT 1','DROP TABLE notes','CREATE TABLE notes (id INTEGER /*','CREATE TABLE "notes (id INTEGER)']){const s=schema(definition??'');s.tables[0].definition=definition;assert.throws(()=>csv(s),/table/);}});
+test('bare CR stays inside SQLite line comments, preserving actual keyword adjacency',()=>{
+ for(const ending of ['\n','\r\n'])assert.ok(schemaTokenSequence(sqliteSchemaTokens(`ON -- comment\r hidden${ending}CONFLICT REPLACE`),'ON','CONFLICT'));
+ assert.deepEqual(sqliteSchemaTokens('SELECT -- comment\r FROM hidden'),['SELECT']);
+ assert.deepEqual(sqliteSchemaTokens('SELECT -- comment\r\n FROM visible'),['SELECT','FROM','VISIBLE']);
+});
+test('real SQLite conflict policy hidden by CR-comment is rejected before CSV or row INSERT',async()=>{
+ const {default:initSqlJs}=await import('sql.js/dist/sql-asm.js');const {inspectSqliteSchema}=await import('../src/sqliteClient');const {previewRowInsert}=await import('../src/rowInsertModel');const SQL=await initSqlJs();const db=new SQL.Database();
+ try{
+  db.run("CREATE TABLE notes(id INTEGER PRIMARY KEY,name TEXT UNIQUE ON -- comment\r hidden\n CONFLICT REPLACE); INSERT INTO notes VALUES(1,'a'),(2,'b');");
+  const actual=inspectSqliteSchema(db);assert.throws(()=>previewCsvImport({table:'notes',csv:'id,name\n3,a',nullMode:'backslash-N'},actual),/table/);
+  assert.throws(()=>previewRowInsert({table:'notes',values:{id:{mode:'value',value:3},name:{mode:'value',value:'a'}}},actual),/table/);
+  assert.deepEqual(db.exec('SELECT * FROM notes ORDER BY id')[0].values,[[1,'a'],[2,'b']]);
+  // Demonstrate why sqlite changes=1 alone does not prove no secondary deletion.
+  db.run("INSERT INTO notes VALUES(3,'a')");assert.equal(db.getRowsModified(),1);assert.deepEqual(db.exec('SELECT * FROM notes ORDER BY id')[0].values,[[2,'b'],[3,'a']]);
+ }finally{db.close();}
+});
