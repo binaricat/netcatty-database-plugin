@@ -31,8 +31,8 @@ behavior exists but scope or qualification is materially narrower than DBX.
 Missing means no usable implementation on main. Historical experimental-host
 results cannot be carried forward as main acceptance.
 
-After the result/query-library slice: **0 of 24 capability groups complete; 8 partial;
-16 missing**. This coarse count is not a percentage of engineering effort or a
+After the full-app/metadata slice: **0 of 24 capability groups complete; 9 partial;
+15 missing**. This coarse count is not a percentage of engineering effort or a
 weighted product completion score. It also does not establish that every DBX
 advertised driver itself has been independently tested in DBX.
 
@@ -43,7 +43,7 @@ advertised driver itself has been independently tested in DBX.
 | 3. Persistent secure credentials | Missing | No password persistence in the main adapter. Old synthetic secret tests are historical. |
 | 4. SSH tunnels, proxies and reconnect | Missing | Existing host metadata/port/loopback probes in the old snapshot were not a general tunnel. No production tunnel in this port. |
 | 5. Table/view/column browser | Partial | Actual SQLite introspection, search and read-only structure. No multi-database/schema navigation. |
-| 6. Indexes/FKs/triggers/routines/source browsing | Missing | The exposed structure model contains columns, type, nullability and primary-key flags only. |
+| 6. Indexes/FKs/triggers/routines/source browsing | Partial | Bounded SQLite definitions, ordered composite PK, indexes, grouped foreign keys and triggers are implemented and engine-tested. Remote routines and full vendor-specific structure remain absent. |
 | 7. Schema editing and reviewed DDL | Missing | SQLite memory adapter is read-only. |
 | 8. SQL editing/highlight/tabs | Partial | Bounded syntax overlay, line numbers and up to eight tabs. No CodeMirror-equivalent editing/selection behavior. |
 | 9. Completion, formatting and diagnostics | Missing | No schema-aware completion or formatter/diagnostic engine. |
@@ -104,9 +104,7 @@ Concrete main limitations to report before any other-repository changes:
 - Ordinary browser plugins cannot start native companions. Native/JDBC vendor
   drivers require a separately designed advanced utility integration and explicit
   permission, packaging and platform qualification. Adding names/icons is insufficient.
-- main's React adapter has no cross-view `openModal` controller. This migration uses
-  an inline dialog inside its own view. A true app-wide contributed modal requires
-  a generic host UI API; no private host IPC or iframe should be added.
+- main supports native contributed modal views, now verified through its own +/quick switcher. Its SDK has no cross-view open/close-modal controller, so plugin home/toolbar buttons retain an inline fallback. Native view closure uses the host X. No private host IPC or iframe is used.
 
 ## Acceptance ledger
 
@@ -121,8 +119,7 @@ Concrete main limitations to report before any other-repository changes:
 | Live AI provider | Not run | No configured model verified |
 | Cross-platform CI/native | Pending CI; native acceptance pending | Three-platform build/unit workflow added; CI cannot replace native GUI evidence |
 
-This task's requested termination condition has **not** been met. The native recording covers the main-component harness rather than the complete
-Netcatty shell, native permission dialogs, a real model, or any TCP database.
+This task's requested termination condition has **not** been met. New full-app recordings now cover the complete Netcatty shell, native modal and native host metadata picker, plus real disposable SQLite queries. They do not cover a real AI model, Docker SSH host, or any TCP database. See `full-app-validation.md`.
 
 The next tasks
 must remain open until functionality and evidence actually close these gaps.
@@ -135,3 +132,7 @@ must remain open until functionality and evidence actually close these gaps.
 - AI gained bounded follow-up context, reset, and SQL code-block extraction. See `ai-parity.md`; live provider remains unverified.
 - Local main SDK/SQLite UI regression now exercises 25 rows / 9 columns, paging, filtering, cell inspection, save/reload, and AI unavailable behavior. Native controlled-Xfce recording covers connection, query and history. This is not Docker multi-database or full application qualification.
 - Overall parity remains far from completion; these turn history into a partial capability, not a complete reproduction. No merge or release.
+
+## Full-app iteration
+
+64 tests, lint, main install and SDK/SQLite UI regression pass locally. Full application alpha.4 was imported through native Settings and exercised on unchanged main. Native modal and host metadata picker are real host UI; no saved hosts exist in the isolated profile. See full-app-validation.md for evidence boundaries. Docker execution remains blocked as detailed in local-docker-acceptance.md. No near-parity completion, merge or release is claimed.
