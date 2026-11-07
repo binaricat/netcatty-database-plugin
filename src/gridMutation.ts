@@ -1,3 +1,4 @@
+import {sqliteSchemaTokens,schemaTokenSequence} from './sqliteSchemaKeywords';
 import type {DatabaseScalar,DatabaseSchemaResult} from './databaseTypes';
 
 export interface GridMutationDraft {
@@ -26,8 +27,14 @@ export function previewGridMutation(input:unknown,schema:DatabaseSchemaResult):{
   if(!record(input)||Object.keys(input).some(key=>!['kind','table','original','changes'].includes(key))||(input.kind!=='update'&&input.kind!=='delete')||!validName(input.table)||!record(input.original))throw new GridMutationError('draft');
   if(!schema||!Array.isArray(schema.tables)||schema.tables.length>32)throw new GridMutationError('table');
   const matching=schema.tables.filter(table=>typeof table?.name==='string'&&fold(table.name)===fold(input.table as string));
-  if(matching.length!==1||matching[0].kind!=='table'||/\bCREATE\s+VIRTUAL\s+TABLE\b/i.test(matching[0].definition??''))throw new GridMutationError('table');
-  const table=matching[0];if(!validName(table.name))throw new GridMutationError('table');
+  if(matching.length!==1||matching[0].kind!=='table')throw new GridMutationError('table');
+  const table=matching[0];if(!validName(table.name)||typeof table.definition!=='string'||!table.definition.trim())throw new GridMutationError('table');
+  let tokens:string[];try{tokens=sqliteSchemaTokens(table.definition);}catch{throw new GridMutationError('table');}
+  if(tokens[0]!=='CREATE'||tokens[1]!=='TABLE'||!tokens.includes('(')||!tokens.includes(')')||schemaTokenSequence(tokens,'ON','CONFLICT')||tokens.includes('GENERATED'))throw new GridMutationError('table');
+  let depth=0;for(const token of tokens){if(token==='(')depth++;else if(token===')'&&--depth<0)throw new GridMutationError('table');}if(depth!==0)throw new GridMutationError('table');
+  // inspectSqliteSchema emits these fields only after authoritative table_list /
+  // table_xinfo confirms an ordinary table with no hidden/generated columns.
+  if(!Array.isArray(table.columns)||table.columns.some(column=>typeof column.rowidAlias!=='boolean'||!(column.defaultSql===null||typeof column.defaultSql==='string')))throw new GridMutationError('table');
   if(!Array.isArray(table.triggers)||table.triggers.length)throw new GridMutationError('table');
   if(input.kind==='delete'){
     for(const source of schema.tables){

@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {previewGridMutation} from '../src/gridMutation';
 import type {DatabaseSchemaResult} from '../src/databaseTypes';
-const schema=():DatabaseSchemaResult=>({tables:[{name:'Notes',kind:'table',triggers:[],foreignKeys:[],columns:[{name:'id',type:'INTEGER',primaryKey:true,nullable:false},{name:'body',type:'TEXT',primaryKey:false,nullable:true},{name:'flag',type:'INTEGER',primaryKey:false,nullable:false}]}]});
+const schema=():DatabaseSchemaResult=>({tables:[{name:'Notes',kind:'table',definition:'CREATE TABLE Notes (id INTEGER PRIMARY KEY, body TEXT, flag INTEGER NOT NULL)',triggers:[],foreignKeys:[],columns:[{name:'id',type:'INTEGER',defaultSql:null,rowidAlias:false,primaryKey:true,nullable:false},{name:'body',type:'TEXT',defaultSql:null,rowidAlias:false,primaryKey:false,nullable:true},{name:'flag',type:'INTEGER',defaultSql:null,rowidAlias:false,primaryKey:false,nullable:false}]}]});
 const draft=()=>({kind:'update',table:'notes',original:{id:1,body:null,flag:false},changes:{body:'你好\nSQL\' ?'}});
 test('update binds changes then all original columns with BINARY collation; delete includes nullable predicates',()=>{
  const input=draft(),result=previewGridMutation(input,schema());
@@ -32,9 +32,9 @@ test('quoted identifiers and prototype-looking keys stay data; compound keys are
  assert.throws(()=>previewGridMutation({kind:'update',table:name,original,changes:{flag:true}},s),/primary-key/);
 });
 test('bounds columns and UTF-8 SQL; duplicate schema columns refuse',()=>{
- const many=schema();many.tables[0].columns=Array.from({length:17},(_,i)=>({name:`c${i}`,type:'TEXT',primaryKey:i===0,nullable:false}));assert.throws(()=>previewGridMutation(draft(),many),/columns/);
+ const many=schema();many.tables[0].columns=Array.from({length:17},(_,i)=>({name:`c${i}`,type:'TEXT',defaultSql:null,rowidAlias:false,primaryKey:i===0,nullable:false}));assert.throws(()=>previewGridMutation(draft(),many),/columns/);
  const duplicated=schema();duplicated.tables[0].columns[1].name='ID';assert.throws(()=>previewGridMutation(draft(),duplicated),/columns/);
- const big=schema();big.tables[0].columns=Array.from({length:16},(_,i)=>({name:`${i}`+'界'.repeat(120),type:'TEXT',primaryKey:i===0,nullable:false}));const original=Object.fromEntries(big.tables[0].columns.map(c=>[c.name,'a']));const changes=Object.fromEntries(big.tables[0].columns.slice(1).map(c=>[c.name,'b']));assert.throws(()=>previewGridMutation({kind:'update',table:'Notes',original,changes},big),/budget/);
+ const big=schema();big.tables[0].columns=Array.from({length:16},(_,i)=>({name:`${i}`+'界'.repeat(120),type:'TEXT',defaultSql:null,rowidAlias:false,primaryKey:i===0,nullable:false}));const original=Object.fromEntries(big.tables[0].columns.map(c=>[c.name,'a']));const changes=Object.fromEntries(big.tables[0].columns.slice(1).map(c=>[c.name,'b']));assert.throws(()=>previewGridMutation({kind:'update',table:'Notes',original,changes},big),/budget/);
 });
 
 test('refuses unknown or active triggers and unsafe inbound delete actions including self references',()=>{
@@ -64,3 +64,5 @@ test('UPDATE refuses inbound and self cascade on changed non-PK referenced colum
  const cascade=schema();cascade.tables.push({...schema().tables[0],name:'child',foreignKeys:[{id:0,targetTable:'Notes',columns:[{from:'body',to:'id'}],onDelete:'CASCADE',onUpdate:'NO ACTION',match:'NONE'}]});
  assert.throws(()=>previewGridMutation({kind:'delete',table:'Notes',original:draft().original},cascade),/table/);
 });
+
+test('unknown ordinary metadata, missing/malformed DDL and conflict policies reject',()=>{for(const definition of [undefined,'','CREATE VIEW Notes AS SELECT 1','CREATE TABLE Notes (id INTEGER','CREATE TABLE Notes (id INTEGER PRIMARY KEY ON CONFLICT REPLACE, body TEXT, flag INTEGER)']){const s=schema();s.tables[0].definition=definition;assert.throws(()=>previewGridMutation(draft(),s),/table/);}for(const field of ['defaultSql','rowidAlias'] as const){const s=schema();delete s.tables[0].columns[0][field];assert.throws(()=>previewGridMutation(draft(),s),/table/);}});
