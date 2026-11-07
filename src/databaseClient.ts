@@ -10,6 +10,10 @@ import type {DatabaseCreateIndexRequest,DatabaseCreateIndexApplyRequest,Database
 import type {GridMutationRequest,GridMutationApplyRequest,GridMutationReview,GridMutationResult} from './databaseTypes';
 import type {CsvImportRequest,CsvImportApplyRequest,CsvImportReview,CsvImportResult} from './databaseTypes';
 export interface PluginDatabaseClient {
+  explainProjection(params:DatabaseHandleRequest & {draft:import('./sqliteExplainPlan').SqliteExplainDraft}):Promise<ReturnType<typeof import('./sqliteExplainPlan').explainSqliteProjection>>;
+  previewDropView(params:DatabaseHandleRequest & {draft:import('./sqliteDropView').DropViewDraft}):Promise<import('./sqliteDropView').DropViewReview>;
+  applyDropView(params:DatabaseHandleRequest & {review:import('./sqliteDropView').DropViewReview}):Promise<import('./sqliteDropView').DropViewResult>;
+  cancelDropView(params:DatabaseHandleRequest & {token:string}):Promise<null>;
   previewCreateView(params:DatabaseHandleRequest & {draft:import('./sqliteCreateView').CreateViewDraft}):Promise<import('./sqliteCreateView').CreateViewReview>;
   applyCreateView(params:DatabaseHandleRequest & {review:import('./sqliteCreateView').CreateViewReview}):Promise<import('./sqliteCreateView').CreateViewResult>;
   cancelCreateView(params:DatabaseHandleRequest & {token:string}):Promise<null>;

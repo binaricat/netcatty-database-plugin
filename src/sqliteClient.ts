@@ -1,3 +1,6 @@
+import {explainSqliteProjection} from './sqliteExplainPlan';
+import {createDropViewAdapter} from './sqliteDropView';
+import {readSqliteResultRow} from './sqliteResultValue';
 import {createCreateViewAdapter} from './sqliteCreateView';
 import {createDropColumnAdapter} from './sqliteDropColumn';
 import {createRenameTableAdapter} from './sqliteRenameTable';
@@ -262,6 +265,10 @@ export function createWorkbenchContext(context: PluginContext): WorkbenchContext
   const get = ({handleId}: DatabaseHandleRequest,preserveDropReview=false) => { assertLive(); if(!preserveDropReview)dropColumnAdapter?.cancel(handleId); if(snapshotLocks.has(handleId))throw new SqliteSnapshotError('busy');discardRestore(handleId); const db = sessions.get(handleId); if (!db) throw new Error('Database connection is closed.'); return db; };
   const renameTableAdapter=createRenameTableAdapter({getDatabase:handleId=>get({handleId}),inspectSchema:inspectSqliteSchema,reviewTokens:tableReviews,onFatal:handleId=>{tableReviews.delete(handleId);savedIds.delete(handleId);sessions.delete(handleId);discardRestore(handleId);}});
   const createViewAdapter=createCreateViewAdapter({getDatabase:handleId=>get({handleId}),inspectSchema:inspectSqliteSchema,reviewTokens:tableReviews,onFatal:handleId=>{tableReviews.delete(handleId);savedIds.delete(handleId);sessions.delete(handleId);discardRestore(handleId);}});
+  const dropViewAdapter=createDropViewAdapter({getDatabase:handleId=>get({handleId}),inspectSchema:inspectSqliteSchema,reviewTokens:tableReviews,onFatal:handleId=>{tableReviews.delete(handleId);savedIds.delete(handleId);sessions.delete(handleId);discardRestore(handleId);}});
+  const previewDropView:WorkbenchContext['database']['previewDropView']=async request=>dropViewAdapter.preview(request);
+  const applyDropView:WorkbenchContext['database']['applyDropView']=async request=>dropViewAdapter.apply(request);
+  const cancelDropView:WorkbenchContext['database']['cancelDropView']=async request=>{assertLive();dropViewAdapter.cancel(request.handleId,request.token);return null;};
   const previewCreateView:WorkbenchContext['database']['previewCreateView']=async request=>createViewAdapter.preview(request);
   const applyCreateView:WorkbenchContext['database']['applyCreateView']=async request=>createViewAdapter.apply(request);
   const cancelCreateView:WorkbenchContext['database']['cancelCreateView']=async request=>{assertLive();createViewAdapter.cancel(request.handleId,request.token);return null;};
@@ -280,7 +287,7 @@ export function createWorkbenchContext(context: PluginContext): WorkbenchContext
   };
   let mutations: Promise<unknown> = Promise.resolve();
   function mutate<T>(operation: () => Promise<T>): Promise<T> { const next = mutations.then(operation); mutations = next.catch(() => {}); return next; }
-  const close = async (target: DatabaseHandleRequest): Promise<null> => { const db = sessions.get(target.handleId); dropColumnAdapter?.cancel(target.handleId);createViewAdapter.cancel(target.handleId);discardRestore(target.handleId);savedIds.delete(target.handleId);tableReviews.delete(target.handleId); sessions.delete(target.handleId); db?.close(); return null; };
+  const close = async (target: DatabaseHandleRequest): Promise<null> => { const db = sessions.get(target.handleId); dropColumnAdapter?.cancel(target.handleId);createViewAdapter.cancel(target.handleId);dropViewAdapter.cancel(target.handleId);discardRestore(target.handleId);savedIds.delete(target.handleId);tableReviews.delete(target.handleId); sessions.delete(target.handleId); db?.close(); return null; };
   const open = async () => {
     assertLive();
     if (sessions.size >= 4) throw new Error('Close an existing connection before opening another.');
@@ -355,13 +362,14 @@ export function createWorkbenchContext(context: PluginContext): WorkbenchContext
       const limit = Math.min(100, Math.max(1, Math.floor(request.maxRows ?? 100)));
       while (statement.step()) {
         if (rows.length >= limit) { truncated = true; break; }
-        const row = statement.get().map(scalar); bytes += new TextEncoder().encode(JSON.stringify(row)).length;
+        const row = readSqliteResultRow(statement); bytes += new TextEncoder().encode(JSON.stringify(row)).length;
         if (bytes > 96 * 1024) { truncated = true; break; }
         rows.push(row);
       }
       return {columns, rows, truncated, changes:0, elapsedMs: Math.round(performance.now()-started)};
     } finally { statement.free(); }
   };
+  const explainProjection:WorkbenchContext['database']['explainProjection']=async request=>explainSqliteProjection(get(request),request.draft);
   const readSchema = async (request: DatabaseHandleRequest): Promise<DatabaseSchemaResult> => inspectSqliteSchema(get(request));
   const schemaRevision=(db:Database):number=>{
     const revision=db.exec('PRAGMA schema_version')[0]?.values[0]?.[0];
@@ -609,9 +617,9 @@ export function createWorkbenchContext(context: PluginContext): WorkbenchContext
     remove:(id,entryId,revision)=>withQueryLibrary(id,()=>storedQueries.remove(id,entryId,revision))
   };
   const database: PluginDatabaseClient & {capabilities: ReadonlySet<string>} = {
-    capabilities: new Set(['database.sqlite-create-view.v1','database.sqlite-drop-column.v1','database.sqlite-rename-table.v1','database.sqlite-grid-batch.v1','database.sqlite-snapshot.v1','database.sqlite-fixture.v1','database.saved-connections.v1','database.sqlite-reviewed-writes.v1','database.sqlite-create-table.v1','database.sqlite-create-index.v1','database.sqlite-grid-mutation.v1','database.sqlite-csv-import.v1','database.sqlite-rename-column.v1','database.sqlite-row-insert.v1','database.sqlite-drop-index.v1','database.sqlite-add-column.v1']),
+    capabilities: new Set(['database.sqlite-estimated-plan.v1','database.sqlite-drop-view.v1','database.sqlite-create-view.v1','database.sqlite-drop-column.v1','database.sqlite-rename-table.v1','database.sqlite-grid-batch.v1','database.sqlite-snapshot.v1','database.sqlite-fixture.v1','database.saved-connections.v1','database.sqlite-reviewed-writes.v1','database.sqlite-create-table.v1','database.sqlite-create-index.v1','database.sqlite-grid-mutation.v1','database.sqlite-csv-import.v1','database.sqlite-rename-column.v1','database.sqlite-row-insert.v1','database.sqlite-drop-index.v1','database.sqlite-add-column.v1']),
     snapshotInfo,saveSnapshot,previewRestoreSnapshot,applyRestoreSnapshot,deleteSnapshot,
-    previewCreateView,applyCreateView,cancelCreateView,previewDropColumn,applyDropColumn,cancelDropColumnReview,previewRenameTable,applyRenameTable,previewGridBatch,applyGridBatch,previewRowInsert,applyRowInsert,previewDropIndex,applyDropIndex,previewRenameColumn,applyRenameColumn,previewAddColumn,applyAddColumn,previewCsvImport,applyCsvImport,previewCreateTable,applyCreateTable,previewCreateIndex,applyCreateIndex,previewGridMutation:previewGridRow,applyGridMutation,
+    explainProjection,previewDropView,applyDropView,cancelDropView,previewCreateView,applyCreateView,cancelCreateView,previewDropColumn,applyDropColumn,cancelDropColumnReview,previewRenameTable,applyRenameTable,previewGridBatch,applyGridBatch,previewRowInsert,applyRowInsert,previewDropIndex,applyDropIndex,previewRenameColumn,applyRenameColumn,previewAddColumn,applyAddColumn,previewCsvImport,applyCsvImport,previewCreateTable,applyCreateTable,previewCreateIndex,applyCreateIndex,previewGridMutation:previewGridRow,applyGridMutation,
     openFixture: open, readSchema, query, close, cancel:close,
     listSavedConnections:list,
     saveConnection: (request: DatabaseSaveConnectionRequest) => mutate(async () => {
@@ -635,6 +643,6 @@ export function createWorkbenchContext(context: PluginContext): WorkbenchContext
     probeHostDatabasePorts: unavailable, cancelHostDatabasePorts: unavailable,
     openHostLiveSshPgFixture: unavailable, cancelHostLiveSshPgFixture: unavailable, closeHostLiveSshPgSession: unavailable,
   };
-  context.subscriptions.add({dispose() { createViewAdapter.dispose();dropColumnAdapter?.dispose();disposed = true; for(const h of restoreReviews.keys())discardRestore(h);savedIds.clear();for (const db of sessions.values()) db.close(); sessions.clear(); tableReviews.clear(); }});
+  context.subscriptions.add({dispose() { dropViewAdapter.dispose();createViewAdapter.dispose();dropColumnAdapter?.dispose();disposed = true; for(const h of restoreReviews.keys())discardRestore(h);savedIds.clear();for (const db of sessions.values()) db.close(); sessions.clear(); tableReviews.clear(); }});
   return Object.assign(Object.create(context), {database,queryLibraryStore}) as WorkbenchContext;
 }

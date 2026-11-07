@@ -1,6 +1,6 @@
 {
   "name": "netcatty-database",
-  "version": "0.1.0-alpha.33",
+  "version": "0.1.0-alpha.34",
   "private": true,
   "license": "GPL-3.0-or-later",
   "type": "module",
@@ -12,7 +12,7 @@
     "test": "node --test --import tsx tests/*.test.ts",
     "build": "node scripts/build.mjs",
     "pack": "npm run build && node scripts/pack.mjs",
-    "validate": "netcatty-plugin validate dist/netcatty-database-0.1.0-alpha.33.ncpkg",
+    "validate": "netcatty-plugin validate dist/netcatty-database-0.1.0-alpha.34.ncpkg",
     "test:react": "node scripts/ui-regression.mjs",
     "check:main": "node scripts/check-main-host.mjs"
   },

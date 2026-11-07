@@ -220,3 +220,22 @@ See `native-create-view-alpha33.md`. This is a deliberately bounded single-table
 projection, not DBX's arbitrary view SQL editor. A shared operation-symbol busy
 lease now prevents late completion/unmount of one task from unlocking another;
 586 tests and 50 main remote-DOM scenes pass. No transport limitation was bypassed.
+
+## Alpha34 candidate: views, estimated plans and result fidelity
+
+DROP VIEW is integrated into the current view's toolbar with explicit permanent
+removal of the definition, preservation of source data and rollback on dependent
+view breakage. A table-level estimated-plan panel creates a structured one-table
+SELECT, shows exact SQL/parameters and a bounded plan tree without executing the
+target query. It is not arbitrary editor SQL EXPLAIN or ANALYZE.
+
+Ordinary query results now preserve wide SQLite integers as decimal text and decode
+TEXT bytes from the same row using a version-pinned compatibility seam. NUL/BOM and
+multibyte text are preserved; invalid UTF8 and non-finite numbers fail explicitly.
+Invisible/control text has labelled reversible JSON display, while results retain
+original values. Result budgets remain post-allocation, not hard CPU/native-memory
+limits. See sqlite-result-fidelity.md for API stability and typed-export caveats.
+
+627 tests, lint/package/main install checks, and 55 main remote-DOM scenes pass
+before native acceptance. Native alpha34 evidence remains pending; no completion,
+remote plugin connection, merge or release is claimed.
