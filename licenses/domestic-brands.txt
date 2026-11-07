@@ -1,4 +1,4 @@
-Local identification use, Qi t314 (noncommercial; no publication authorized)
+Historical T314 identification use (noncommercial; no publication authorized then)
 
 The seven brand marks identify selectable database products. Neither Netcatty nor
 this package claims affiliation, endorsement or ownership. The six DBX-derived
@@ -6,7 +6,7 @@ sources have no per-asset license metadata. Root Apache-2.0 §2/4 permits eligib
 contributions with license, relevant notices and modifications; §6 does not grant
 trademark rights. Absence of exceptions does not prove ownership of third-party
 artwork. Conversely copyright reservations do not by themselves forbid every
-local identifying use. This local bundle relies on the expressly authorized
+local identifying use. The T314 local bundle relied on the expressly authorized
 noncommercial reference/identification scope, not an unrestricted redistribution
 license. General distribution of these marks has NOT been cleared.
 
@@ -24,3 +24,11 @@ Per-engine original URL, SHA256, source notices, transformations, local usage
 status and distribution boundary: assets/domestic-icon-ledger.json.
 DBX NOTICE reviewed: its PL/SQL debugger attribution does not concern these icons;
 no debugger code is copied. Original Vastbase source comment is retained.
+
+Current public-source scope: the user explicitly approves publication of plugin
+code together with all existing brand sources, PNGs and repository history,
+retaining full source, license and restriction notices. This supersedes the
+historical local-only delivery intent, not third-party license conditions.
+The ledger remains a record of T314 local noncommercial authorization; its
+NOT_CLEARED_FOR_GENERAL_DISTRIBUTION caveat remains in force. No general brand
+redistribution clearance or blanket GPL/Apache/trademark permission is inferred.

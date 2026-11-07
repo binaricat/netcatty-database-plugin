@@ -17,3 +17,13 @@ NOT_VENDOR_QUALIFIED until tested against that vendor's actual server. GBase
 8a/8s/8c drivers, native GaussDB/M mode, HighGo secure, Kingbase Oracle and other
 Vastbase editions/modes remain explicitly unavailable. Use the matching T314 host;
 older hosts reject the extended request instead of silently ignoring the variant.
+
+Current publication clarification: T314 above records historical local
+noncommercial acceptance. The user now explicitly approves public plugin source
+including existing icons, original/intermediate brand sources and repository
+history, with all notices and restrictions retained. This changes publication
+intent, not third-party rights; NOT_CLEARED_FOR_GENERAL_DISTRIBUTION and all
+NOT_VENDOR_QUALIFIED boundaries remain. The required matching development host
+is `feat/plugin-database-foundation` at
+`1cfa14b808bcff813676c0e41c8ea522149b76dd`; those host changes remain local and
+are not included here. No compatible generally released host is established.
