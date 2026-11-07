@@ -17,7 +17,7 @@ copy the full rebuild/dependency-management workflow.
 Use the existing authoritative schema inspector and the **same** review-token map
 used by every other schema operation. The database resolver must reject closed
 handles and honor existing workspace operation locks. This is a plugin-local
-facade, not a new host RPC. No public adapter/UI/permission wiring is included.
+facade, not a new host RPC. The local facade and Alter table UI are integrated in alpha31; no new permission or host API is introduced.
 
 ## Boundaries
 
@@ -44,7 +44,7 @@ Preview tokens are one-shot and exact; other DDL previews must invalidate them.
 This module has real SQL.js tests for cancellation, data preservation, identifier
 quoting, dependent-view rollback, conflicts/dependencies, stale/cross-handle
 reviews, shared-token invalidation, closed handles and post-ALTER budget rollback.
-It has not been exposed in the native UI or recorded as native acceptance.
+Native alpha31 preview/confirmation/data readback and dependency rejection are verified; see native-rename-alpha31.md for exact evidence and scope.
 
 ## Transaction and protection contract
 
