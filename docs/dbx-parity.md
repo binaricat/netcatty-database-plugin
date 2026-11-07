@@ -115,6 +115,7 @@ Concrete main limitations to report before any other-repository changes:
 | Migrated checks | Passed: 34 tests and lint/build locally | Includes actual SQLite joins/binds, read-only escapes, row/native allocation budgets, saved-connection serialization, disposal races |
 | Main PackageStore/PluginManager install | Passed locally on main 4a55492 | Actual installed immutable package, disabled admission check, disposable profile; no native settings UI claim |
 | Native installed-plugin main-component UI | Passed basic sample flow locally | Actual main service/renderer components and sandboxed plugin: create/test/save, schema, bound reads, NULL/empty, rejection/recovery, close/reopen; 10 screenshots and a timestamped recording. Fixture permission decisions; not full-app Settings/native permission/provider or cross-platform acceptance |
+| Redis 7.4.2, independent TLS codec/browser lane | Passed scoped real-server checks | Actual Netcatty SSH executes manual strict-TLS Node harness using production RESP2 codec and five-type read browser. AUTH/TLS belong to harness; redisSession/connectRedis/main broker are not covered. See `redis-live-protocol-acceptance.md`. |
 | PostgreSQL 17.6, native SSH + independent protocol lane | Passed scoped real-server checks | Actual Netcatty SSH psql DDL/UPSERT/NULL/prepared parameters and non-TLS refusal; independent Node harness verifies TLS 1.3/IP identity, plugin SCRAM startup and bounded read modules, invalid-password and untrusted-cert rejection. Node supplies STARTTLS; native plugin connectivity remains unqualified. See `native-ssh-postgres-acceptance.md`. |
 | Docker multi-database | Blocked locally; remote CI lane pending | Official Docker tools downloaded. Official rootless prerequisite check rejects missing newuidmap/newgidmap, iptables/nf_tables; no cgroup mount or configured remote daemon. No Docker database test has run. |
 | Live AI provider | Not run | No configured model verified |
@@ -152,3 +153,5 @@ must remain open until functionality and evidence actually close these gaps.
 - Prior b340fb1 CI passed main-host and all three build/unit platforms. e8457c2 CI is pending at this checkpoint. No merge or release.
 
 Native alpha.25 rename and ordinary index removal passed with a 300-second continuous app recording and separate screenshots. See `native-schema-alpha25.md` for full scope and remaining gaps.
+
+After Redis protocol qualification, 346 tests and lint pass. Production Redis endpoint policy remains unchanged; no loopback alias or broker bypass was introduced.
