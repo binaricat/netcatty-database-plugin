@@ -27,7 +27,8 @@
       "database.sqlite-file-fixture.v1",
       "database.saved-connections.v1",
       "database.tunnel-test.synthetic.v1",
-      "database.host-port-probe.v1"
+      "database.host-port-probe.v1",
+      "database.host-live-ssh-pg.fixture.v1"
     ]
   },
   "main": {
@@ -47,9 +48,10 @@
           "sqlite:synthetic-notes",
           "sqlite:disposable-file",
           "database-tunnel:synthetic-loopback",
-          "database-host:common-ports"
+          "database-host:common-ports",
+          "database-host:live-ssh-pg-fixture"
         ],
-        "reason": "Read disposable SQLite fixtures or probe five common TCP ports on a saved host / 读取一次性 SQLite 测试数据或探测已保存主机的五个常用 TCP 端口"
+        "reason": "Read disposable SQLite, probe saved-host TCP ports, or test pinned SSH and SELECT 1 on the loopback PostgreSQL fixture / 读取一次性 SQLite、探测主机 TCP 端口，或测试固定 SSH 密钥与本机 PostgreSQL SELECT 1"
       },
       {
         "permission": "database.query.write",

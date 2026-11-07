@@ -137,3 +137,27 @@ loopback PostgreSQL listener through real host RPC/TCP and writes English/Chines
 HTML evidence. Permission decisions and vault metadata are fixture seams; this
 lane does not automate the native vault or permission windows. Without that flag,
 the deterministic React lane uses explicitly mocked port statuses.
+
+
+### Live SSH to PostgreSQL fixture test
+
+With both host gates `NETCATTY_EXPERIMENTAL_DATABASE=1` and
+`NETCATTY_DATABASE_LIVE_SSH_PG_FIXTURE=1`, Advanced can test the separate host-owned
+loopback fixture when `database.host-live-ssh-pg.fixture.v1` is negotiated.
+The host pins SSH `127.0.0.1:2222`, forwards only to PostgreSQL `127.0.0.1:5432`,
+and requires authenticated `SELECT 1 = 1`. Credentials remain in host SecretStore;
+a secure OS backend is required. The prepared fixture paths and pin are fixed in
+the host adapter. This is a development fixture, not a production database driver.
+
+The test closes its session before showing success. Selecting a host and probing
+an open TCP port still do not connect a database; ordinary vault hosts and the
+SQLite workbench retain their existing behavior. English and zh-CN status copy
+identify the fixture-only result. To exercise the real host API in React evidence:
+
+```sh
+NETCATTY_TEST_LIVE_SSH_PG=1 npm run test:react
+```
+
+That test lane uses an explicitly marked AES-GCM SecretStore backend and injected
+permission decisions, with the actual prepared SSH and PostgreSQL services.
+Native safeStorage and permission dialogs are separate integration checks.

@@ -1,6 +1,24 @@
 // Original plugin-owned copy. English source keys keep the fallback explicit.
 // Only the host environment selects language; never navigator/OS/input locale.
 export const zhCN = {
+  "Test live SSH→PostgreSQL (fixture)": "测试真实 SSH→PostgreSQL（测试环境）",
+  "Cancel live fixture test": "取消真实连接测试",
+  "Allowlisted loopback fixture only. Pinned SSH and SELECT 1 are required; credentials stay with the host. The test session closes automatically.": "仅限允许列表内的本机测试环境。必须通过固定主机密钥验证及 SELECT 1 查询；凭据由宿主管理，测试会话自动关闭。",
+  "No live fixture test has run. Selecting a host does not connect.": "尚未进行真实连接测试，选择主机不会建立连接。",
+  "Fixture SSH or PostgreSQL authentication failed.": "测试环境的 SSH 或 PostgreSQL 身份验证失败。",
+  "Fixture host key is unknown. Live test refused.": "未知测试主机密钥，已拒绝真实连接测试。",
+  "Fixture host key mismatch. Live test refused.": "测试主机密钥不匹配，已拒绝真实连接测试。",
+  "Select the host-owned live SSH PostgreSQL fixture.": "请选择宿主提供的 SSH PostgreSQL 真实连接测试主机。",
+  "Live fixture test cancelled.": "真实连接测试已取消。",
+  "Live fixture cancellation requested.": "已请求取消真实连接测试。",
+  "Live fixture test timed out.": "真实连接测试超时。",
+  "Live fixture unavailable. Check host permissions, secure storage and fixture services.": "真实连接测试不可用，请检查宿主权限、安全存储及测试服务。",
+  "Testing pinned SSH and PostgreSQL SELECT 1 (fixture)...": "正在验证固定 SSH 主机密钥并执行 PostgreSQL SELECT 1（测试环境）…",
+  "Live fixture passed: pinned SSH + PostgreSQL SELECT 1 = 1. Test session closed.": "真实连接测试通过：固定 SSH 主机密钥验证成功，PostgreSQL SELECT 1 = 1。测试会话已关闭。",
+  "Live fixture test or session cleanup failed. No connected state was saved.": "真实连接测试或会话清理失败，未保存已连接状态。",
+  "Synthetic adapter only. This test opens no SSH or PostgreSQL connection; selecting a host never connects.": "仅支持模拟适配器，此测试不会建立 SSH 或 PostgreSQL 连接；选择主机不会建立连接。",
+  "Production SSH tunnels, TLS, SQLite encryption and extensions are unavailable. The separate loopback live test is fixture-only.": "尚不支持生产环境 SSH 隧道、TLS、SQLite 加密及扩展。独立的本机真实连接测试仅限测试环境。",
+
   "Probe common database ports": "探测常用数据库端口",
   "Cancel port probe": "取消端口探测",
   "5432 PostgreSQL / 3306 MySQL or MariaDB / 1433 Microsoft SQL Server / 27017 MongoDB / 6379 Redis": "5432 PostgreSQL / 3306 MySQL 或 MariaDB / 1433 Microsoft SQL Server / 27017 MongoDB / 6379 Redis",
@@ -21,7 +39,6 @@ export const zhCN = {
 
   "Test tunnel (synthetic)": "测试隧道（模拟）",
   "Cancel tunnel test": "取消隧道测试",
-  "Synthetic adapter only. Live SSH and PostgreSQL are unavailable; selecting a host never connects.": "仅支持模拟适配器。真实 SSH 和 PostgreSQL 不可用；选择主机不会建立连接。",
   "No tunnel test has run.": "尚未运行隧道测试。",
   "Testing synthetic tunnel adapter...": "正在测试模拟隧道适配器…",
   "Synthetic tunnel test passed. No SSH or PostgreSQL connection was opened.": "模拟隧道测试通过。未建立 SSH 或 PostgreSQL 连接。",
@@ -74,7 +91,6 @@ export const zhCN = {
   "Connection limits": "连接限制",
   "100 rows / 96 KiB / 3 seconds / 8 KiB SQL": "100 行 / 96 KiB / 3 秒 / SQL 最长 8 KiB",
   "Transport and encryption": "传输与加密",
-  "SSH tunnels, TLS, SQLite encryption and extensions are unavailable in this fixture release.": "此测试版本不支持 SSH 隧道、TLS、SQLite 加密或扩展。",
   "Advanced settings": "高级设置",
   "No additional settings are implemented.": "尚无其他可用设置。",
   "Connection successful - host schema validated": "连接成功 - 宿主已验证数据库结构",

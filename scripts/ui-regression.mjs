@@ -357,6 +357,74 @@ try {
   }
   features.delete(portFeature); context.database.listHostsForDatabase = metadataHosts;
 
+  // Separate live fixture lane: UI mock races followed by real host RPC/SSH/PG.
+  const liveFeature = 'database.host-live-ssh-pg.fixture.v1';
+  const liveLabel = 'Test live SSH→PostgreSQL (fixture)';
+  const liveHost = { hostId: 'live-fixture', hostname: '127.0.0.1', port: 2222, username: 'smoketest', label: 'Live fixture only', capability: 'metadata-only', tunnelAvailable: false, liveSshPg: { kind: 'fixture', revision: 'revision' } };
+  const liveSuccess = { code: 'LIVE_OK', fixture: true, synthetic: false, connected: true, sessionId: 'live-session', expiresAt: Date.now() + 30000, proof: { query: 'SELECT 1', value: 1, pinnedHostKey: true }, secretRef: 'opaque-live-reference', pgSecretRef: 'opaque-pg-reference' };
+  const liveCalls = []; const liveCloses = []; const liveCancels = []; let liveFinish; let liveOutcome = 'LIVE_OK';
+  context.database.listHostsForDatabase = async () => [...await metadataHosts(), liveHost];
+  context.database.openHostLiveSshPgFixture = async (request) => { liveCalls.push(request); return liveOutcome === 'pending' ? new Promise((r) => { liveFinish = r; }) : liveOutcome === 'LIVE_OK' ? liveSuccess : { code: liveOutcome, fixture: true, synthetic: false, connected: false }; };
+  context.database.closeHostLiveSshPgSession = async ({ sessionId }) => { liveCloses.push(sessionId); return { closed: true, connected: false, fixture: true }; };
+  context.database.cancelHostLiveSshPgFixture = async ({ openId }) => { liveCancels.push(openId); return null; };
+  const openAdvanced = async () => { await mount(); await click('New Connection'); await click('Next'); await click('Advanced'); await click('Load permitted hosts'); };
+  await openAdvanced(); await change('Existing host', liveHost.hostId); assert.ok('disabled' in button(liveLabel).attributes); await unmount();
+  features.add(liveFeature); await openAdvanced(); await change('Existing host', 'host-1'); assert.ok('disabled' in button(liveLabel).attributes);
+  await change('Existing host', liveHost.hostId); assert.equal(liveCalls.length, 0); assert.match(document.body.textContent, /Active connections: 0/);
+  await click(liveLabel); assert.match(document.body.textContent, /Live fixture passed: pinned SSH/); assert.equal(liveCloses.length, 1);
+  assert.deepEqual(Object.keys(liveCalls[0]).sort(), ['hostId', 'openId', 'revision']); assert.match(document.body.textContent, /Active connections: 0/);
+  assert.doesNotMatch(JSON.stringify(tree), /opaque-live-reference|opaque-pg-reference/);
+  for (const code of ['AUTH_FAILED', 'HOST_KEY_MISMATCH', 'STALE_HOST', 'CANCELLED']) { liveOutcome = code; await click(liveLabel); assert.doesNotMatch(document.body.textContent, /Live fixture passed:/); }
+  liveOutcome = 'pending'; await click(liveLabel); await click('Cancel live fixture test');
+  assert.equal(liveCancels.at(-1), liveCalls.at(-1).openId);
+  await act(async () => { liveFinish(liveSuccess); await tick(); }); assert.doesNotMatch(document.body.textContent, /Live fixture passed:/); assert.equal(liveCloses.length, 2);
+  await click(liveLabel); await change('Existing host', 'host-1'); await act(async () => { liveFinish(liveSuccess); await tick(); }); assert.equal(liveCloses.length, 3);
+  await change('Existing host', liveHost.hostId); liveOutcome = 'LIVE_OK';
+  await language('zh-CN'); await click('测试真实 SSH→PostgreSQL（测试环境）'); assert.match(document.body.textContent, /真实连接测试通过/); await snapshot('live-fixture-zh-CN-mock'); await language('en');
+  liveOutcome = 'pending'; await click(liveLabel); await unmount(); await act(async () => { liveFinish(liveSuccess); await tick(); }); assert.equal(liveCloses.length, 5);
+  liveOutcome = 'LIVE_OK';
+  const closeLive = context.database.closeHostLiveSshPgSession;
+  context.database.closeHostLiveSshPgSession = async () => { throw new Error('fixture cleanup failed'); };
+  await openAdvanced(); await change('Existing host', liveHost.hostId); await click(liveLabel);
+  assert.match(document.body.textContent, /Live fixture test or session cleanup failed/); assert.doesNotMatch(document.body.textContent, /Live fixture passed:/);
+  assert.match(document.body.textContent, /Active connections: 0/); context.database.closeHostLiveSshPgSession = closeLive; await unmount();
+  checks.push('live fixture feature/host gates, metadata never connected, close-before-success, en/zh-CN, cancel/selection/unmount late success cleanup; mock evidence only');
+  if (process.env.NETCATTY_TEST_LIVE_SSH_PG === '1') {
+    const { PluginSqliteFixtureService: LiveHostService } = host('./electron/plugins/sqliteFixtureService.cjs');
+    const { PluginHostRpcRegistry: LiveRegistry } = host('./electron/plugins/hostRpcRegistry.cjs');
+    const { DatabaseHostLiveSshPgService } = host('./electron/plugins/databaseHostLiveSshPg.cjs');
+    const { PluginSecretStore } = host('./electron/plugins/secretStore.cjs');
+    const { randomBytes, createCipheriv, createDecipheriv } = host('node:crypto');
+    const key = randomBytes(32); const records = new Map();
+    // Explicit AES-GCM test backend; this lane does not qualify OS safeStorage.
+    const secretStore = new PluginSecretStore({ database: { privateOwner: (id) => id,
+      getSecretByKey: (id, k) => records.get(`${id}:${k}`), getSecretByRef: (id, ref) => [...records.values()].find((r) => r.pluginId === id && r.secretRef === ref), upsertSecret: (r) => records.set(`${r.pluginId}:${r.key}`, r) },
+      safeStorage: { isEncryptionAvailable: () => true, getSelectedStorageBackend: () => 'test-aes-gcm',
+        encryptString: (s) => { const iv = randomBytes(12); const c = createCipheriv('aes-256-gcm', key, iv); const b = Buffer.concat([c.update(s), c.final()]); return Buffer.concat([iv, c.getAuthTag(), b]); },
+        decryptString: (b) => { const d = createDecipheriv('aes-256-gcm', key, b.subarray(0, 12)); d.setAuthTag(b.subarray(12, 28)); return Buffer.concat([d.update(b.subarray(28)), d.final()]).toString(); } } });
+    const liveService = new DatabaseHostLiveSshPgService({ secretStore });
+    const id = { pluginId: 'com.binaricat.netcatty-database', pluginVersion: '0.1.0', runtimeId: 'live-ui', runtimeKind: 'browser', sourceOwner: 'owner-live', sourceId: 'live', securityPrincipal: 'fixture', manifest: { features: { optional: [...features] } } };
+    const svc = new LiveHostService({ enabled: true, connectionStore: {}, liveSshPg: liveService, getDatabaseHosts: async () => ({ ok: true, hosts: [] }),
+      database: { getActivePlugin: () => ({ enabled: true, source: { id: 'live' } }), getRetainedPluginSource: () => ({ id: 'live' }), privateOwner: () => id.sourceOwner, publicPluginId: () => id.pluginId },
+      runtimeSupervisor: { getRuntimeIdentity: () => id }, permissionEngine: { onDidRevoke: () => ({ dispose() {} }), authorize: async (_c, d) => d.validateBeforeGrant() } });
+    const registry = new LiveRegistry(); svc.register(registry); const routes = registry.createRoutes({ ...id, assertCurrent() {} });
+    let proof;
+    for (const method of ['listHostsForDatabase', 'openHostLiveSshPgFixture', 'cancelHostLiveSshPgFixture', 'closeHostLiveSshPgSession']) context.database[method] = async (params = {}) => {
+      realPending++;
+      try { const result = await routes.requestHandlers[`database.${method}`](params, { signal: new AbortController().signal }); if (method === 'openHostLiveSshPgFixture') proof = result; return result; } finally { realPending--; }
+    };
+    try {
+      await openAdvanced(); await change('Existing host', liveService.metadata().hostId); assert.equal(liveService.sessions.size, 0);
+      await click(liveLabel); assert.equal(proof.code, 'LIVE_OK'); assert.equal(proof.proof.value, 1);
+      assert.match(document.body.textContent, /Live fixture passed: pinned SSH/); assert.match(document.body.textContent, /Test session closed/);
+      assert.equal(liveService.sessions.size, 0); assert.equal(liveService.adapter.active, 0); assert.match(document.body.textContent, /Active connections: 0/);
+      await snapshot('live-fixture-en-real-host-api'); await language('zh-CN'); await snapshot('live-fixture-zh-CN-real-host-api'); await language('en');
+      await writeFile(`${evidence}/live-host-proof.json`, JSON.stringify({ host_api: true, code: proof.code, fixture: proof.fixture, proof: proof.proof, sessions_after_close: liveService.sessions.size, adapter_active_after_close: liveService.adapter.active, native_safeStorage: false }, null, 2));
+      checks.push('REAL host registry -> pinned sshd 2222 -> forwarded PG 5432 -> SELECT 1=1 -> explicit close; en/zh-CN HTML; AES-GCM test SecretStore backend');
+    } finally { await unmount(); svc.shutdown(); }
+  }
+  features.delete(liveFeature); context.database.listHostsForDatabase = metadataHosts;
+
   // The new multi-table lane uses the real host registry/service/subprocess.
   // Only native chooser and permission decisions are injected for this fixture.
   const { PluginSqliteFixtureService } = host('./electron/plugins/sqliteFixtureService.cjs');
