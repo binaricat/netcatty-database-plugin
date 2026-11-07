@@ -27,6 +27,7 @@
       "database.sqlite-file-fixture.v1",
       "database.sqlite-fd-identity.fixture.v1",
       "database.sqlite-wal-readonly.fixture.v1",
+      "database.sqlite-wal-concurrent.fixture.v1",
       "database.saved-connections.v1",
       "database.tunnel-test.synthetic.v1",
       "database.host-port-probe.v1",

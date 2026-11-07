@@ -8,7 +8,7 @@ and the implementation report, with real Electron evidence under
 | Area | Current slice | Next production gate |
 | --- | --- | --- |
 | Build/package | Locked npm, vendored source SDK/CLI, validator, reproducible `.ncpkg` | CI on isolated Linux/macOS/Windows, SBOM and provenance attestation |
-| SQLite | Memory + fixed M2/M3b files; Gate C held-fd identity; Gate E opt-in stable WAL committed-data snapshots with held sidecars and native snapshot inode audit | Concurrent writer/reader, checkpoint/recovery, broader admission, malformed DB corpus and cross-platform locks |
+| SQLite | Memory + fixed M2/M3b files; C held-fd identity; E verified WAL snapshots; F separate-process writer invalidation and explicit fresh selection after writing pauses | Continuous-writer capture/live refresh, checkpoint/recovery, broader admission, malformed DB corpus and cross-platform locks |
 | Authority | Source/runtime-bound handles; default Ask; per-write exact native review | Broader target revision/plan receipts; lock/policy/source-swap stress and crash recovery |
 | Execution limits | Fixed subprocess; 3 s kill; row/string/payload limits | Hard native-memory/CPU OS constraints and cross-platform kill/reap qualification |
 | SQL semantics | SQLite authorizer allowlist, no scripts/PRAGMA/ATTACH/extensions | Driver-aware typed plans, cross-schema policy and nontransactional outcomes |
@@ -71,3 +71,39 @@ A host crash may leave an owned mode-0600 derived fixture, and bounded synchrono
 snapshot work precedes the subprocess deadline. M1 resource/parent-death and
 native GUI/platform limitations remain. Evidence, design, exact test counts and
 package hash: `/workspace/agent-tools/database/gate-e-wal-live-reader/`.
+
+
+Gate F adds optional `database.sqlite-wal-concurrent.fixture.v1` as a host
+qualification marker, advertised only with Gate E and the default-off Linux file
+experiment. It does not enable WAL by itself or add a write/path RPC. Tests use
+a separate-process synthetic writer inside M2: stable repeated snapshot reads,
+commits while the session exists, invalidation at preflight/native-query/final
+publication boundaries, and fresh chooser selection after writing pauses that
+returns newly committed rows. Old handles are closed and cannot publish stale
+rows after a detected change. No automatic refresh or in-session re-snapshot.
+Changed saved targets still require reselection and saving again. en/zh-CN
+notices state invalidation and reselection, not live concurrent WAL support.
+
+Held source fds neither take WAL read locks nor coordinate writers. Tests prove
+SQLITE_BUSY for a second writer during BEGIN IMMEDIATE and successful commit
+after rollback. BEGIN itself can change SHM and invalidate a snapshot before a
+commit. Hostile WAL/SHM replacement during a held write transaction still rejects;
+C/E held-fd, hash, parser, race and cleanup guards remain; an admission timestamp
+fence also fixes a same-tick restored-name ABA failure found in Electron.
+PASSIVE/FULL/RESTART/TRUNCATE checkpoint attempts invalidate old handles; this is
+rejection evidence only. A truncated WAL cannot be reopened through E. Checkpoint
+availability/reader compatibility, crash recovery, continuous-writer acquisition,
+live refresh and cross-platform lock behavior remain unqualified. Boundary
+checks are not a background watcher; already displayed rows remain historical.
+C/E non-atomic capture, fully restored content ABA/native-call and cleanup
+residuals, M1 limits and D's SKIPPED_NO_PROVIDER remain. Exact tests and artifact:
+`/workspace/agent-tools/database/gate-f-wal-concurrent/`.
+
+
+The timestamp fence retains captured fingerprints, ages their newest ctime to
+50 ms and revalidates before admission (maximum requested wait 100 ms; clock
+anomalies reject). It performs no source writes. Original E rejection tests plus
+36 immediate main/WAL/SHM restored-name ABA attempts pass on the fixed Linux
+fixture filesystem. Coarse/foreign filesystems, clock rollback and privileged
+metadata manipulation are not qualified. The bounded synchronous wait is outside
+the worker deadline, preserving M1's event-loop/resource limitation.

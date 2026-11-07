@@ -118,6 +118,15 @@ try {
   assert.match(document.body.textContent, /稳定测试文件的 WAL/); await language('en');
   assert.match(document.body.textContent, /Stable fixture WAL: verified read-only snapshot/);
   checks.push('WAL capability notice is gated and honest in English and zh-CN');
+  features.add('database.sqlite-wal-concurrent.fixture.v1'); await language('zh-CN');
+  assert.match(document.body.textContent, /源文件变化会使快照失效/);
+  assert.match(document.body.textContent, /不支持实时刷新、检查点或恢复/);
+  await language('en'); assert.match(document.body.textContent, /source changes invalidate the snapshot/);
+  assert.match(document.body.textContent, /No live refresh, checkpoint or recovery support/);
+  features.delete('database.sqlite-wal-readonly.fixture.v1'); await language('zh-CN');
+  assert.doesNotMatch(document.body.textContent, /源文件变化会使快照失效/);
+  features.add('database.sqlite-wal-readonly.fixture.v1'); await language('en');
+  checks.push('Concurrent qualification notice requires E and F; en/zh-CN states invalidation, reselection and non-claims');
   chosen = file; await click('Choose file...'); await change('Connection name', 'Synthetic saved file'); await click('Save & Connect');
   assert.ok('disabled' in button('Review write...').attributes); await click('Run read query'); assert.equal(apiCalls.findLast((c) => c.operation === 'query').revision, 'revision-one');
   await click('Cancel / close'); assert.equal(apiCalls.findLast((c) => c.operation === 'cancel').revision, 'revision-one'); checks.push('file read-only + query and cancel preserve revision');
@@ -580,7 +589,7 @@ try {
     await click('Cancel / close'); assert.equal(service.sessions.size, 0);
     selectedSqliteFile = '/workspace/agent-tools/database/m2-chooser/fixtures/gate-c-corpus-wal-notes.sqlite';
     await click('New Connection'); await click('Next'); await change('SQLite source', 'file');
-    assert.match(document.body.textContent, /Stable fixture WAL/);
+    assert.match(document.body.textContent, /Fixture WAL writer checks/);
     await change('Connection name', 'Gate E WAL snapshot'); await click('Save & Connect'); await click('Run read query');
     assert.match(document.body.textContent, /Uncheckpointed gate C note/);
     assert.ok('disabled' in button('Review write...').attributes);
