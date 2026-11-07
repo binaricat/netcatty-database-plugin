@@ -27,16 +27,18 @@ export function planMysqlSslRequest(greeting:MysqlPacket):{descriptor:MysqlSslRe
 /** Pure protocol slice, not a connection API. The caller must have sent
  * SSLRequest sequence 1 and completed independently verified TLS (certificate
  * chain + hostname). verifiedTls is a precondition assertion, NOT verification.
- * Only cached caching_sha2_password fast authentication is supported. Full-auth
- * requests, RSA key exchange, auth switch and all password downgrade paths fail.
+ * Cached caching_sha2_password is supported; full auth requires explicit opt-in
+ * and the SAME verified TLS stream. RSA, auth switch and downgrades always fail.
  */
 export class MysqlTlsFastAuth {
- private phase:'new'|'computing'|'fast'|'ok'|'authenticated'|'failed'|'closed'='new';
+ private phase:'new'|'computing'|'fast'|'ok'|'full-required'|'full-ok'|'authenticated'|'failed'|'closed'='new';
  private password!:Uint8Array;private challenge!:Uint8Array;private generation=0;
- private decoder=new MysqlPacketDecoder(3);private username!:string;private parameters!:MysqlSslRequestDescriptor;private serverCapabilities!:number;
+ private decoder=new MysqlPacketDecoder(3);private username!:string;private parameters!:MysqlSslRequestDescriptor;private serverCapabilities!:number;private allowFullAuth=false;
  get state(){return this.phase;}
- constructor(greeting:MysqlPacket,username:string,password:string,options:{verifiedTls:true;sslRequest:MysqlSslRequestDescriptor}){
+ constructor(greeting:MysqlPacket,username:string,password:string,options:{verifiedTls:true;sslRequest:MysqlSslRequestDescriptor;allowFullAuth?:boolean}){
   if(options?.verifiedTls!==true)fail('tls-required');
+  if(options.allowFullAuth!==undefined&&typeof options.allowFullAuth!=='boolean')fail('input');
+  this.allowFullAuth=options.allowFullAuth===true;
   const parameters=descriptor(options.sslRequest);
   if(!greeting||greeting.sequence!==0)fail('protocol');
   let hello;try{hello=parseMysqlHandshake(greeting.payload);}catch{return fail('protocol');}
@@ -47,7 +49,7 @@ export class MysqlTlsFastAuth {
  private wipe(){this.password.fill(0);this.challenge.fill(0);this.username='';}
  private reject(code:MysqlAuthError['code']):never{if(this.phase!=='closed')this.phase='failed';++this.generation;this.wipe();try{this.decoder.finish();}catch{}return fail(code);}
  /** Returned sequence-2 wire is caller-owned; send once over verified TLS, then
-  * clear it. It includes username and a challenge response, never password bytes. */
+  * clear it. This initial packet contains a challenge response, not password bytes. */
  async start():Promise<Uint8Array>{
   if(this.phase!=='new')return this.reject('state');this.phase='computing';const epoch=++this.generation;
   let a:Uint8Array|undefined,b:Uint8Array|undefined,c:Uint8Array|undefined,mixed:Uint8Array|undefined,token:Uint8Array|undefined,body:Uint8Array|undefined;
@@ -62,28 +64,39 @@ export class MysqlTlsFastAuth {
    body.set(header(this.parameters));body.set(user,32);let p=32+user.length;body[p++]=32;body.set(token,p);p+=32;body.set(plugin,p);
    const result=encodeMysqlPacket(body,2);this.phase='fast';return result;
   }catch(error){if((this.phase as string)==='closed')throw new MysqlAuthError('state');return this.reject(error instanceof MysqlAuthError?error.code:'crypto');}
-  finally{this.wipe();a?.fill(0);b?.fill(0);c?.fill(0);mixed?.fill(0);token?.fill(0);body?.fill(0);}
+  finally{this.challenge.fill(0);this.username='';if(this.phase!=='fast'||!this.allowFullAuth)this.password.fill(0);a?.fill(0);b?.fill(0);c?.fill(0);mixed?.fill(0);token?.fill(0);body?.fill(0);}
  }
- /** Feed server bytes; authenticates only after 01 03 then a bounded, idle OK.
+ /** Feed server bytes: cached 01 03 -> idle OK, or opt-in 01 04 ->
+  * explicit TLS password response -> idle OK. No immediate OK shortcut.
   * TLS remains essential: caching_sha2 fast auth has no SCRAM-like server proof. */
- receive(chunk:Uint8Array):'pending'|'authenticated'{
-  if(!['fast','ok'].includes(this.phase))return this.reject('state');
+ receive(chunk:Uint8Array):'pending'|'authenticated'|'full-auth-required'{
+  if(!['fast','ok','full-ok'].includes(this.phase))return this.reject('state');
   let packets:MysqlPacket[]=[];
   try{
    packets=this.decoder.feed(chunk);
    for(const packet of packets){const p=packet.payload;
     if(p[0]===255){try{parseMysqlError(p);}catch{fail('protocol');}fail('authentication');}
     if(this.phase==='fast'){
-     if(p.length===2&&p[0]===1&&p[1]===4)fail('unsupported');
-     if(p.length!==2||p[0]!==1||p[1]!==3)fail('protocol');this.phase='ok';
-    }else if(this.phase==='ok'){
+     if(p.length===2&&p[0]===1&&p[1]===4){if(!this.allowFullAuth)fail('unsupported');this.phase='full-required';continue;}
+     if(p.length!==2||p[0]!==1||p[1]!==3)fail('protocol');this.password.fill(0);this.phase='ok';
+    }else if(this.phase==='ok'||this.phase==='full-ok'){
      // affected_rows=0, last_insert_id=0, status flags + warnings; no extra data.
      if(p.length!==7||p[0]!==0||p[1]!==0||p[2]!==0||p[3]!==2||p[4]!==0||p[5]!==0||p[6]!==0)fail('protocol');this.phase='authenticated';
     }else fail('protocol');
    }
-   if(this.phase==='authenticated'){this.decoder.finish();return 'authenticated';}return 'pending';
+   if(this.phase==='authenticated'){this.decoder.finish();this.wipe();return 'authenticated';}
+   if(this.phase==='full-required'){this.decoder.finish();this.decoder=new MysqlPacketDecoder(5);return 'full-auth-required';}return 'pending';
   }catch(error){return this.reject(error instanceof MysqlAuthError?error.code:'protocol');}
   finally{for(const packet of packets)packet.payload.fill(0);}
+ }
+ /** Explicit opt-in full authentication only within the SAME verified TLS session.
+  * Caller owns returned sequence-4 NUL-password packet and must wipe after write.
+  * Never send through raw TCP, RSA key exchange, a new socket or a downgrade. */
+ fullAuthResponse():Uint8Array{
+  if(this.phase!=='full-required'||!this.allowFullAuth)return this.reject('state');
+  const payload=new Uint8Array(this.password.length+1);payload.set(this.password);
+  try{const wire=encodeMysqlPacket(payload,4);this.phase='full-ok';return wire;}
+  finally{payload.fill(0);this.password.fill(0);}
  }
  close(){this.phase='closed';++this.generation;this.wipe();try{this.decoder.finish();}catch{}}
 }

@@ -39,3 +39,24 @@ test('fixed utf8mb4 descriptor makes SSLRequest and response headers identical d
 test('closed remains terminal after invalid start/receive and repeated close',async()=>{
  const c=make();c.close();await assert.rejects(c.start());assert.equal(c.state,'closed');assert.throws(()=>c.receive(more));assert.equal(c.state,'closed');c.close();assert.equal(c.state,'closed');
 });
+const fullClient=()=>new MysqlTlsFastAuth(hello(),'fixture','test-only-password',{verifiedTls:true,sslRequest:planMysqlSslRequest(hello()).descriptor,allowFullAuth:true});
+const full=encodeMysqlPacket(Uint8Array.of(1,4),3),fullOk=encodeMysqlPacket(Uint8Array.of(0,0,0,2,0,0,0),5);
+test('opt-in full auth produces exact NUL password only after request and expects server seq5',async()=>{
+ const c=fullClient();await c.start();assert.equal(c.receive(full),'full-auth-required');const wire=c.fullAuthResponse();assert.equal(wire[3],4);assert.deepEqual(wire.slice(4),text('test-only-password\0'));
+ assert.ok((c as unknown as {password:Uint8Array}).password.every(v=>v===0));assert.equal(c.receive(fullOk),'authenticated');wire.fill(0);
+});
+test('full auth prohibits unsolicited/repeated responses, auth switches, wrong seq and trailing frames',async()=>{
+ const early=fullClient();await early.start();assert.throws(()=>early.fullAuthResponse(),/state/);
+ const repeated=fullClient();await repeated.start();repeated.receive(full);const wire=repeated.fullAuthResponse();assert.throws(()=>repeated.fullAuthResponse(),/state/);wire.fill(0);
+ for(const reply of [ok,encodeMysqlPacket(Uint8Array.of(1,4),5),encodeMysqlPacket(Uint8Array.of(254,0),5)]){const c=fullClient();await c.start();c.receive(full);c.fullAuthResponse().fill(0);assert.throws(()=>c.receive(reply));}
+ const tail=fullClient();await tail.start();assert.throws(()=>tail.receive(new Uint8Array([...full,1])));assert.ok((tail as unknown as {password:Uint8Array}).password.every(v=>v===0));
+});
+test('full auth denied password stays failed and server message is redacted',async()=>{
+ const c=fullClient();await c.start();c.receive(full);c.fullAuthResponse().fill(0);
+ assert.throws(()=>c.receive(encodeMysqlPacket(Uint8Array.of(255,21,4,35,...text('28000private-password')),5)),{message:'MySQL auth authentication'});assert.equal(c.state,'failed');
+});
+test('close and fast success wipe retained full-auth secret; full auth still requires TLS',async()=>{
+ const c=fullClient();await c.start();c.receive(full);c.close();assert.ok((c as unknown as {password:Uint8Array}).password.every(v=>v===0));assert.throws(()=>c.fullAuthResponse());assert.equal(c.state,'closed');
+ const fast=fullClient();await fast.start();fast.receive(more);assert.ok((fast as unknown as {password:Uint8Array}).password.every(v=>v===0));assert.equal(fast.receive(ok),'authenticated');
+ assert.throws(()=>new MysqlTlsFastAuth(hello(),'fixture','p',{verifiedTls:false,sslRequest:planMysqlSslRequest(hello()).descriptor,allowFullAuth:true} as never),/tls-required/);
+});
