@@ -113,6 +113,11 @@ try {
   await click('AI SQL assistant'); assert.match(document.body.textContent, /Host AI is unavailable/); assert.equal(button('Run assistance'), undefined); assert.equal(button('Create mock draft'), undefined); await snapshot('ai-unavailable-en'); checks.push('AI unavailable without negotiated feature; no provider or mock calls');
   await click('Close connection'); await unmount(); await mount(); await click('Synthetic saved memory'); await click('Run read query'); assert.ok(apiCalls.some((c) => c.operation === 'reopen')); checks.push('saved list restored on fresh React mount, reopen then query');
   await click('Close connection'); await click('New Connection'); await click('Next'); await change('SQLite source', 'file'); assert.ok('disabled' in button('Save & Connect').attributes); assert.match(document.body.textContent, /No file selected/); checks.push('cancelled native chooser never falls back to memory');
+  assert.doesNotMatch(document.body.textContent, /Stable fixture WAL/);
+  features.add('database.sqlite-wal-readonly.fixture.v1'); await language('zh-CN');
+  assert.match(document.body.textContent, /稳定测试文件的 WAL/); await language('en');
+  assert.match(document.body.textContent, /Stable fixture WAL: verified read-only snapshot/);
+  checks.push('WAL capability notice is gated and honest in English and zh-CN');
   chosen = file; await click('Choose file...'); await change('Connection name', 'Synthetic saved file'); await click('Save & Connect');
   assert.ok('disabled' in button('Review write...').attributes); await click('Run read query'); assert.equal(apiCalls.findLast((c) => c.operation === 'query').revision, 'revision-one');
   await click('Cancel / close'); assert.equal(apiCalls.findLast((c) => c.operation === 'cancel').revision, 'revision-one'); checks.push('file read-only + query and cancel preserve revision');
@@ -504,12 +509,13 @@ try {
   const fs = host('node:fs');
   const storeFile = `${evidence}/tmp/ui-connections.json`;
   fs.rmSync(storeFile, { force: true });
+  let selectedSqliteFile = '/workspace/agent-tools/database/m3b-multitable/fixtures/commerce.sqlite';
   const service = new PluginSqliteFixtureService({ enabled: true,
     connectionStore: new DatabaseConnectionStore(storeFile),
     database: { getActivePlugin: () => ({ enabled: true, source: { id: 'fixture' } }), getRetainedPluginSource: () => ({ id: 'fixture' }), privateOwner: () => 'owner-fixture', publicPluginId: () => identity.pluginId },
     runtimeSupervisor: { getRuntimeIdentity: () => identity },
     permissionEngine: { onDidRevoke: () => ({ dispose() {} }), authorize: async (_c, d) => d.validateBeforeGrant() },
-    dialog: { showOpenDialog: async () => ({ canceled: false, filePaths: ['/workspace/agent-tools/database/m3b-multitable/fixtures/commerce.sqlite'] }), showMessageBox: async () => { throw new Error('File writes must never prompt'); } },
+    dialog: { showOpenDialog: async () => ({ canceled: false, filePaths: [selectedSqliteFile] }), showMessageBox: async () => { throw new Error('File writes must never prompt'); } },
   });
   const registry = new PluginHostRpcRegistry(); service.register(registry);
   const routes = registry.createRoutes({ ...identity, assertCurrent() {} });
@@ -572,6 +578,15 @@ try {
     await click('Data'); await click('Run read query'); assert.equal(document.querySelectorAll('.results tbody tr').length, 3);
     checks.push('file mutation denied, close/fresh mount/saved reopen revalidates real schema and original rows');
     await click('Cancel / close'); assert.equal(service.sessions.size, 0);
+    selectedSqliteFile = '/workspace/agent-tools/database/m2-chooser/fixtures/gate-c-corpus-wal-notes.sqlite';
+    await click('New Connection'); await click('Next'); await change('SQLite source', 'file');
+    assert.match(document.body.textContent, /Stable fixture WAL/);
+    await change('Connection name', 'Gate E WAL snapshot'); await click('Save & Connect'); await click('Run read query');
+    assert.match(document.body.textContent, /Uncheckpointed gate C note/);
+    assert.ok('disabled' in button('Review write...').attributes);
+    await language('zh-CN'); assert.match(document.body.textContent, /Uncheckpointed gate C note/);
+    await language('en'); await click('Cancel / close');
+    checks.push('real host WAL snapshot renders committed uncheckpointed notes; readonly across locale changes');
   } finally { await unmount(); service.shutdown(); }
   const report = { kind: 'JSDOM React + SDK remote DOM + host policy; English/zh-CN mocked regressions and real host SQLite commerce lane (injected chooser/approval); not native screenshots', passed: checks.length, failed: 0, checks, policyBatches: batches, maxNodes, maxSerializedTreeBytes: maxBytes, aiProviderCalls: 0 };
   await writeFile(`${evidence}/ui-check.json`, JSON.stringify(report, null, 2) + '\n'); console.log(JSON.stringify(report, null, 2));

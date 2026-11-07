@@ -73,6 +73,7 @@ export const zhCN = {
   "File Path": "文件路径",
   "SQLite source": "SQLite 数据源",
   ":memory: - disposable synthetic notes": ":memory: - 一次性模拟笔记",
+  "Stable fixture WAL: verified read-only snapshot. Changes require reopening; no concurrent writers, checkpoint or recovery.": "稳定测试文件的 WAL：经核验的只读快照。文件变化后需重新打开；不支持并发写入、检查点或恢复。",
   "Host-selected SQLite file (read-only)": "由宿主选择的 SQLite 文件（只读）",
   "No file selected": "尚未选择文件",
   "Choose file...": "选择文件…",

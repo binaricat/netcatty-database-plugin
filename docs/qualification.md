@@ -8,7 +8,7 @@ and the implementation report, with real Electron evidence under
 | Area | Current slice | Next production gate |
 | --- | --- | --- |
 | Build/package | Locked npm, vendored source SDK/CLI, validator, reproducible `.ncpkg` | CI on isolated Linux/macOS/Windows, SBOM and provenance attestation |
-| SQLite | Synthetic memory + M2 notes files + fixed M3b commerce directory; saved target identity revalidated | Broader file admission, WAL/SHM/locks, malformed DB corpus |
+| SQLite | Memory + fixed M2/M3b files; Gate C held-fd identity; Gate E opt-in stable WAL committed-data snapshots with held sidecars and native snapshot inode audit | Concurrent writer/reader, checkpoint/recovery, broader admission, malformed DB corpus and cross-platform locks |
 | Authority | Source/runtime-bound handles; default Ask; per-write exact native review | Broader target revision/plan receipts; lock/policy/source-swap stress and crash recovery |
 | Execution limits | Fixed subprocess; 3 s kill; row/string/payload limits | Hard native-memory/CPU OS constraints and cross-platform kill/reap qualification |
 | SQL semantics | SQLite authorizer allowlist, no scripts/PRAGMA/ATTACH/extensions | Driver-aware typed plans, cross-schema policy and nontransactional outcomes |
@@ -51,3 +51,23 @@ objects are passed to the plugin. The gate's real-provider lane is
 `SKIPPED_NO_PROVIDER` and its status is `PASS_WITH_RESIDUALS`; deterministic streams
 are not real-model evidence. Evidence, design, exact test counts and package hash:
 `/workspace/agent-tools/database/gate-d-live-ai/`.
+
+Gate E adds optional `database.sqlite-wal-readonly.fixture.v1` under the existing
+default-off Linux file experiment. Only the same fixed evidence fixture roots are
+admitted. This reads committed WAL frames into a verified read-only derived
+snapshot; it is not a live-refresh connection. Source main/WAL/optional SHM fds
+stay held and are revalidated around operations; replacement or content changes
+invalidate the session. Source SHM is fingerprinted but never mapped or written.
+The derived rollback image receives Gate C's separate native inode audit. English
+and zh-CN notices state the snapshot scope; hosts without the flag retain strict
+WAL rejection. Saved WAL targets bind sidecar hashes; legacy rollback saves remain
+compatible. Public wire/SDK shapes and Gate D's unexecuted AI path are unchanged.
+
+Only complete checksum-valid WAL streams ending in a commit are accepted. No tail
+salvage, checkpoint, crash recovery, concurrent writer coordination, custom VFS,
+SQLCipher or arbitrary user paths are qualified. Multi-file capture is not atomic;
+C's fully restored in-place content/timestamp and native-reopen residuals persist.
+A host crash may leave an owned mode-0600 derived fixture, and bounded synchronous
+snapshot work precedes the subprocess deadline. M1 resource/parent-death and
+native GUI/platform limitations remain. Evidence, design, exact test counts and
+package hash: `/workspace/agent-tools/database/gate-e-wal-live-reader/`.
