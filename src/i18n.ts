@@ -1,6 +1,7 @@
 // Original plugin-owned copy. English source keys keep the fallback explicit.
 // Only the host environment selects language; never navigator/OS/input locale.
 export const zhCN = {
+  "New table":"新建表",
   "Redis workbench":"Redis 工作台",
   "Inspect Redis":"查看 Redis",
   "Back to host connections":"返回主机连接",

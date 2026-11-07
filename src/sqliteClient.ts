@@ -1,8 +1,9 @@
+import {previewCreateTableSql,CreateTableError} from './schemaCreateTable';
 import initSqlJs from 'sql.js/dist/sql-asm.js';
 import type { Database, SqlJsStatic } from 'sql.js';
 import type { PluginContext } from '@netcatty/plugin-sdk';
 import type { PluginDatabaseClient, WorkbenchContext } from './databaseClient';
-import type { DatabaseHandleRequest, DatabaseQueryRequest, DatabaseQueryResult, DatabaseSavedConnection, DatabaseSaveConnectionRequest, DatabaseScalar, DatabaseSchemaResult } from './databaseTypes';
+import type { DatabaseHandleRequest, DatabaseQueryRequest, DatabaseQueryResult, DatabaseSavedConnection, DatabaseSaveConnectionRequest, DatabaseScalar, DatabaseSchemaResult, DatabaseCreateTableRequest, DatabaseCreateTableApplyRequest, DatabaseCreateTableReview, DatabaseCreateTableResult } from './databaseTypes';
 
 // No database RPC, native addon, WebAssembly, Worker, eval, direct network or user file.
 // The engine runs in the existing offline plugin runtime. It has no hard CPU deadline.
@@ -119,6 +120,7 @@ export function inspectSqliteSchema(db: Database): DatabaseSchemaResult {
 }
 export function createWorkbenchContext(context: PluginContext): WorkbenchContext {
   const sessions = new Map<string, Database>();
+  const tableReviews=new Map<string,string>();
   let disposed = false;
   const assertLive = () => { if (disposed) throw new Error("Database runtime is closed."); };
   const get = ({handleId}: DatabaseHandleRequest) => { assertLive(); const db = sessions.get(handleId); if (!db) throw new Error('Database connection is closed.'); return db; };
@@ -131,7 +133,7 @@ export function createWorkbenchContext(context: PluginContext): WorkbenchContext
   };
   let mutations: Promise<unknown> = Promise.resolve();
   function mutate<T>(operation: () => Promise<T>): Promise<T> { const next = mutations.then(operation); mutations = next.catch(() => {}); return next; }
-  const close = async (target: DatabaseHandleRequest): Promise<null> => { const db = sessions.get(target.handleId); sessions.delete(target.handleId); db?.close(); return null; };
+  const close = async (target: DatabaseHandleRequest): Promise<null> => { const db = sessions.get(target.handleId); tableReviews.delete(target.handleId); sessions.delete(target.handleId); db?.close(); return null; };
   const open = async () => {
     assertLive();
     if (sessions.size >= 4) throw new Error('Close an existing connection before opening another.');
@@ -183,12 +185,12 @@ export function createWorkbenchContext(context: PluginContext): WorkbenchContext
       } catch (error) {
         if (transaction) {
           try { db.run('ROLLBACK TO plugin_reviewed_write; RELEASE plugin_reviewed_write'); }
-          catch { sessions.delete(request.handleId); db.close(); }
+          catch { tableReviews.delete(request.handleId); sessions.delete(request.handleId); db.close(); }
         }
         throw error;
       } finally {
         if (sessions.has(request.handleId)) {
-          try { db.run('PRAGMA query_only=ON'); } catch { sessions.delete(request.handleId); db.close(); throw new Error('SQLite read protection could not be restored; session closed.'); }
+          try { db.run('PRAGMA query_only=ON'); } catch { tableReviews.delete(request.handleId); sessions.delete(request.handleId); db.close(); throw new Error('SQLite read protection could not be restored; session closed.'); }
         }
       }
     }
@@ -213,8 +215,46 @@ export function createWorkbenchContext(context: PluginContext): WorkbenchContext
     } finally { statement.free(); }
   };
   const readSchema = async (request: DatabaseHandleRequest): Promise<DatabaseSchemaResult> => inspectSqliteSchema(get(request));
+  const schemaRevision=(db:Database):number=>{
+    const revision=db.exec('PRAGMA schema_version')[0]?.values[0]?.[0];
+    if(typeof revision!=='number'||!Number.isSafeInteger(revision)||revision<0)throw new CreateTableError('stale');return revision;
+  };
+  const previewCreateTable=async(request:DatabaseCreateTableRequest):Promise<DatabaseCreateTableReview>=>{
+    const db=get(request);tableReviews.delete(request.handleId);const schema=inspectSqliteSchema(db);
+    if(schema.tables.length>=SQLITE_SCHEMA_LIMITS.objects)throw new CreateTableError('budget');
+    const preview=previewCreateTableSql(request.draft,schema.tables.map(table=>table.name));
+    const review={handleId:request.handleId,...preview,schemaRevision:schemaRevision(db)};
+    tableReviews.set(request.handleId,JSON.stringify(review));return review;
+  };
+  const applyCreateTable=async(request:DatabaseCreateTableApplyRequest):Promise<DatabaseCreateTableResult>=>{
+    const db=get(request),review=request.review;
+    if(!review||review.handleId!==request.handleId||!Number.isSafeInteger(review.schemaRevision)||review.schemaRevision!==schemaRevision(db))throw new CreateTableError('stale');
+    if(tableReviews.get(request.handleId)!==JSON.stringify(review))throw new CreateTableError('review');
+    tableReviews.delete(request.handleId); // One issued preview per connection, consumed once.
+    const preview=previewCreateTableSql(review.draft);
+    if(preview.sql!==review.sql||JSON.stringify(preview.draft)!==JSON.stringify(review.draft))throw new CreateTableError('review');
+    const before=inspectSqliteSchema(db);
+    if(before.tables.length>=SQLITE_SCHEMA_LIMITS.objects)throw new CreateTableError('budget');
+    previewCreateTableSql(review.draft,before.tables.map(table=>table.name));
+    let transaction=false;
+    try{
+      db.run('PRAGMA query_only=OFF');db.run('SAVEPOINT plugin_create_table');transaction=true;
+      db.run(preview.sql);
+      const size=Number(db.exec('PRAGMA page_count')[0].values[0][0])*Number(db.exec('PRAGMA page_size')[0].values[0][0]);
+      if(size>1024*1024)throw new CreateTableError('budget');
+      const schema=inspectSqliteSchema(db);
+      db.run('RELEASE plugin_create_table');transaction=false;
+      return {changes:0,schema,sql:preview.sql};
+    }catch(error){
+      if(transaction){try{db.run('ROLLBACK TO plugin_create_table; RELEASE plugin_create_table');}catch{tableReviews.delete(request.handleId);sessions.delete(request.handleId);db.close();}}
+      throw error;
+    }finally{
+      if(sessions.has(request.handleId)){try{db.run('PRAGMA query_only=ON');}catch{tableReviews.delete(request.handleId);sessions.delete(request.handleId);db.close();throw new Error('SQLite read protection could not be restored; session closed.');}}
+    }
+  };
   const database: PluginDatabaseClient & {capabilities: ReadonlySet<string>} = {
-    capabilities: new Set(['database.sqlite-fixture.v1','database.saved-connections.v1','database.sqlite-reviewed-writes.v1']),
+    capabilities: new Set(['database.sqlite-fixture.v1','database.saved-connections.v1','database.sqlite-reviewed-writes.v1','database.sqlite-create-table.v1']),
+    previewCreateTable,applyCreateTable,
     openFixture: open, readSchema, query, close, cancel:close,
     listSavedConnections:list,
     saveConnection: (request: DatabaseSaveConnectionRequest) => mutate(async () => {
@@ -233,6 +273,6 @@ export function createWorkbenchContext(context: PluginContext): WorkbenchContext
     probeHostDatabasePorts: unavailable, cancelHostDatabasePorts: unavailable,
     openHostLiveSshPgFixture: unavailable, cancelHostLiveSshPgFixture: unavailable, closeHostLiveSshPgSession: unavailable,
   };
-  context.subscriptions.add({dispose() { disposed = true; for (const db of sessions.values()) db.close(); sessions.clear(); }});
+  context.subscriptions.add({dispose() { disposed = true; for (const db of sessions.values()) db.close(); sessions.clear(); tableReviews.clear(); }});
   return Object.assign(Object.create(context), {database}) as WorkbenchContext;
 }

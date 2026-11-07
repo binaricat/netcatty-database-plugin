@@ -386,3 +386,17 @@ pre { padding: 12px; background: hsl(var(--muted)/.4); border: 1px solid hsl(var
 .redis-browser-grid > div,.redis-browser-grid > section { min-width:0; }
 .redis-browser-grid > div > button { display:block; width:100%; text-align:left; overflow:hidden; text-overflow:ellipsis; border-color:transparent; }
 @container (max-width:850px) { .redis-connection-fields,.redis-browser-grid { grid-template-columns:1fr; } }
+/* Structured, reviewed DDL stays in one calm scrolling workspace. */
+.database-workbench .create-table {display:flex;flex-direction:column;gap:18px;overflow:auto;min-height:0;padding:24px;max-width:1050px;width:100%;box-sizing:border-box;}
+.database-workbench .create-table h2 {margin:0;font-size:20px;}
+.database-workbench .create-table label {display:flex;flex-direction:column;gap:7px;font-size:12px;}
+.database-workbench .create-table > label {max-width:380px;}
+.database-workbench .create-table-columns {display:flex;flex-direction:column;gap:12px;}
+.database-workbench .create-table-column {display:grid;grid-template-columns:minmax(140px,2fr) minmax(100px,1fr) 90px 80px 70px;gap:12px;align-items:end;}
+.database-workbench .create-table-column .create-table-constraint {flex-direction:row;align-items:center;min-height:34px;white-space:nowrap;}
+.database-workbench .create-table-column input[type="checkbox"] {width:14px;height:14px;margin:0;}
+.database-workbench .create-table input:not([type="checkbox"]),.database-workbench .create-table select {height:34px;box-sizing:border-box;min-width:0;width:100%;}
+.database-workbench .create-table .hint {margin:0;line-height:1.55;}
+.database-workbench .create-table-review {display:flex;flex-direction:column;gap:10px;}
+.database-workbench .create-table-review textarea {width:100%;min-height:130px;box-sizing:border-box;resize:vertical;font-family:monospace;}
+.database-workbench .create-table [role="status"] {margin:0;line-height:1.5;}

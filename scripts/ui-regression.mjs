@@ -99,7 +99,19 @@ try{
  const expectedSql='-- Returned rows only; not a full table export.\nINSERT INTO "export_target" ("id", "label", "missing") VALUES (1, \'=1+1\', NULL);';
  assert.equal(byLabel('Export preview part').attributes.value,expectedSql);await click('Copy complete returned result');assert.equal(clipboardCalls[5].value,expectedSql);await snapshot('09-result-export');
  await change('SQL statement','SELECT name,total FROM order_totals ORDER BY name');await click('Run read query');await settle(()=>text(tree).includes('41.5'));
+ // Actual SQL.js DDL through the production UI and main remote-DOM validators.
+ await click('New table');await change('New table name','reviewed_table');await click('Add column');await change('Column 2 name','title');
+ await click('Preview CREATE TABLE');await settle(()=>byLabel('Reviewed CREATE TABLE SQL').attributes.value.includes('reviewed_table'));
+ assert.match(byLabel('Reviewed CREATE TABLE SQL').attributes.value,/"id" INTEGER NOT NULL PRIMARY KEY/);
+ await change('New table name','reviewed_final');assert.equal(byLabel('Reviewed CREATE TABLE SQL').attributes.value,'');
+ assert.ok(Object.hasOwn(button('Confirm create table').attributes,'disabled'));
+ await click('Preview CREATE TABLE');await settle(()=>byLabel('Reviewed CREATE TABLE SQL').attributes.value.includes('reviewed_final'));await snapshot('13-create-table-review');
+ await click('Confirm create table');await settle(()=>text(tree).includes('Table created. Schema refreshed; no additional SQL was executed.'));await snapshot('14-create-table-created');
+ await click('Close');await change('SQL statement',"SELECT name FROM sqlite_master WHERE name = 'reviewed_final'");await click('Run read query');await settle(()=>byLabel('Inspect row 1, column 1'));assert.ok(text(tree).includes('reviewed_final'));
+ await click('New table');await change('New table name','cancelled_table');await click('Preview CREATE TABLE');await settle(()=>byLabel('Reviewed CREATE TABLE SQL').attributes.value.includes('cancelled_table'));await click('Cancel');
+ await change('SQL statement',"SELECT COUNT(*) AS count FROM sqlite_master WHERE name = 'cancelled_table'");await click('Run read query');await settle(()=>byLabel('Inspect row 1, column 1'));await event(byLabel('Inspect row 1, column 1'),{type:'click'});assert.equal(byLabel('Full cell value').attributes.value,'0');await click('Close');
+ await change('SQL statement','SELECT name,total FROM order_totals ORDER BY name');await click('Run read query');await settle(()=>text(tree).includes('41.5'));
  await act(async()=>{context.environment.locale='zh-CN';environmentListeners.forEach(fn=>fn(context.environment));await tick();});await settle(()=>button('执行只读查询'));assert.equal(byLabel('SQL 语句').attributes.value,'SELECT name,total FROM order_totals ORDER BY name');await snapshot('07-chinese');
  await click('主机连接');await settle(()=>button('Redis 工作台'));await click('Redis 工作台');await settle(()=>text(tree).includes('当前插件包未声明 Redis TLS 端点'));assert.ok(!byLabel('Redis 密码'),'Unconfigured native route must not show credentials');await snapshot('12-redis-unconfigured');await click('返回主机连接');await settle(()=>button('Redis 工作台'));
- console.log(JSON.stringify({status:'PASS',scope:'Real SQLite + main SDK/remote-DOM validators, injected storage/view/quickPick/clipboard transports; no native confirmation or Docker claim.',maxNodes,batches,snapshots:12,workspaceDrafts:{save:true,restore:true,clear:true,cancel:true,storageFailure:true,noAutoExecute:true,storageCalls:draftStorageCalls.length,confirmationCalls:quickPickCalls.length}},null,2));
+ console.log(JSON.stringify({status:'PASS',scope:'Real SQLite + main SDK/remote-DOM validators, injected storage/view/quickPick/clipboard transports; no native confirmation or Docker claim.',maxNodes,batches,snapshots:14,workspaceDrafts:{save:true,restore:true,clear:true,cancel:true,storageFailure:true,noAutoExecute:true,storageCalls:draftStorageCalls.length,confirmationCalls:quickPickCalls.length}},null,2));
 }finally{await act(async()=>{receive({kind:'host-ui.close'});disposables.forEach(d=>d.dispose());await tick();});dom.window.close();}

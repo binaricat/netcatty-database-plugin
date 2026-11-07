@@ -31,8 +31,8 @@ behavior exists but scope or qualification is materially narrower than DBX.
 Missing means no usable implementation on main. Historical experimental-host
 results cannot be carried forward as main acceptance.
 
-After the explicit workspace-drafts slice: **0 of 24 capability groups complete; 11 partial;
-13 missing**. This coarse count is not a percentage of engineering effort or a
+After the reviewed CREATE TABLE slice: **0 of 24 capability groups complete; 12 partial;
+12 missing**. This coarse count is not a percentage of engineering effort or a
 weighted product completion score. It also does not establish that every DBX
 advertised driver itself has been independently tested in DBX.
 
@@ -44,7 +44,7 @@ advertised driver itself has been independently tested in DBX.
 | 4. SSH tunnels, proxies and reconnect | Missing | Existing host metadata/port/loopback probes in the old snapshot were not a general tunnel. No production tunnel in this port. |
 | 5. Table/view/column browser | Partial | Actual SQLite introspection, search and read-only structure. No multi-database/schema navigation. |
 | 6. Indexes/FKs/triggers/routines/source browsing | Partial | Bounded SQLite definitions, ordered composite PK, indexes, grouped foreign keys and triggers are implemented and engine-tested. Remote routines and full vendor-specific structure remain absent. |
-| 7. Schema editing and reviewed DDL | Missing | SQLite memory adapter supports explicitly reviewed bounded DML; schema-changing DDL is not implemented. |
+| 7. Schema editing and reviewed DDL | Partial | Structured, one-shot reviewed CREATE TABLE for disposable SQLite, schema-version guards and rollback budgets; full Netcatty alpha.13 create/structure/INSERT/readback tested. No ALTER, indexes/constraints editing, persistence or remote DDL. See `create-table.md`. |
 | 8. SQL editing/highlight/tabs | Partial | Bounded syntax overlay, line numbers and up to eight tabs. No CodeMirror-equivalent editing/selection behavior. |
 | 9. Completion, formatting and diagnostics | Missing | No schema-aware completion or formatter/diagnostic engine. |
 | 10. Selection/scripts/manual transactions | Missing | One read or reviewed simple DML statement only; no batch, script execution or manual transaction controls. |

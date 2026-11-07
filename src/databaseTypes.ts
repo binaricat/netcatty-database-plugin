@@ -278,3 +278,8 @@ export type DatabaseTunnelTestResult = {
 
 export type DatabaseVariantId = "goldendb-mysql" | "opengauss-pg" | "gaussdb-dws" | "gaussdb-mysql" | "gaussdb-native" | "kingbase-pg" | "kingbase-oracle" | "highgo-pg" | "highgo-secure" | "vastbase-g100-pg" | "vastbase-g100-other" | "vastbase-e100" | "gbase-8c" | "gbase-8a" | "gbase-8s";
 
+
+export type {DatabaseCreateTableDraft,DatabaseCreateTableReview} from './schemaCreateTable';
+export type DatabaseCreateTableRequest={handleId:DatabaseHandle;draft:import('./schemaCreateTable').DatabaseCreateTableDraft};
+export type DatabaseCreateTableApplyRequest={handleId:DatabaseHandle;review:import('./schemaCreateTable').DatabaseCreateTableReview};
+export type DatabaseCreateTableResult={changes:0;schema:DatabaseSchemaResult;sql:string};

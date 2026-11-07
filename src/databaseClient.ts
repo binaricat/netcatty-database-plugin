@@ -1,7 +1,10 @@
 import type { PluginContext as HostPluginContext } from '@netcatty/plugin-sdk';
 import type { DatabaseConnectionIdRequest, DatabaseConnectionMeta, DatabaseDriverId, DatabaseDriverProfile, DatabaseDriverVariant, DatabaseEmptyRequest, DatabaseFileFixtureFeature, DatabaseFileOpenResult, DatabaseFixtureFeature, DatabaseHandle, DatabaseHandleRequest, DatabaseHostList, DatabaseHostLiveSshPgCancelRequest, DatabaseHostLiveSshPgCapability, DatabaseHostLiveSshPgCloseRequest, DatabaseHostLiveSshPgCloseResult, DatabaseHostLiveSshPgFeature, DatabaseHostLiveSshPgOpenRequest, DatabaseHostLiveSshPgOpenResult, DatabaseHostMeta, DatabaseHostPortProbeCancelRequest, DatabaseHostPortProbeCapability, DatabaseHostPortProbeFeature, DatabaseHostPortProbeRequest, DatabaseHostPortProbeResult, DatabaseHostPortResult, DatabaseOpenResult, DatabaseQueryRequest, DatabaseQueryResult, DatabaseSaveConnectionRequest, DatabaseSavedConnection, DatabaseSavedConnectionList, DatabaseSavedConnectionsFeature, DatabaseScalar, DatabaseSchemaResult, DatabaseTcpFeature, DatabaseTcpOpenRequest, DatabaseTcpOpenResult, DatabaseTunnelCancelRequest, DatabaseTunnelTestCapability, DatabaseTunnelTestFeature, DatabaseTunnelTestRequest, DatabaseTunnelTestResult, DatabaseVariantId } from './databaseTypes';
 export type * from './databaseTypes';
+import type {DatabaseCreateTableRequest,DatabaseCreateTableApplyRequest,DatabaseCreateTableResult,DatabaseCreateTableReview} from './databaseTypes';
 export interface PluginDatabaseClient {
+  previewCreateTable(params:DatabaseCreateTableRequest):Promise<DatabaseCreateTableReview>;
+  applyCreateTable(params:DatabaseCreateTableApplyRequest):Promise<DatabaseCreateTableResult>;
   /** Plugin-local driver facade. No database business methods exist in the main host RPC. */
   openTcp(params: DatabaseTcpOpenRequest): Promise<DatabaseTcpOpenResult>;
   openHostLiveSshPgFixture(params: DatabaseHostLiveSshPgOpenRequest): Promise<DatabaseHostLiveSshPgOpenResult>;
