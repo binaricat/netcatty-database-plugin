@@ -112,7 +112,7 @@ try {
   assert.match(byLabel('SQL 语句').attributes.value, /paid/);
   await language('en'); await change('SQL statement', initialSql);
   checks.push('SQL overlay/gutter share scroll parent, lexical colors preserve text, range persists across Data and locale changes');
-  await click('AI SQL assistant'); assert.match(document.body.textContent, /Host AI is unavailable/); assert.equal(button('Run assistance'), undefined); assert.equal(button('Create mock draft'), undefined); await snapshot('ai-unavailable-en'); checks.push('AI unavailable without negotiated feature; no provider or mock calls');
+  await click('AI SQL assistant'); assert.match(document.body.textContent, /Host AI is unavailable/); assert.equal(button('Run assistance'), undefined); assert.equal(button('Create mock draft'), undefined); assert.ok(find(n => n.element === 'aside' && n.attributes?.['aria-label'] === 'AI SQL assistant')); await event(byLabel('Close AI assistant'), { type: 'click' }); assert.equal(find(n => n.element === 'aside' && n.attributes?.['aria-label'] === 'AI SQL assistant'), undefined); await click('AI SQL assistant'); await snapshot('ai-unavailable-en'); checks.push('AI unavailable without negotiated feature; no provider or mock calls');
   await click('Close connection'); await unmount(); await mount(); await click('Synthetic saved memory'); await click('Run read query'); assert.ok(apiCalls.some((c) => c.operation === 'reopen')); checks.push('saved list restored on fresh React mount, reopen then query');
   await click('Close connection'); await click('New Connection'); await click('Next'); await change('SQLite source', 'file'); assert.ok('disabled' in button('Save & Connect').attributes); assert.match(document.body.textContent, /No file selected/); checks.push('cancelled native chooser never falls back to memory');
   assert.doesNotMatch(document.body.textContent, /Stable fixture WAL/);
@@ -180,7 +180,7 @@ try {
   assert.ok('disabled' in button('Review write...').attributes); await click('Run read query'); assert.equal(apiCalls.findLast((c) => c.operation === 'query').revision, 'revision-one');
   await click('Cancel / close'); assert.equal(apiCalls.findLast((c) => c.operation === 'cancel').revision, 'revision-one'); checks.push('file read-only + query and cancel preserve revision');
   await click('Synthetic saved file'); bigResult = true; await click('Run read query'); assert.equal(document.querySelectorAll('tbody tr').length, 20); assert.equal(document.querySelectorAll('thead th').length, 9); assert.ok(document.querySelector('tbody td:nth-child(2)').textContent.length <= 259); checks.push('large host result stays inside remote DOM node and text budgets');
-  await click('+ New Connection'); await click('Next'); await click('Advanced'); await click('Load permitted hosts'); assert.deepEqual(policyErrors, []); checks.push('modal over result grid validates against actual host remote-tree policy'); await click('Close');
+  await click('New Connection'); await click('Next'); await click('Advanced'); await click('Load permitted hosts'); assert.deepEqual(policyErrors, []); checks.push('modal over result grid validates against actual host remote-tree policy'); await click('Close');
   await click('Close connection'); await event(byLabel('Delete Synthetic saved file'), { type: 'click' }); assert.equal(saved.length, 1); checks.push('delete updates saved sidebar');
   await click('New Connection'); await click('Next'); let finish; chosen = new Promise((r) => { finish = r; });
   await change('SQLite source', 'file'); await unmount(); await act(async () => { finish(file); await tick(); }); assert.equal(apiCalls.findLast((c) => c.operation === 'close').revision, 'revision-one'); checks.push('late chooser result after unmount releases session');
@@ -188,13 +188,13 @@ try {
   await unmount(); features.add('database.saved-connections.v1'); features.add('database.sqlite-file-fixture.v1');
   features.add('ai.model-invocation');
   saved = Array.from({ length: 100 }, (_, i) => ({ id: `stress-${i}`, name: `Stress ${i}`, color: 'default', engine: 'sqlite', targetKind: 'memory', readOnly: false }));
-  hostCount = 500; schemaColumns = 32; schemaObjects = 32; await mount(); await event(byLabel('Next connections'), { type: 'click' }); assert.ok(button('Stress 20')); await event(byLabel('Previous connections'), { type: 'click' }); await click('Stress 0'); await event(byLabel('Open table notes'), { type: 'click' }); assert.equal(document.querySelectorAll('.structure tbody tr').length, 32); await event(byLabel('Close notes'), { type: 'click' });
-  for (let i = 0; i < 7; i++) await click('+ New Query');
+  hostCount = 500; schemaColumns = 32; schemaObjects = 32; await mount(); await event(byLabel('Next connections'), { type: 'click' }); assert.ok(button('Stress 10')); await event(byLabel('Previous connections'), { type: 'click' }); await click('Stress 0'); await event(byLabel('Open table notes'), { type: 'click' }); assert.equal(document.querySelectorAll('.structure tbody tr').length, 32); await event(byLabel('Close notes'), { type: 'click' });
+  for (let i = 0; i < 7; i++) await click('New Query');
   await click('AI SQL assistant'); await click('Run assistance');
   assert.match(document.body.textContent, /Connected schema is missing or too large/);
   await event(byLabel('Next connections'), { type: 'click' });
   await change('SQL statement', "SELECT 'a', 1 FROM notes WHERE id = 2 ORDER BY title");
-  await click('Run read query'); await click('+ New Connection'); await click('Next'); await click('Advanced'); await click('Load permitted hosts');
+  await click('Run read query'); await click('New Connection'); await click('Next'); await click('Advanced'); await click('Load permitted hosts');
   assert.ok(document.querySelector('.sql-keyword'));
   await change('SQL statement', "1'a'".repeat(10));
   assert.equal(document.querySelectorAll('.sql-highlight span').length, 20);
@@ -281,7 +281,7 @@ try {
   assert.ok('disabled' in button('审查写入…').attributes); await click('取消 / 关闭');
   checks.push('zh-CN file chooser cancellation, readonly write control and translated host-error wrapper retain original diagnostics');
   await unmount(); saved = Array.from({ length: 21 }, (_, i) => ({ id: `zh-${i}`, name: `User ${i}`, color: 'default', engine: 'sqlite', targetKind: 'memory', readOnly: false }));
-  await mount(); await event(byLabel('下一页连接'), { type: 'click' }); assert.ok(button('User 20')); await event(byLabel('上一页连接'), { type: 'click' }); assert.ok(button('User 0'));
+  await mount(); await event(byLabel('下一页连接'), { type: 'click' }); assert.ok(button('User 10')); await event(byLabel('上一页连接'), { type: 'click' }); assert.ok(button('User 0'));
   await unmount(); saved = []; features.delete('database.saved-connections.v1'); features.delete('database.sqlite-file-fixture.v1');
   await mount(); assert.match(document.body.textContent, /此宿主不支持保存连接/); await click('新建连接'); await click('下一步');
   await click('连接但不保存'); assert.match(document.body.textContent, /一次性 SQLite/); await language('en'); assert.match(document.body.textContent, /Disposable SQLite/);
@@ -341,7 +341,7 @@ try {
   aiEvents = [{ kind: 'text', sequence: 1, text: 'Partial SQL' }]; await click('Run assistance'); await click('Stop');
   assert.match(document.body.textContent, /Stopped - draft remains unexecuted/); assert.ok('disabled' in button('Insert draft into editor').attributes);
   await finishAI({ kind: 'text', sequence: 2, text: 'LATE-STOP' }); assert.doesNotMatch(document.body.textContent, /LATE-STOP/);
-  aiEvents = []; await click('Run assistance'); await click('+ New Query'); await finishAI({ kind: 'text', sequence: 1, text: 'LATE-TAB' });
+  aiEvents = []; await click('Run assistance'); await click('New Query'); await finishAI({ kind: 'text', sequence: 1, text: 'LATE-TAB' });
   assert.doesNotMatch(document.body.textContent, /LATE-TAB|Partial SQL/);
   await click('Run assistance'); await click('Close connection'); await finishAI({ kind: 'text', sequence: 1, text: 'LATE-DISCONNECT' });
   assert.doesNotMatch(document.body.textContent, /LATE-DISCONNECT/); await click('Synthetic SQLite');
@@ -390,7 +390,7 @@ try {
   assert.deepEqual(Object.keys(probes[0]).sort(), ['hostId', 'revision', 'testId']);
   assert.doesNotMatch(JSON.stringify(tree), /opaque-synthetic-probe-reference/);
   await snapshot('tunnel-synthetic-passed-not-connected');
-  await click('+ New Connection'); await click('Next'); await click('Advanced');
+  await click('New Connection'); await click('Next'); await click('Advanced');
   assert.match(document.body.textContent, /No tunnel test has run/);
   await change('Existing host', 'synthetic-probe');
   for (const [code, text] of [['AUTH_FAILED', /Synthetic tunnel authentication failed/], ['UNKNOWN_HOST_KEY', /Unknown host key/], ['HOST_KEY_MISMATCH', /Host key mismatch/]]) {

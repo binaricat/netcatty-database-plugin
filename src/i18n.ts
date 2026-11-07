@@ -228,7 +228,21 @@ export const zhCN = {
   "Close {name}": "关闭 {name}",
   "Query {id}": "查询 {id}",
   "{rows} rows / {columns} columns / {ms} ms / {changes} changes": "{rows} 行 / {columns} 列 / {ms} 毫秒 / {changes} 处更改",
-  " / truncated": " / 已截断"
+  " / truncated": " / 已截断",
+  "Step 1 of 2 · Database type": "第 1 步，共 2 步 · 数据库类型",
+  "Step 2 of 2 · Connection details": "第 2 步，共 2 步 · 连接详情",
+  "Fixture scope & limits": "测试夹具范围与限制",
+  "Toggle connections": "显示或隐藏连接",
+  "New Query": "新建查询",
+  "Your data, inside Netcatty": "在 Netcatty 中探索数据",
+  "Explore a local SQLite fixture with the host’s permissions and familiar tools.": "使用宿主权限与熟悉的工具，探索本地 SQLite 测试数据。",
+  "Read-only fixture · pause writers during reads": "只读测试夹具 · 读取期间请暂停写入",
+  "Showing {rows} of {total} rows · {columns} of {allColumns} columns": "显示 {rows}/{total} 行 · {columns}/{allColumns} 列",
+  "No rows returned. Try a different filter.": "未返回数据行，请尝试其他筛选条件。",
+  "Empty string": "空字符串",
+  "{count} visible cells shortened": "{count} 个可见单元格已缩短",
+  "Host result truncated": "宿主结果已截断",
+  "Close AI assistant": "关闭 AI 助手"
 } as const;
 export type Message = keyof typeof zhCN;
 export type Translate = (key: Message, values?: Record<string, string | number>) => string;

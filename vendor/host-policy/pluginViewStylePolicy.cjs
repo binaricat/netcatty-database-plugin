@@ -14,7 +14,7 @@ const ALLOWED_FUNCTIONS = new Set([
   "cubic-bezier", "steps", "linear", "minmax", "repeat", "fit-content", "env", "counter", "counters", "symbols",
 ]);
 const DENIED_PROPERTIES = new Set(["behavior", "-moz-binding", "-webkit-app-region", "app-region"]);
-const HOST_TOKENS = new Set(["--background", "--foreground", "--muted", "--muted-foreground", "--border", "--primary", "--primary-foreground"]);
+const HOST_TOKENS = new Set(["--background", "--foreground", "--muted", "--muted-foreground", "--border", "--primary", "--primary-foreground", "--font-sans", "--font-mono", "--radius", "--input", "--ring", "--accent", "--accent-foreground", "--destructive"]);
 const decode = (name) => cssTree.ident.decode(name).toLowerCase();
 
 /** Returns canonical CSS only if every construct is safe for a clipped shadow root. */
