@@ -1,3 +1,5 @@
+import {previewCreateIndexSql,CreateIndexError} from './schemaCreateIndex';
+import type {DatabaseCreateIndexRequest,DatabaseCreateIndexApplyRequest,DatabaseCreateIndexReview,DatabaseCreateIndexResult} from './databaseTypes';
 import {previewCreateTableSql,CreateTableError} from './schemaCreateTable';
 import initSqlJs from 'sql.js/dist/sql-asm.js';
 import type { Database, SqlJsStatic } from 'sql.js';
@@ -252,9 +254,37 @@ export function createWorkbenchContext(context: PluginContext): WorkbenchContext
       if(sessions.has(request.handleId)){try{db.run('PRAGMA query_only=ON');}catch{tableReviews.delete(request.handleId);sessions.delete(request.handleId);db.close();throw new Error('SQLite read protection could not be restored; session closed.');}}
     }
   };
+  const previewCreateIndex=async(request:DatabaseCreateIndexRequest):Promise<DatabaseCreateIndexReview>=>{
+    const db=get(request);tableReviews.delete(request.handleId);
+    const preview=previewCreateIndexSql(request.draft,inspectSqliteSchema(db));
+    const review={handleId:request.handleId,...preview,schemaRevision:schemaRevision(db)};
+    tableReviews.set(request.handleId,JSON.stringify(review));return review;
+  };
+  const applyCreateIndex=async(request:DatabaseCreateIndexApplyRequest):Promise<DatabaseCreateIndexResult>=>{
+    const db=get(request),review=request.review;
+    if(!review||review.handleId!==request.handleId||!Number.isSafeInteger(review.schemaRevision)||review.schemaRevision!==schemaRevision(db))throw new CreateIndexError('stale');
+    if(tableReviews.get(request.handleId)!==JSON.stringify(review))throw new CreateIndexError('review');
+    tableReviews.delete(request.handleId);
+    const preview=previewCreateIndexSql(review.draft,inspectSqliteSchema(db));
+    if(preview.sql!==review.sql||JSON.stringify(preview.draft)!==JSON.stringify(review.draft))throw new CreateIndexError('review');
+    let transaction=false;
+    try{
+      db.run('PRAGMA query_only=OFF');db.run('SAVEPOINT plugin_create_index');transaction=true;
+      db.run(preview.sql);
+      const size=Number(db.exec('PRAGMA page_count')[0].values[0][0])*Number(db.exec('PRAGMA page_size')[0].values[0][0]);
+      if(size>1024*1024)throw new CreateIndexError('budget');
+      const schema=inspectSqliteSchema(db);
+      db.run('RELEASE plugin_create_index');transaction=false;return {changes:0,schema,sql:preview.sql};
+    }catch(error){
+      if(transaction){try{db.run('ROLLBACK TO plugin_create_index; RELEASE plugin_create_index');}catch{tableReviews.delete(request.handleId);sessions.delete(request.handleId);db.close();}}
+      throw error;
+    }finally{
+      if(sessions.has(request.handleId)){try{db.run('PRAGMA query_only=ON');}catch{tableReviews.delete(request.handleId);sessions.delete(request.handleId);db.close();throw new Error('SQLite read protection could not be restored; session closed.');}}
+    }
+  };
   const database: PluginDatabaseClient & {capabilities: ReadonlySet<string>} = {
-    capabilities: new Set(['database.sqlite-fixture.v1','database.saved-connections.v1','database.sqlite-reviewed-writes.v1','database.sqlite-create-table.v1']),
-    previewCreateTable,applyCreateTable,
+    capabilities: new Set(['database.sqlite-fixture.v1','database.saved-connections.v1','database.sqlite-reviewed-writes.v1','database.sqlite-create-table.v1','database.sqlite-create-index.v1']),
+    previewCreateTable,applyCreateTable,previewCreateIndex,applyCreateIndex,
     openFixture: open, readSchema, query, close, cancel:close,
     listSavedConnections:list,
     saveConnection: (request: DatabaseSaveConnectionRequest) => mutate(async () => {

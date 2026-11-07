@@ -283,3 +283,8 @@ export type {DatabaseCreateTableDraft,DatabaseCreateTableReview} from './schemaC
 export type DatabaseCreateTableRequest={handleId:DatabaseHandle;draft:import('./schemaCreateTable').DatabaseCreateTableDraft};
 export type DatabaseCreateTableApplyRequest={handleId:DatabaseHandle;review:import('./schemaCreateTable').DatabaseCreateTableReview};
 export type DatabaseCreateTableResult={changes:0;schema:DatabaseSchemaResult;sql:string};
+
+export type {DatabaseCreateIndexDraft,DatabaseCreateIndexReview} from './schemaCreateIndex';
+export type DatabaseCreateIndexRequest={handleId:DatabaseHandle;draft:import('./schemaCreateIndex').DatabaseCreateIndexDraft};
+export type DatabaseCreateIndexApplyRequest={handleId:DatabaseHandle;review:import('./schemaCreateIndex').DatabaseCreateIndexReview};
+export type DatabaseCreateIndexResult={changes:0;schema:DatabaseSchemaResult;sql:string};

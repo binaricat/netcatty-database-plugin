@@ -400,3 +400,7 @@ pre { padding: 12px; background: hsl(var(--muted)/.4); border: 1px solid hsl(var
 .database-workbench .create-table-review {display:flex;flex-direction:column;gap:10px;}
 .database-workbench .create-table-review textarea {width:100%;min-height:130px;box-sizing:border-box;resize:vertical;font-family:monospace;}
 .database-workbench .create-table [role="status"] {margin:0;line-height:1.5;}
+.database-workbench .create-index-definition {display:grid;grid-template-columns:minmax(160px,2fr) minmax(140px,2fr) 120px;gap:14px;align-items:end;}
+.database-workbench .create-index-definition .create-table-constraint {display:flex;flex-direction:row;align-items:center;min-height:34px;white-space:nowrap;}
+.database-workbench .create-index-definition input[type="checkbox"] {width:14px;height:14px;margin:0;}
+.database-workbench .create-index-column {grid-template-columns:minmax(160px,2fr) minmax(160px,1fr) 80px;}

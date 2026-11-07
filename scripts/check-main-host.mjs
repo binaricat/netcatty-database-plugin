@@ -12,7 +12,7 @@ const root=await mkdtemp(path.join(tmpdir(),'database-main-compat-'));
 const service=createPluginHostService({app:{getAppPath:()=>hostRoot,getPath:()=>root,getVersion:()=> '0.0.0'},env:{},electron:{}});
 try {
   await service.manager.initialize();
-  const archive=path.resolve('dist/netcatty-database-0.1.0-alpha.13.ncpkg');
+  const archive=path.resolve('dist/netcatty-database-0.1.0-alpha.14.ncpkg');
   const result=await service.manager.install(archive,{enable:false});
   const manifest=JSON.parse(await readFile('netcatty.plugin.json','utf8'));
   for (const feature of manifest.features.required) assert.ok(service.packageStore.supportedFeatures.includes(feature),`main does not support ${feature}`);
