@@ -150,6 +150,22 @@ try {
     assert.doesNotMatch(document.body.textContent, /测试文件捕获/);
     features.add(dependency); await language('en');
   }
+  assert.doesNotMatch(document.body.textContent, /fixed malformed test corpus/);
+  features.add('database.sqlite-malformed-reject.fixture.v1'); await language('zh-CN');
+  assert.doesNotMatch(document.body.textContent, /固定的损坏测试样本集/);
+  features.add('database.sqlite-fd-identity.fixture.v1'); await language('en');
+  assert.match(document.body.textContent, /fixed malformed test corpus before opening/);
+  assert.match(document.body.textContent, /Broader corruption handling and recovery are unqualified/);
+  await language('zh-CN'); assert.match(document.body.textContent, /固定的损坏测试样本集/);
+  assert.match(document.body.textContent, /尚未验证更广泛的损坏处理或恢复能力/);
+  for (const dependency of ['database.sqlite-fixture.v1', 'database.sqlite-file-fixture.v1', 'database.sqlite-fd-identity.fixture.v1', 'database.sqlite-wal-readonly.fixture.v1', 'database.sqlite-wal-concurrent.fixture.v1', 'database.sqlite-wal-checkpoint.fixture.v1', 'database.sqlite-wal-capture.fixture.v1']) {
+    features.delete(dependency); await language('en');
+    assert.doesNotMatch(document.body.textContent, /fixed malformed test corpus/);
+    features.add(dependency); await language('zh-CN');
+  }
+  features.delete('database.sqlite-malformed-reject.fixture.v1'); await language('en');
+  assert.doesNotMatch(document.body.textContent, /fixed malformed test corpus/);
+  checks.push('Malformed reject notice requires file/C/E/F/G/H/I; en/zh-CN limits claim to fixed Linux corpus, with broader corruption and recovery unqualified');
   features.delete('database.sqlite-wal-capture.fixture.v1'); await language('zh-CN');
   assert.doesNotMatch(document.body.textContent, /测试文件捕获/);
   await language('en'); assert.match(document.body.textContent, /Old snapshots invalidate/);
@@ -627,6 +643,31 @@ try {
     await language('zh-CN'); assert.match(document.body.textContent, /Uncheckpointed gate C note/);
     await language('en'); await click('Cancel / close');
     checks.push('real host WAL snapshot renders committed uncheckpointed notes; readonly across locale changes');
+    const corpus = host('./scripts/sqlite-malformed-fixture.cjs').buildMalformedCorpus();
+    try {
+      for (const feature of ['database.sqlite-fd-identity.fixture.v1', 'database.sqlite-wal-checkpoint.fixture.v1', 'database.sqlite-wal-capture.fixture.v1', 'database.sqlite-malformed-reject.fixture.v1']) features.add(feature);
+      identity.manifest.features.optional = [...features];
+      selectedSqliteFile = corpus.entries.find((entry) => entry.name === 'corrupt-wal-page').file;
+      const readsBefore = dbCalls.filter((c) => ['readSchema', 'query'].includes(c.method)).length;
+      await click('New Connection'); await click('Next'); await change('SQLite source', 'file');
+      assert.match(document.body.textContent, /SQLite target is stale or unavailable/);
+      assert.match(document.body.textContent, /fixed malformed test corpus before opening/);
+      assert.ok('disabled' in button('Save & Connect').attributes);
+      assert.equal(service.sessions.size, 0); assert.equal(service.pendingFiles.size, 0);
+      assert.equal(document.querySelectorAll('.results tbody tr').length, 0);
+      assert.equal(dbCalls.filter((c) => ['readSchema', 'query'].includes(c.method)).length, readsBefore);
+      await language('zh-CN'); assert.match(document.body.textContent, /宿主操作失败。宿主诊断：SQLite target is stale or unavailable/);
+      assert.match(document.body.textContent, /固定的损坏测试样本集/);
+      await snapshot('gate-i-malformed-reject-zh-CN'); await language('en');
+      selectedSqliteFile = corpus.entries.find((entry) => entry.name === 'good').file;
+      await click('Choose file...'); await change('Connection name', 'Gate I healthy control'); await click('Save & Connect');
+      await change('SQL statement', 'SELECT count(*) FROM notes'); await change('SQL parameters', '[]'); await click('Run read query');
+      assert.ok(document.querySelector('.results tbody tr'), document.body.textContent);
+      assert.equal(document.querySelector('.results tbody tr').lastElementChild.textContent, '40');
+      await click('Cancel / close'); assert.equal(service.sessions.size, 0);
+      checks.push('REAL host rejects checksum-valid corrupt WAL before UI schema/query/rows; localized bounded error, explicit healthy reselection returns 40 rows');
+    } finally { corpus.cleanup(); }
+
   } finally { await unmount(); service.shutdown(); }
   const report = { kind: 'JSDOM React + SDK remote DOM + host policy; English/zh-CN mocked regressions and real host SQLite commerce lane (injected chooser/approval); not native screenshots', passed: checks.length, failed: 0, checks, policyBatches: batches, maxNodes, maxSerializedTreeBytes: maxBytes, aiProviderCalls: 0 };
   await writeFile(`${evidence}/ui-check.json`, JSON.stringify(report, null, 2) + '\n'); console.log(JSON.stringify(report, null, 2));

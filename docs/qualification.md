@@ -8,7 +8,7 @@ and the implementation report, with real Electron evidence under
 | Area | Current slice | Next production gate |
 | --- | --- | --- |
 | Build/package | Locked npm, vendored source SDK/CLI, validator, reproducible `.ncpkg` | CI on isolated Linux/macOS/Windows, SBOM and provenance attestation |
-| SQLite | Memory + fixed M2/M3b files; C held-fd identity; E verified WAL snapshots; F writer invalidation/reselection; G fresh selection after PASSIVE/FULL/RESTART with a complete committed WAL, interrupted/stale-tail rejection; H autonomous writer with bounded pause through fresh selection and reads, resume invalidates | Uninterrupted capture and explicit in-session refresh; broader checkpoint/reset availability and actual recovery/tail salvage, broader admission, malformed DB corpus and cross-platform locks |
+| SQLite | Memory + fixed M2/M3b files; C held-fd identity; E verified WAL snapshots; F writer invalidation/reselection; G fresh selection after PASSIVE/FULL/RESTART with a complete committed WAL, interrupted/stale-tail rejection; H autonomous writer with bounded pause through fresh selection and reads, resume invalidates; I fixed ten-case malformed corpus rejects before session publication | Uninterrupted capture and explicit in-session refresh; broader checkpoint/reset availability and actual recovery/tail salvage, broader admission, expanded malformed/fuzz corpus beyond I and cross-platform locks |
 | Authority | Source/runtime-bound handles; default Ask; per-write exact native review | Broader target revision/plan receipts; lock/policy/source-swap stress and crash recovery |
 | Execution limits | Fixed subprocess; 3 s kill; row/string/payload limits | Hard native-memory/CPU OS constraints and cross-platform kill/reap qualification |
 | SQL semantics | SQLite authorizer allowlist, no scripts/PRAGMA/ATTACH/extensions | Driver-aware typed plans, cross-schema policy and nontransactional outcomes |
@@ -171,3 +171,32 @@ inputs, broader checkpoint/reset/recovery, cross-platform locks and general file
 admission remain production work. M1/C/E/F/G resource/filesystem/native/cleanup
 and Gate D SKIPPED_NO_PROVIDER residuals persist. Evidence/design/counts/artifact:
 `/workspace/agent-tools/database/gate-h-continuous-writer/`.
+
+
+Gate I adds optional `database.sqlite-malformed-reject.fixture.v1` alongside
+file + C + E + F + G + H under the default-off Linux experiment. Before file
+session publication, a host-owned read-only integrity check rejects thrown
+corruption and non-ok diagnostics, including damaged data pages whose schema
+still enumerates. WAL uses E's verified derived image. Plugin SQL gains no PRAGMA
+or path capability. The invariant applies even without I negotiation; I only
+advertises the proven slice. Public wire/SDK and memory behavior are unchanged.
+
+The ten-case fixed corpus covers zero-length, non-SQLite, wrong magic, short
+header, truncated DB, corrupt data leaf, inconsistent freelist count, short WAL
+header, partial WAL frame and a checksum-valid WAL containing a corrupt leaf.
+Each rejects before returning a handle/schema/rows, with typed bounded errors,
+unchanged source bytes, reaped workers and no fd/derived-image leak. Two healthy
+controls return exact 40/41-row IDs. The builder uses only the existing M2 root;
+M3b and C/E/F/G/H remain regression requirements. en/zh-CN notices require all
+marker dependencies and explicitly limit the claim to the fixed Linux corpus.
+
+Earlier gates' malformed-corpus non-claims remain historical; I closes only this
+fixed rejection slice, not broad malformed support. Expanded malformed/fuzz
+coverage, native parser resource containment, uninterrupted mid-write capture,
+explicit in-session refresh, broader checkpoint/reset/recovery/tail salvage,
+broader admission and cross-platform locks remain production gates. No repair,
+SQLCipher, new driver, source writes, polling or automatic retry. All C/E/F/G/H
+identity/ABA/hostile-tail/lock/pause-capture guarantees and M1 resource, filesystem,
+native-reopen/cleanup, native GUI/rebuild and D SKIPPED_NO_PROVIDER residuals stay.
+Evidence/design/mutation inventory/test counts/artifact:
+`/workspace/agent-tools/database/gate-i-malformed-corpus/`.

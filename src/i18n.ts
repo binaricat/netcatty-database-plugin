@@ -1,6 +1,7 @@
 // Original plugin-owned copy. English source keys keep the fallback explicit.
 // Only the host environment selects language; never navigator/OS/input locale.
 export const zhCN = {
+  "Linux fixture checks reject the fixed malformed test corpus before opening. Broader corruption handling and recovery are unqualified.": "Linux 测试文件检查会在打开前拒绝固定的损坏测试样本集。尚未验证更广泛的损坏处理或恢复能力。",
   "Test live SSH→PostgreSQL (fixture)": "测试真实 SSH→PostgreSQL（测试环境）",
   "Cancel live fixture test": "取消真实连接测试",
   "Allowlisted loopback fixture only. Pinned SSH and SELECT 1 are required; credentials stay with the host. The test session closes automatically.": "仅限允许列表内的本机测试环境。必须通过固定主机密钥验证及 SELECT 1 查询；凭据由宿主管理，测试会话自动关闭。",
