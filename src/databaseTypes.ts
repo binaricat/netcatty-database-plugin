@@ -320,3 +320,8 @@ export type RowInsertApplyRequest={handleId:DatabaseHandle;review:RowInsertRevie
 export type RowInsertResult={changes:1};
 
 export type SnapshotRestoreReview={handleId:DatabaseHandle;token:string;info:import('./snapshotStorage').SnapshotInfo;schema:DatabaseSchemaResult};
+
+/** Plugin-local reviewed batch, not a host RPC. */
+export interface GridBatchRequest extends DatabaseHandleRequest {draft:import('./gridBatchMutation').GridBatchDraft;}
+export interface GridBatchReview {kind:'grid-batch';handleId:string;token:string;schemaRevision:number;plan:import('./gridBatchMutation').GridBatchPlan;}
+export interface GridBatchApplyRequest extends DatabaseHandleRequest {review:GridBatchReview;}

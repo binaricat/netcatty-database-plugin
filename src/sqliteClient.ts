@@ -1,6 +1,9 @@
+import {previewSqliteGridBatch,executeSqliteGridBatch} from './sqliteGridBatch';
+import {GridBatchError} from './gridBatchMutation';
+import type {GridBatchRequest,GridBatchReview,GridBatchApplyRequest} from './databaseTypes';
 import {createQueryLibraryStorage,QueryLibraryStorageError} from './queryLibraryStorage';
 import {createSnapshotStorage} from './snapshotStorage';
-import {SqliteSnapshotError,exportProtectedSnapshot,validateSnapshotDatabase} from './sqliteSnapshot';
+import {SqliteSnapshotError,exportProtectedSnapshot,validateSnapshotDatabase,protectSnapshotDatabase} from './sqliteSnapshot';
 import type {SnapshotRestoreReview} from './databaseTypes';
 import {previewRowInsert as buildRowInsert,RowInsertError,type RowInsertPlan} from './rowInsertModel';
 import type {RowInsertRequest,RowInsertReview,RowInsertApplyRequest,RowInsertResult} from './databaseTypes';
@@ -281,6 +284,7 @@ export function createWorkbenchContext(context: PluginContext): WorkbenchContext
         PRAGMA hard_heap_limit=8388608;
         PRAGMA foreign_keys=ON;
         PRAGMA query_only=ON;`);
+      protectSnapshotDatabase(db);
       const handleId = crypto.randomUUID(); sessions.set(handleId, db);
       return {handleId, engine: 'sqlite' as const, label: 'Disposable synthetic notes' as const, fixture: true as const, readOnly: false as const, supportsReviewedWrites: true as const};
     } catch (error) { db.close(); throw error; }
@@ -464,6 +468,19 @@ export function createWorkbenchContext(context: PluginContext): WorkbenchContext
       if(sessions.has(request.handleId)){try{db.run('PRAGMA query_only=ON');}catch{tableReviews.delete(request.handleId);sessions.delete(request.handleId);db.close();throw new Error('SQLite read protection could not be restored; session closed.');}}
     }
   };
+  const previewGridBatch=async(request:GridBatchRequest):Promise<GridBatchReview>=>{
+    const db=get(request);tableReviews.delete(request.handleId);
+    const plan=previewSqliteGridBatch(db,request.draft);
+    const review:GridBatchReview={kind:'grid-batch',handleId:request.handleId,token:crypto.randomUUID(),schemaRevision:schemaRevision(db),plan};
+    tableReviews.set(request.handleId,JSON.stringify(review));return review;
+  };
+  const applyGridBatch=async(request:GridBatchApplyRequest):Promise<{changes:number}>=>{
+    const db=get(request),issued=tableReviews.get(request.handleId);tableReviews.delete(request.handleId);
+    const review=request.review;
+    if(!review||review.kind!=='grid-batch'||review.handleId!==request.handleId||review.schemaRevision!==schemaRevision(db))throw new GridBatchError('review');
+    if(!issued||issued!==JSON.stringify(review))throw new GridBatchError('review');
+    return executeSqliteGridBatch(db,review.plan,{onFatal:()=>{tableReviews.delete(request.handleId);savedIds.delete(request.handleId);sessions.delete(request.handleId);discardRestore(request.handleId);}});
+  };
   const previewGridRow=async(request:GridMutationRequest):Promise<GridMutationReview>=>{
     const db=get(request);tableReviews.delete(request.handleId);
     const preview=previewGridMutation(request.draft,inspectSqliteSchema(db));
@@ -577,9 +594,9 @@ export function createWorkbenchContext(context: PluginContext): WorkbenchContext
     remove:(id,entryId,revision)=>withQueryLibrary(id,()=>storedQueries.remove(id,entryId,revision))
   };
   const database: PluginDatabaseClient & {capabilities: ReadonlySet<string>} = {
-    capabilities: new Set(['database.sqlite-snapshot.v1','database.sqlite-fixture.v1','database.saved-connections.v1','database.sqlite-reviewed-writes.v1','database.sqlite-create-table.v1','database.sqlite-create-index.v1','database.sqlite-grid-mutation.v1','database.sqlite-csv-import.v1','database.sqlite-rename-column.v1','database.sqlite-row-insert.v1','database.sqlite-drop-index.v1','database.sqlite-add-column.v1']),
+    capabilities: new Set(['database.sqlite-grid-batch.v1','database.sqlite-snapshot.v1','database.sqlite-fixture.v1','database.saved-connections.v1','database.sqlite-reviewed-writes.v1','database.sqlite-create-table.v1','database.sqlite-create-index.v1','database.sqlite-grid-mutation.v1','database.sqlite-csv-import.v1','database.sqlite-rename-column.v1','database.sqlite-row-insert.v1','database.sqlite-drop-index.v1','database.sqlite-add-column.v1']),
     snapshotInfo,saveSnapshot,previewRestoreSnapshot,applyRestoreSnapshot,deleteSnapshot,
-    previewRowInsert,applyRowInsert,previewDropIndex,applyDropIndex,previewRenameColumn,applyRenameColumn,previewAddColumn,applyAddColumn,previewCsvImport,applyCsvImport,previewCreateTable,applyCreateTable,previewCreateIndex,applyCreateIndex,previewGridMutation:previewGridRow,applyGridMutation,
+    previewGridBatch,applyGridBatch,previewRowInsert,applyRowInsert,previewDropIndex,applyDropIndex,previewRenameColumn,applyRenameColumn,previewAddColumn,applyAddColumn,previewCsvImport,applyCsvImport,previewCreateTable,applyCreateTable,previewCreateIndex,applyCreateIndex,previewGridMutation:previewGridRow,applyGridMutation,
     openFixture: open, readSchema, query, close, cancel:close,
     listSavedConnections:list,
     saveConnection: (request: DatabaseSaveConnectionRequest) => mutate(async () => {
