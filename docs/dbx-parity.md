@@ -210,3 +210,13 @@ manual three-row/two-column readback passed in unchanged main. See
 screenshots. All 550 tests pass. DROP refuses unsupported dependency/constraint
 layouts and compares bounded retained data exactly; this is not DBX's general
 table-rebuild editor. Remote-plugin transport and near-complete parity remain open.
+
+## Alpha33 projection views and operation-owned locks
+
+Native CREATE VIEW with explicit source columns, highlighted review, confirmation,
+sidebar/schema refresh and manual three-row view readback passed. The existing
+New object entry has Table/View content tabs instead of more sidebar buttons.
+See `native-create-view-alpha33.md`. This is a deliberately bounded single-table
+projection, not DBX's arbitrary view SQL editor. A shared operation-symbol busy
+lease now prevents late completion/unmount of one task from unlocking another;
+586 tests and 50 main remote-DOM scenes pass. No transport limitation was bypassed.
