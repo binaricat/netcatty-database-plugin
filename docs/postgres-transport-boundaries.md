@@ -1,0 +1,11 @@
+# PostgreSQL protocol slice: offline only
+
+`postgresProtocol.ts` encodes PostgreSQL v3 StartupMessage and extended-query Parse/Bind/Describe(portal)/Execute/Sync. It incrementally decodes selected authentication, ParameterStatus, ReadyForQuery, RowDescription, DataRow and ErrorResponse frames. Error output retains only SQLSTATE, not potentially sensitive server messages. Text fields use fatal UTF-8 decoding; DataRow cells remain bytes because formats/OIDs determine whether they represent text or binary. `pgTextValue` is explicit text decoding, not general typed conversion.
+
+This is not a connection driver. It does not implement SCRAM, MD5, authentication responses, TLS, certificate checking, server query cancellation, CommandComplete/BackendKeyData/notice handling or complete session state. Unsupported message types fail closed. A fresh decoder is intended per bounded exchange, with 256 KiB frame/pending-buffer ceiling, 96 KiB cumulative exchange bytes, 1000 frames, 64 columns, 32 bound parameters and Execute rows 1–100. These limits deliberately cannot read arbitrary bulk results.
+
+Tests use standard protocol byte layouts and adversarial fragments/budgets. They are not a simulated-server claim or real PostgreSQL compatibility evidence. No network or credentials are involved.
+
+Current main public network.connect accepts only an exact endpoint. TCP cannot be upgraded to TLS after PostgreSQL SSLRequest; direct TLS has certificate verification but no exposed ALPN option. PG17 direct TLS must not be claimed compatible without verified `postgresql` ALPN support and actual service tests. PostgreSQL 15 in the proposed Docker fixture is not a direct-TLS substitute. Generic host STARTTLS or a validated ALPN path would require a separately authorized host change, not insecure fallback, proxy, hostname alias or policy bypass.
+
+Future authentication needs strict SCRAM vectors and server-signature checks, bounded iterations and cancellation, followed by a verified compatible TLS transport and real fixture. Byte-stream AUTH cannot use the separate HTTP credential-lease substitution automatically. Secrets must remain explicitly supplied session memory, without logging or automatic persistence. Closing a connection is not proof that server-side CancelRequest succeeded. No manifest permissions or host capabilities were changed for this codec.
