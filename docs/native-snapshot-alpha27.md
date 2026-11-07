@@ -33,3 +33,9 @@ remote database persistence, or Docker testing. The saved snapshot is retained.
 Destructive clear was not tested natively in this pass. Negative/corrupt/concurrent
 cases remain automated engine/storage tests. Restart did not stop SSH/database
 server processes. UI query results must be explicitly refreshed after restore.
+
+Continuous recording `full-app-snapshot-alpha27.mp4`: 480 seconds, 5,118,193 bytes;
+ffprobe and full decode passed. The final segment also records the independent
+real MySQL prepared-read and PostgreSQL-index protocol PASS results through
+Netcatty SSH. The restart sequence deliberately includes the unsuccessful
+window-close-only attempt before the actual process restart. No cuts conceal it.

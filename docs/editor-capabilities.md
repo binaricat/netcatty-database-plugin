@@ -57,9 +57,11 @@ separators, procedural bodies and PRAGMA. Limits are 8192 UTF-16 units and UTF-8
 bytes, 2048 tokens, and 64 parenthesis levels. Scanning/printing is linear in these
 bounded inputs; this is not a worker-level execution timeout or a full SQL parser.
 
-There is **no UI integration yet**. A future explicit Format/Apply/Undo flow must
-invalidate pending drafts on any document, tab, connection or schema transition;
-never run formatted SQL automatically. Do not reuse the display-only highlighter
+The SQLite editor now has an explicit **Format whole SQL → Apply formatting**
+preview and one-step Undo. Any document, tab, connection or schema change discards
+stale review/undo state. Reported IME composition and busy operations disable these
+controls. This does not imply complete host keyboard/IME parity. The controls never
+run SQL automatically. Native application acceptance remains pending. Do not reuse the display-only highlighter
 as a rewriting lexer: its incomplete-token tolerance and segment-budget fallback
 are appropriate for drawing, not editing.
 

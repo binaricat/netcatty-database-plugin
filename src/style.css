@@ -477,3 +477,9 @@ pre { padding: 12px; background: hsl(var(--muted)/.4); border: 1px solid hsl(var
 .snapshot-panel .hint p { margin: 5px 0; }
 .snapshot-panel .create-table-actions { flex-wrap: wrap; justify-content: flex-start; }
 .snapshot-panel > div > button { margin: 8px 8px 0 0; }
+.sql-format-controls { margin-top: 5px; font-size: 12px; }
+.sql-format-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+.sql-format-actions > span { color: hsl(var(--muted-foreground)); }
+.sql-format-review { margin-top: 6px; }
+.sql-format-review > p { margin: 4px 0; color: hsl(var(--muted-foreground)); }
+.sql-format-review .sql-preview { max-height: 150px; overflow: auto; }
