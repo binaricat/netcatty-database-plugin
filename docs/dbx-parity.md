@@ -31,8 +31,8 @@ behavior exists but scope or qualification is materially narrower than DBX.
 Missing means no usable implementation on main. Historical experimental-host
 results cannot be carried forward as main acceptance.
 
-At this first migration slice: **0 of 24 capability groups complete; 7 partial;
-17 missing**. This coarse count is not a percentage of engineering effort or a
+After the result/query-library slice: **0 of 24 capability groups complete; 8 partial;
+16 missing**. This coarse count is not a percentage of engineering effort or a
 weighted product completion score. It also does not establish that every DBX
 advertised driver itself has been independently tested in DBX.
 
@@ -48,9 +48,9 @@ advertised driver itself has been independently tested in DBX.
 | 8. SQL editing/highlight/tabs | Partial | Bounded syntax overlay, line numbers and up to eight tabs. No CodeMirror-equivalent editing/selection behavior. |
 | 9. Completion, formatting and diagnostics | Missing | No schema-aware completion or formatter/diagnostic engine. |
 | 10. Selection/scripts/manual transactions | Missing | One read statement only; no batch, script execution or transaction controls. |
-| 11. Query history and saved SQL/snippets | Missing | Current History entry remains disabled. |
+| 11. Query history and saved SQL/snippets | Partial | Bounded in-view history and named SQL library. No persisted SQL library or richer snippets yet. |
 | 12. Restored editor tabs/drafts | Missing | Query state lasts only for the mounted workspace/session. |
-| 13. Result browsing/search/sort/paging | Partial | Bounded read results and small table preview. No complete paging/filter/sort/virtual scrolling or full cell view. |
+| 13. Result browsing/search/sort/paging | Partial | Bounded returned-result paging, filtering, sorting and cell inspection. No server-side paging or virtual scrolling. |
 | 14. Grid insert/edit/delete with SQL preview | Missing | No data mutations on main. |
 | 15. CSV/JSON/Markdown/XLSX/INSERT export | Missing | No export controls or file destination flow. |
 | 16. CSV/Excel import | Missing | No importer. |

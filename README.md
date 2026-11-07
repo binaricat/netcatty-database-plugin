@@ -29,7 +29,7 @@ npm run pack
 npm run validate
 ```
 
-The resulting package is `dist/netcatty-database-0.1.0-alpha.1.ncpkg`. Import it in
+The resulting package is `dist/netcatty-database-0.1.0-alpha.4.ncpkg`. Import it in
 Settings > Plugins on Netcatty main, enable it and open Database. Choose
 New Connection > SQLite > Next > Test or Save & Connect. Storage is an optional
 permission requested when metadata is read or saved. The package requires main's AI API feature; actual AI invocation remains optional

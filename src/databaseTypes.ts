@@ -216,6 +216,12 @@ export type DatabaseSchemaResult = {
       nullable?: boolean;
     }>;
     kind?: "table" | "view";
+    /** Optional engine metadata. Absence means unavailable, not an empty list. */
+    definition?: string;
+    primaryKeyColumns?: string[];
+    indexes?: Array<{ name: string; unique: boolean; origin: string; partial: boolean; columns: Array<{ name: string | null; expression: boolean; descending: boolean; collation: string | null }>; definition?: string }>;
+    foreignKeys?: Array<{ id: number; targetTable: string; columns: Array<{ from: string; to: string | null }>; onUpdate: string; onDelete: string; match: string }>;
+    triggers?: Array<{ name: string; definition: string }>;
   }>;
 };
 

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef, useSyncExternalStore } from 'react';
 import { definePlugin } from '@netcatty/plugin-sdk';
 import type { DatabaseConnectionMeta } from './databaseTypes';
 import { registerHostReactView } from '@netcatty/plugin-sdk/host-react';
@@ -10,12 +10,17 @@ import { Icon } from './Icon';
 import { driverById, filterDrivers, type DriverId, type DriverCategory } from './driverRegistry';
 import { previewSummary } from './preview';
 import { ResultGrid } from './ResultGrid';
+import { StructureMetadata } from './StructureMetadata';
+import { VaultHosts } from './VaultHosts';
+import { createConnectionModalChannel } from './connectionModalChannel';
+import { translator } from './i18n';
 import { SqlEditor } from './SqlEditor';
 import type { DatabaseVariantId, DatabaseTcpOpenRequest } from './databaseTypes';
 import { clampEditorSplit, DEFAULT_EDITOR_SPLIT, MIN_EDITOR_SPLIT, MAX_EDITOR_SPLIT } from './sqlDisplay';
 import { createWorkbenchContext } from './sqliteClient';
 import type { WorkbenchContext } from './databaseClient';
 type Model = ReturnType<typeof useWorkbench>;
+type ModalChannel = ReturnType<typeof createConnectionModalChannel<Model>>;
 const CONNECTION_PAGE_SIZE = 10;
 function EngineIcon({ engine, theme }: { engine: DriverId | 'postgresql'; theme: string }) {
   const driver = driverById(engine === 'postgresql' ? 'postgres' : engine);
@@ -32,7 +37,7 @@ function ConnectionDialog({ vm }: { vm: Model }) {
   const driver = vm.selectedDriver;
   const sqlite = driver.id === 'sqlite';
   const categories = [['all', 'All databases'], ['relational', 'Relational'], ['domestic', 'Domestic'], ['lightweight', 'Lightweight'], ['analytics', 'Analytics'], ['document', 'Document & cache']] as const;
-  return <section className="connection-dialog" role="dialog" aria-label={t("New Connection")}>
+  return <section className={`connection-dialog ${vm.modal === 'connection' ? 'connection-details' : 'connection-picker'}`} role="dialog" aria-label={t("New Connection")}>
     <header className="flow-heading"><div><h2>{t(vm.modal === 'picker' ? "Choose database" : "Connection details")}</h2><p>{t("Configure your database connection.")}</p></div><button className="secondary" onClick={() => void vm.dismiss()}>{t("Close")}</button></header>
     {vm.modal === 'picker' ? <>
       <div className="type-picker"><nav aria-label={t("Database categories")}>{categories.map(([id,label]) => <button key={id} aria-pressed={category === id} className={category === id ? 'selected-category' : ''} onClick={() => setCategory(id)}>{t(label)}</button>)}</nav>
@@ -40,9 +45,13 @@ function ConnectionDialog({ vm }: { vm: Model }) {
       <div className="catalog-results"><div className="engine-grid">{filterDrivers(category,search).map(engine => <button key={engine.id} aria-label={engine.label} aria-pressed={driver.id === engine.id} className={`type-option ${driver.id === engine.id ? 'selected' : ''}`} disabled={vm.busy} onClick={() => void vm.selectDriver(engine.id)}><span className="engine-mark"><EngineIcon engine={engine.id} theme={vm.theme} /></span><strong>{engine.label}</strong><small>{engine.id === 'sqlite' ? t("Available") : t("Driver not packaged")}</small></button>)}</div></div></div></div>
       <footer className="modal-footer"><span>{driver.label}</span><button onClick={() => vm.setModal('connection')}>{t("Next")}</button></footer>
     </> : <>
-      <div className="connection-form"><label>{t("Name")}<input aria-label={t("Connection name")} value={name} maxLength={128} disabled={vm.busy} onChange={e => setName(e.currentTarget.value)} /></label><div className="engine-field"><span>{driver.label}</span><EngineIcon engine={driver.id} theme={vm.theme} /></div>
-      {sqlite ? <><p className="hint">{t("Plugin-owned SQLite memory workspace. Read-only sample data; no host database service or user files.")}</p><label>{t("Color")}<select aria-label={t("Connection color")} value={color} onChange={e => setColor(e.currentTarget.value as DatabaseConnectionMeta['color'])}>{colors.map(value => <option key={value} value={value}>{t(value)}</option>)}</select></label></> : <p className="hint">{t("Driver not packaged")}. {t("Vendor compatibility is unverified. Choose an explicit product variant; unsupported authentication or modes remain unavailable.")}</p>}
-      {vm.tested && <p role="status">{t("Connection successful - SQLite schema validated")}</p>}{vm.error && <p className="error" role="alert">{vm.error}</p>}</div>
+      <div className="connection-form">
+        <div className="connection-engine"><EngineIcon engine={driver.id} theme={vm.theme} /><div><strong>{driver.label}</strong><small>{t(sqlite ? 'Read-only memory' : 'Driver not packaged')}</small></div></div>
+        <div className="connection-fields"><label>{t("Name")}<input aria-label={t("Connection name")} value={name} maxLength={128} disabled={vm.busy} onChange={e => setName(e.currentTarget.value)} /></label>
+        {sqlite && <label>{t("Color")}<select aria-label={t("Connection color")} value={color} onChange={e => setColor(e.currentTarget.value as DatabaseConnectionMeta['color'])}>{colors.map(value => <option key={value} value={value}>{t(value)}</option>)}</select></label>}</div>
+        <p className="connection-scope">{t(sqlite ? "Plugin-owned SQLite memory workspace. Read-only sample data; no host database service or user files." : "Vendor compatibility is unverified. Choose an explicit product variant; unsupported authentication or modes remain unavailable.")}</p>
+        {vm.tested && <p className="connection-test-status" role="status">{t("Connection successful - SQLite schema validated")}</p>}{vm.error && <p className="error" role="alert">{vm.error}</p>}
+      </div>
       <footer className="modal-footer"><button className="secondary" disabled={vm.busy} onClick={() => vm.setModal('picker')}>{t("Back")}</button><button className="secondary" disabled={!sqlite || vm.busy} onClick={() => void vm.test()}>{t("Test")}</button><button disabled={!sqlite || vm.busy || !name.trim()} onClick={() => void vm.save({name:name.trim(),color})}>{t("Save & Connect")}</button></footer>
     </>}
   </section>;
@@ -81,7 +90,7 @@ function Structure({ vm }: { vm: Model }) {
     <div className="results-heading"><strong>{`${vm.connectionName} / ${object.name}`}</strong><span>{t("Connected database / Read-only structure")}</span></div>
     <div className="results-heading"><strong>{t("Columns")}</strong><span>{t("{count} columns / {kind}", { count: object.columns.length, kind: t(object.kind ?? "table") })}</span></div>
     <div className="table-scroll"><table><thead><tr><th>#</th><th>{t("Column")}</th><th>{t("Type")}</th><th>{t("Nullable")}</th><th>{t("Primary Key")}</th></tr></thead><tbody>{object.columns.map((c, i) => <tr key={c.name} tabIndex={0}><td className="row-index">{i + 1}</td><td>{c.name}</td><td className="column-type"><span className="type-label">{c.type}</span></td><td>{c.nullable === undefined ? t("Unknown") : c.nullable ? t("Yes") : t("No")}</td><td>{c.primaryKey ? t("Yes") : t("No")}</td></tr>)}</tbody></table></div>
-    <div className="result-status">{object.kind === 'view' ? t("View nullability is not inferred.") : t("Column metadata from the connected database.")} {t("Schema editing is unavailable.")}</div>
+    <StructureMetadata key={object.name} object={object} t={t} /><div className="result-status">{object.kind === 'view' ? t("View nullability is not inferred.") : t("Column metadata from the connected database.")} {t("Schema editing is unavailable.")}</div>
   </section>;
 }
 function QueryLibraryPanel({ vm, close }: { vm: Model; close: () => void }) {
@@ -95,11 +104,23 @@ function QueryLibraryPanel({ vm, close }: { vm: Model; close: () => void }) {
     <footer className="library-pagination"><button className="toolbar-button" disabled={current===0} onClick={()=>setPage(current-1)}>{t('Previous')}</button><span>{t('Page {page} / {pages}',{page:current+1,pages:Math.max(1,Math.ceil(entries.length/8))})}</span><button className="toolbar-button" disabled={(current+1)*8>=entries.length} onClick={()=>setPage(current+1)}>{t('Next')}</button></footer>
   </section>;
 }
-function Workbench({ context }: { context: WorkbenchContext }) {
+function NativeConnectionModal({context, channel}: {context:WorkbenchContext;channel:ModalChannel}) {
+  const vm=useSyncExternalStore(channel.subscribe,channel.getSnapshot,channel.getSnapshot);
+  const current=useRef(vm);current.current=vm;
+  useEffect(()=>{channel.setNativeOpen(true); return ()=>{channel.setNativeOpen(false);void current.current?.dismiss();};},[channel]);
+  const t=translator(context.environment.locale);
+  return <div className="database-workbench native-connection-content">{!vm ? <p className="hint">{t("Open the database workspace first.")}</p> : vm.modal ? <ConnectionDialog vm={vm}/> : <div className="native-connection-start"><p>{t("Use this host dialog to create a database connection.")}</p><button onClick={()=>vm.setModal('picker')}>{t("New Connection")}</button></div>}</div>;
+}
+function Workbench({ context, channel }: { context: WorkbenchContext;channel:ModalChannel }) {
   const vm = useWorkbench(context);
+  const nativeOpen=useSyncExternalStore(channel.subscribe,channel.isNativeOpen,channel.isNativeOpen);
+  const modalOwner=useRef(Symbol());
+  useEffect(()=>{channel.publish(modalOwner.current,vm,true);},[channel,vm]);
+  useEffect(()=>()=>channel.release(modalOwner.current),[channel]);
   const { t } = vm; const [connectionFilter, setConnectionFilter] = useState(''); const [connectionPage, setConnectionPage] = useState(0);
   const matches = vm.saved.filter((c) => c.name.toLowerCase().includes(connectionFilter.toLowerCase()));
   const page = Math.min(connectionPage, Math.max(0, Math.ceil(matches.length / CONNECTION_PAGE_SIZE) - 1)); const [showAI, setShowAI] = useState(false);
+  const [showVault, setShowVault] = useState(false);
   const [showLibrary, setShowLibrary] = useState(false);
   const [editorSplit, setEditorSplit] = useState(DEFAULT_EDITOR_SPLIT);
   const result = vm.tab?.result;
@@ -113,7 +134,8 @@ function Workbench({ context }: { context: WorkbenchContext }) {
       <button className="toolbar-button" disabled={!vm.enabled || vm.busy} onClick={() => vm.setModal('picker')}><Icon name="plus" />{t("New Connection")}</button>
       <button className="toolbar-button" disabled={!vm.session || vm.busy || vm.tabs.length >= 8} onClick={() => vm.addTab()}><Icon name="file-code" />{t("New Query")}</button>
       {vm.walRefreshEnabled && vm.session && 'revision' in vm.session && <button className="toolbar-button" disabled={vm.busy} onClick={() => void vm.refresh()}><Icon name="refresh" />{t("Refresh WAL fixture")}</button>}
-      <button className="toolbar-button" aria-expanded={showLibrary} onClick={() => setShowLibrary(!showLibrary)}>{t("Query library")}</button>
+      <button className="toolbar-button" aria-expanded={showLibrary} onClick={() => {setShowVault(false);setShowLibrary(!showLibrary);}}><Icon name="book-open" />{t("Query library")}</button>
+      <button className="toolbar-button" aria-expanded={showVault} onClick={() => {setShowLibrary(false);setShowVault(!showVault);}}><Icon name="server" />{t("Host connections")}</button>
       <span className="experimental">{t("EXPERIMENTAL")}</span>
       <button className={showAI && vm.session ? "toolbar-button ai-toggle active" : "toolbar-button ai-toggle"} disabled={!vm.session} aria-expanded={showAI && Boolean(vm.session)} onClick={() => setShowAI(!showAI)}><Icon name="sparkles" />{t("AI SQL assistant")}</button>
     </header>
@@ -122,7 +144,12 @@ function Workbench({ context }: { context: WorkbenchContext }) {
       {vm.session && !matches.slice(page * CONNECTION_PAGE_SIZE, (page + 1) * CONNECTION_PAGE_SIZE).some((c) => c.id === vm.connectedId) && <SchemaTree key={vm.session.handleId} vm={vm} />}
       <div className="sidebar-footer">{matches.length > CONNECTION_PAGE_SIZE && <div className="connection-pages"><button className="secondary" aria-label={t("Previous connections")} disabled={page === 0} onClick={() => setConnectionPage(page - 1)}>{t("Previous")}</button><button className="secondary" aria-label={t("Next connections")} disabled={(page + 1) * CONNECTION_PAGE_SIZE >= matches.length} onClick={() => setConnectionPage(page + 1)}>{t("Next")}</button></div>}{vm.session && <><button className="secondary" disabled={vm.busy} onClick={() => void vm.disconnect()}><Icon name="unplug" />{t("Close connection")}</button></>}</div>
     </aside><section className={showAI && vm.session ? "workspace ai-open" : "workspace"}>
-      {showLibrary ? <QueryLibraryPanel vm={vm} close={() => setShowLibrary(false)} /> : !vm.session ? <div className="home"><div className="home-intro"><Icon name="database" /><h1>{t("Your data, inside Netcatty")}</h1><p>{t("Plugin-owned SQLite memory workspace. Read-only sample data; no host database service or user files.")}</p></div><div className="home-metrics"><div><span>{t("Connections")}</span><strong>{t(vm.saved.length ? "Available" : "No connections yet")}</strong></div><div><span>{t("Connected")}</span><strong>{t("Unavailable")}</strong></div><div><span>{t("Database Types")}</span><strong>{t("SQLite memory only")}</strong></div></div><div className="home-panels"><section className="home-panel"><h2>{t("Quick Start")}</h2><div className="home-welcome"><p>{vm.saved.length ? t("Your connections, ready to reopen") : t("No connections yet")}</p><p>{vm.saved.length ? t("Select a saved connection on the left. The host validates its target again.") : t("Create a connection to explore disposable SQLite data.")}</p><button className="secondary" disabled={!vm.enabled || vm.busy} onClick={() => vm.setModal('picker')}>{t("New Connection")}</button></div></section><section className="home-panel"><h2>{t("Shortcuts")}</h2><div className="shortcut-row"><button className="shortcut" disabled={!vm.enabled || vm.busy} onClick={() => vm.setModal('picker')}><Icon name="plus" />{t("New Connection")}<small>{t("SQLite / local fixtures")}</small></button><button className="shortcut" onClick={()=>setShowLibrary(true)}>{t("History")}</button></div></section></div><p className="hint home-note">{!vm.enabled ? t("The host SQLite experiment is disabled or unavailable.") : !vm.persistence ? t("This host does not support saved connections. Temporary connections remain available.") : t("Saved connections contain metadata only. Memory contents are never persisted.")}</p></div> : <>
+      {showVault ? <VaultHosts context={context} t={t} /> : showLibrary ? <QueryLibraryPanel vm={vm} close={() => setShowLibrary(false)} /> : !vm.session ? <div className="home home-refined">
+        <header className="home-hero"><div className="home-mark"><Icon name="database" /></div><div><p className="home-eyebrow">{t('Database workspace')}</p><h1>{t('Explore your data')}</h1><p>{t('Connect, query and inspect your databases in one workspace.')}</p></div></header>
+        <div className="home-actions"><button className="home-action" disabled={!vm.enabled || vm.busy} onClick={()=>vm.setModal('picker')}><span className="action-icon"><Icon name="plus" /></span><span><strong>{t('New Connection')}</strong><small>{t('Start a database workspace')}</small></span><Icon name="chevron-right" /></button><button className="home-action" onClick={()=>setShowVault(true)}><span className="action-icon"><Icon name="server" /></span><span><strong>{t('Host connections')}</strong><small>{t('Choose a host from Netcatty')}</small></span><Icon name="chevron-right" /></button><button className="home-action" onClick={()=>setShowLibrary(true)}><span className="action-icon"><Icon name="book-open" /></span><span><strong>{t('Query library')}</strong><small>{t('Return to saved SQL and history')}</small></span><Icon name="chevron-right" /></button></div>
+        <section className="recent-connections"><div className="home-section-heading"><Icon name="history" /><h2>{t('Recent connections')}</h2><span>{vm.saved.length}</span></div>{vm.saved.length ? vm.saved.slice(0,5).map(c=><button key={c.id} className="recent-connection" disabled={vm.busy} onClick={()=>void vm.open(c)}><EngineIcon engine="sqlite" theme={vm.theme}/><span><strong>{c.name}</strong><small>SQLite · {t('Read-only memory')}</small></span><Icon name="chevron-right" /></button>) : <div className="home-empty"><Icon name="unplug" /><div><strong>{t('No connections yet')}</strong><p>{t('Your saved connections will appear here.')}</p></div></div>}</section>
+        <p className="home-scope"><Icon name="shield" />{t('Currently available: disposable SQLite. More database drivers are in development.')}</p>
+      </div> : <>
         {vm.walRefreshEnabled && 'revision' in vm.session && <details className="session-notice"><summary><Icon name="shield" />{t("Read-only fixture · pause writers during reads")}</summary><p>{t("Explicit WAL refresh: pause all writers through refresh and reads. Click Refresh WAL fixture for appended commits in this open session. Checkpoints or replaced files require choosing again. No polling, automatic retry or uninterrupted capture.")}</p></details>}
         <nav className="tab-strip" aria-label={t("Workspace tabs")}>{vm.tabs.map((tab) => <div key={tab.id} className={vm.activeTab === tab.id ? 'workspace-tab active' : 'workspace-tab'}><button aria-pressed={vm.activeTab === tab.id} onClick={() => vm.setActiveTab(tab.id)}><Icon name={tab.objectName ? "table" : "file-code"} /><span title={vm.tabTitle(tab)}>{vm.tabTitle(tab)}</span></button><button aria-label={t("Close {name}", { name: vm.tabTitle(tab) })} disabled={vm.busy} onClick={() => vm.closeTab(tab.id)}><Icon name="x" /></button></div>)}</nav>
         {vm.tab?.objectName && <nav className="object-tabs" aria-label={t("Object surface")}><button className={vm.tab.surface === 'structure' ? 'active' : ''} aria-pressed={vm.tab.surface === 'structure'} onClick={() => vm.edit({ surface: 'structure' })}>{t("Structure")}</button><button className={vm.tab.surface === 'data' ? 'active' : ''} aria-pressed={vm.tab.surface === 'data'} onClick={() => vm.edit({ surface: 'data' })}>{t("Data")}</button></nav>}
@@ -134,10 +161,12 @@ function Workbench({ context }: { context: WorkbenchContext }) {
       {vm.error && !vm.modal && <p className="error" role="alert"><Icon name="alert-circle" />{vm.error}</p>}
     </section></div><footer className="app-status">{vm.session ? vm.connectionName : t("No database connected")}<span>{t("Netcatty main / plugin-owned SQLite")}</span></footer>
 
-    {vm.modal && <div className="connection-inline"><ConnectionDialog vm={vm} /></div>}
+    {vm.modal && !nativeOpen && <div className="connection-inline"><ConnectionDialog vm={vm} /></div>}
   </main>;
 }
 export default definePlugin({ activate(context) {
   const workbench = createWorkbenchContext(context);
-  context.subscriptions.add(registerHostReactView(context.views, 'com.binaricat.netcatty-database.workbench', () => <Workbench context={workbench} />, css));
+  const channel=createConnectionModalChannel<Model>();
+  context.subscriptions.add(registerHostReactView(context.views, 'com.binaricat.netcatty-database.workbench', () => <Workbench context={workbench} channel={channel}/>, css));
+  context.subscriptions.add(registerHostReactView(context.views, 'com.binaricat.netcatty-database.connection', () => <NativeConnectionModal context={workbench} channel={channel}/>, css));
 } });

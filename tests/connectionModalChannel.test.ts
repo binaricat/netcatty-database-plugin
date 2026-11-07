@@ -14,3 +14,14 @@ test('only the opening workbench owns modal state, and release clears it', () =>
   assert.equal(changes, 2); stop();
   assert.equal(channel.publish(b, { modal: true, name: 'b' }, true), true);
 });
+
+test('native modal visibility notifies both renderers without replacing the draft', () => {
+  const channel = createConnectionModalChannel<string>();
+  const owner = Symbol(); channel.publish(owner, 'draft', true);
+  let changes = 0; channel.subscribe(() => { changes++; });
+  assert.equal(channel.isNativeOpen(), false);
+  channel.setNativeOpen(true); assert.equal(channel.isNativeOpen(), true);
+  assert.equal(channel.getSnapshot(), 'draft');
+  channel.setNativeOpen(false); assert.equal(channel.isNativeOpen(), false);
+  assert.equal(changes, 2);
+});

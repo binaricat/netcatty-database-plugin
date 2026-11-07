@@ -2,7 +2,7 @@
 
 Compared with DBX `b6c3d47`, in particular `apps/desktop/src/components/editor/AiAssistant.vue` and `crates/dbx-ai-provider`, against Netcatty main `4a55492` (`packages/plugin-sdk/src/index.ts`, both `PluginAIClient` and `PluginAgentClient`; generated contract; `electron/plugins/agent/agentService.cjs` and its tests).
 
-## Implemented plugin behavior
+## Implemented SQL draft mode
 
 - Generate, explain, optimize and fix tasks using allowlisted connected schema metadata, editor SQL and explicit user request. No result rows, credentials or database/session objects are sent.
 - Bounded streaming, monotonic sequence validation, stop/cancel, generation isolation and chat/turn cleanup, including late asynchronous results.
@@ -11,9 +11,22 @@ Compared with DBX `b6c3d47`, in particular `apps/desktop/src/components/editor/A
 - Insert only an unambiguous SQL fenced block (or recognizable plain SQL); explanations and multiple blocks remain draft-only. Insertion never executes a query and explain-task responses cannot replace SQL.
 - Feature presence does not prove model availability: the panel says the host model is checked when assistance runs. Failed model/permission requests report unavailable. Success labels the actual model returned by the host.
 
+## Implemented SDK Agent conversation mode
+
+`SqlAssistant` now offers a mode selector which mounts `AgentAssistant`. `AgentSession` adapts the actual main SDK `context.agent` contract. This implementation is no longer merely a proposed next slice:
+
+- Explicit backend checking and selection; no permission request or provider invocation on initial render.
+- Host-mediated target selection, new/reopened conversation references, host-owned durable history access, lists paginated at eight conversations and one bounded history message at a time.
+- Send/read lifecycle, completion/cancellation/unavailable/budget end reasons, stop/close, stale-response isolation and handle cleanup.
+- Permission errors remain visible without automatic retries. Input/output/event/history budgets are bounded; omitted history is disclosed.
+- Optional `ai.agent.use` integration, conversation-only operation without `ai.agent.actions`. Unexpected tool activity is rejected and the session is stopped. The actual prevention boundary is the manifest and host permission enforcement, not the UI wording or activity detector.
+- The current schema metadata, connection label, SQL and explicit request are disclosed before sending. No result rows are added. Unique SQL draft extraction inserts into the editor only, without executing.
+
+**Implemented against the SDK does not mean verified with a real configured provider.** Host persistence is supported by the contract and service; the plugin UI/controller integration is implemented, but full-App real-provider create/resume/history acceptance remains pending.
+
 ## Remaining differences, not claimed complete
 
-DBX also has persisted conversation history, editing/retry/branching, provider and model configuration, attachments, selected skills, Ask/Agent tools with approval, rich chart/HTML output, query/explain tooling and execution-plan views. The plugin currently does not provide these. Some can be implemented as bounded plugin UI after associated database features exist; they are not blanket classified as host limitations.
+DBX's editing/retry/branching, provider/model configuration UI, attachments, selected skills, Agent database tools with approval, rich chart/HTML output, query/explain tooling and execution-plan views remain incomplete here. Durable Agent conversation history is no longer classified as absent: its SDK integration exists, with real-provider acceptance pending. Some remaining features can be implemented as bounded plugin UI after associated database features exist; they are not blanket classified as host limitations.
 
 ## Corrected host-capability audit
 
@@ -31,16 +44,21 @@ The narrow draft API cannot choose a model, but the Agent API **can select a con
 
 The inspected Agent contract does not expose arbitrary registration of plugin database tools. Its fixed terminal tools are not equivalent to DBX's native query/schema/explain tools. Do not silently run model-generated SQL through a terminal as a substitute. Whether a safe, user-approved database-tool adapter can be implemented needs a separate design and acceptance test; until then this remains an unimplemented parity gap, not a proven platform impossibility.
 
-### Next implementable slice
+### Next acceptance and implementation work
 
-1. Add optional Agent mode, gated by `ai.agent-sessions` and declared `ai.agent.use`, while retaining draft-only mode. Enumerate backend status instead of assuming availability.
-2. Use host `selectTargets`, never infer a target from focus. Provide new/resume chat list, host `history`, bounded transcript display, send/read activity and end reasons, stop and reliable handle disposal. Distinguish completed/cancelled/unavailable/budget-exceeded.
-3. Default to conversation-only behavior with no `ai.agent.actions`; add action mode only through its explicit permission and native approval workflow, with selected-target and capability disclosures. User settings or denied permissions must not be overridden.
-4. Test stale selection/backend handles, revocation, denied tools, reopen isolation, history bounds and cancellation against main services; then perform real configured-backend acceptance with user-authorized sample context.
-5. Implement edit/retry and bounded conversation navigation as plugin UI where appropriate. Rich output, attachments/selected context, skills and database-aware tools need separate evidence and permission review, not premature claims of platform exclusion.
+1. Run the integrated Agent mode in the actual full App with a configured supported backend and explicitly authorized sample context. Verify the native permission flow, target selection, create/send/resume/history, unavailable states and stop/disposal. No provider is currently configured in that full-App test environment.
+2. Extend deterministic remote-DOM interaction tests beyond empty backend discovery to full Agent create/resume/send/history flows. Existing controller mock tests cover permission errors, expired selections, bounded history/output and cancellation races; these are not real-provider evidence.
+3. Keep conversation-only mode without `ai.agent.actions`. Any future action mode needs its own explicit permission/approval workflow and selected-target disclosure, without overriding denied settings.
+4. Design and test an explicit database-tool registry/adapter boundary. The current SDK's fixed terminal tools are not DBX's schema/query/explain tool registry. This remains a documented integration gap; do not substitute automatic SQL execution through terminal tools.
+5. Continue plugin-side edit/retry/branching, richer context and output work with independent tests and data-sharing review. Do not treat missing product code as proven host impossibility.
 
-Source evidence: main `PluginAgentClient`; generated `PluginAgentBackend`, `PluginAgentEvent`, `PluginAgentOpenParams` and permission union; `agentService.cjs` capability issuance/tool dispatch; `agentService.test.cjs` durable own-history reopening and actual per-tool approval tests. No code or permissions were changed by this audit.
+Source evidence: main `PluginAgentClient`; generated `PluginAgentBackend`, `PluginAgentEvent`, `PluginAgentOpenParams` and permission union; `agentService.cjs` capability issuance/tool dispatch; `agentService.test.cjs` durable own-history reopening and actual per-tool approval tests. The original capability audit was read-only; the Agent UI/controller implementation and optional permission integration were added afterward.
 
 ## Evidence limits
 
-Unit tests use a mock AI stream to verify cancellation, sequence/output bounds, prompt allowlisting and safe draft extraction. Existing SQLite UI/native harness deliberately rejects `ai.openChat` and proves the unavailable path only. No live configured model invocation has been verified. This is **partial parity**, not a claim that real-model AI or DBX Agent parity has passed.
+- The parent integration reports **63+ passing unit tests** across the plugin. AI-specific tests use deterministic mock SDK/provider responses for prompt allowlisting, SQL extraction, output budgets, permissions, lifecycle and cancellation. This count is not a count of live-provider tests.
+- `scripts/ui-regression.mjs` now tests both the unavailable-model path and a deterministic fake-provider success path: generation, follow-up context, reset, insertion, and assertion that insertion did not execute SQL. It uses real main remote-DOM validation, but injected storage/view/provider transport. Agent-mode UI coverage currently includes mode selection and explicit empty backend discovery, not full real Agent conversation acceptance.
+- Earlier SQLite/native screenshots using the deliberately unavailable AI fixture prove that unavailable path only. A fake-provider UI pass must not be relabelled a live-model or complete native-App AI pass.
+- The actual full-App environment currently has no configured provider. No live configured draft model or Agent backend has passed end-to-end acceptance there. DBX Agent/database-tool parity is not complete.
+
+Current status: **SDK draft and Agent conversation integrations implemented; deterministic checks passing; real provider acceptance pending; DB-tool registry integration still missing.**

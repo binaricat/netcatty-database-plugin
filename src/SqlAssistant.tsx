@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useState } from 'react';
+import { AgentAssistant } from './AgentAssistant';
 import { PluginContext } from '@netcatty/plugin-sdk';
 import type { DatabaseSchemaResult } from './databaseTypes';
 import { tasks } from './domain';
@@ -9,9 +10,10 @@ export function SqlAssistant({ context, schema, sql, label, engine, dialect, dis
   context: PluginContext; schema: DatabaseSchemaResult | null; sql: string; label: string; engine?: string; dialect?: string;
   disabled: boolean; insert: (draft: string) => void; t: Translate;
 }) {
+  const [mode,setMode] = useState<'draft'|'agent'>('draft');
   const ai = useSqlAssistant(context, schema, sql, label, engine, dialect);
   const status = !ai.enabled || ai.failure ? t('Unavailable') : ai.busy ? t('Generating unexecuted draft...') : ai.stopped ? t('Stopped - draft remains unexecuted.') : t('Host model - checked when you run assistance.');
-  return <div className="ai-content">
+  return <><label className="ai-mode">{t('AI mode')}<select aria-label={t('AI mode')} value={mode} onChange={e=>{ai.stop();setMode(e.currentTarget.value as typeof mode);}}><option value="draft">{t('SQL draft assistant')}</option><option value="agent">{t('Agent conversation')}</option></select></label>{mode === 'agent' ? <AgentAssistant context={context} schema={schema} sql={sql} label={label} engine={engine} dialect={dialect} disabled={disabled} insert={insert} t={t}/> : <div className="ai-content">
     <button className="secondary" disabled={ai.busy || !ai.conversation.length} onClick={ai.reset}>{t('New AI conversation')}</button>
     <p className="hint">{t('Recent turns stay in this panel only and are sent with follow-up requests.')}</p>
     <p role="status">{status + (ai.model ? ` ${t('Host model')}: ${ai.model}` : '')}</p>
@@ -26,5 +28,5 @@ export function SqlAssistant({ context, schema, sql, label, engine, dialect, dis
     <p className="hint">{`${t('Unexecuted AI draft')}. ${t('Insertion replaces editor text only. Review SQL and parameters before Run read query or Review write. Nothing executes automatically.')}`}</p><pre aria-label={t('Unexecuted AI draft')}>{ai.draft || t('No draft generated.')}</pre>
     {ai.draft && !ai.insertableSql && <p>{t('No unambiguous SQL block to insert. Explanation remains a draft.')}</p>}
     <button className="secondary" disabled={disabled || ai.busy || ai.stopped || Boolean(ai.failure) || !ai.insertableSql} onClick={() => { if (ai.insertableSql) insert(ai.insertableSql); }}>{t('Insert draft into editor')}</button>
-  </div>;
+  </div>}</>;
 }

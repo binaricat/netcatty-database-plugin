@@ -10,7 +10,6 @@ const STORE_KEY = 'database.saved-memory-connections.v1';
 const MAX_CONNECTIONS = 40;
 let engine: Promise<SqlJsStatic> | undefined;
 const unavailable = async (): Promise<never> => { throw new Error('This operation is not available on the Netcatty main adapter.'); };
-const quote = (name: string) => '"' + name.replaceAll('"', '""') + '"';
 const scalar = (value: unknown): DatabaseScalar => value instanceof Uint8Array ? `<BLOB ${value.length} bytes>` : value as DatabaseScalar;
 function readSql(sql: string): string {
   let head = sql.trimStart();
@@ -26,6 +25,50 @@ function validSaved(value: unknown): value is DatabaseSavedConnection {
   const c = value as DatabaseSavedConnection;
   return typeof c.id === 'string' && c.id.length <= 128 && typeof c.name === 'string' && c.name.length > 0 && c.name.length <= 128 && c.engine === 'sqlite' && c.targetKind === 'memory' && c.readOnly === true && ['default','blue','green','purple','orange'].includes(c.color)
     && Object.keys(c).every(key => ['id','name','engine','targetKind','readOnly','color'].includes(key));
+}
+export const SQLITE_SCHEMA_LIMITS = Object.freeze({ objects: 32, columns: 64, indexes: 32, foreignKeyColumns: 64, triggers: 32, text: 8192, bytes: 96 * 1024 });
+/** Read-only schema inspection, exported for real-engine fixture regression tests. */
+export function inspectSqliteSchema(db: Database): DatabaseSchemaResult {
+  let bytes = 0;
+  const rows = (sql: string, parameters: string[], limit: number, kind: string) => {
+    const statement = db.prepare(sql);
+    const result: ReturnType<typeof statement.get>[] = [];
+    try {
+      statement.bind(parameters);
+      while (statement.step()) {
+        if (result.length >= limit) throw new Error(`Schema exceeds the workspace ${kind} budget.`);
+        const row = statement.get();
+        if (row.some(value => typeof value === 'string' && value.length > SQLITE_SCHEMA_LIMITS.text)) throw new Error('Schema exceeds the workspace metadata text budget.');
+        bytes += new TextEncoder().encode(JSON.stringify(row)).length;
+        if (bytes > SQLITE_SCHEMA_LIMITS.bytes) throw new Error('Schema exceeds the workspace metadata byte budget.');
+        result.push(row);
+      }
+      return result;
+    } finally { statement.free(); }
+  };
+  const objects = rows("SELECT name, type, sql FROM sqlite_master WHERE type IN ('table','view') AND name NOT LIKE 'sqlite_%' ORDER BY name", [], SQLITE_SCHEMA_LIMITS.objects, 'object');
+  const tables: DatabaseSchemaResult['tables'] = objects.map(([rawName, rawKind, definition]) => {
+    const name = String(rawName); const kind = rawKind as 'table' | 'view';
+    const columns = rows('SELECT cid,name,type,[notnull],dflt_value,pk FROM pragma_table_info(?) ORDER BY cid', [name], SQLITE_SCHEMA_LIMITS.columns, 'column');
+    const indexes = rows('SELECT name,[unique],origin,partial FROM pragma_index_list(?) ORDER BY seq', [name], SQLITE_SCHEMA_LIMITS.indexes, 'index').map(([rawIndexName, unique, origin, partial]) => {
+      const indexName = String(rawIndexName);
+      const indexColumns = rows('SELECT name,cid,desc,coll FROM pragma_index_xinfo(?) WHERE [key]=1 ORDER BY seqno', [indexName], SQLITE_SCHEMA_LIMITS.columns, 'index column');
+      const ddl = rows("SELECT sql FROM sqlite_master WHERE type='index' AND name=?", [indexName], 1, 'index definition')[0]?.[0];
+      return { name: indexName, unique: Boolean(unique), origin: String(origin), partial: Boolean(partial), columns: indexColumns.map(([column, cid, desc, coll]) => ({name: column === null ? null : String(column), expression: Number(cid) === -2, descending: Boolean(desc), collation: coll === null ? null : String(coll)})), ...(typeof ddl === 'string' ? {definition: ddl} : {}) };
+    });
+    const foreignKeys: NonNullable<DatabaseSchemaResult['tables'][number]['foreignKeys']> = [];
+    for (const [id, , targetTable, from, to, onUpdate, onDelete, match] of rows('SELECT id,seq,[table],[from],[to],on_update,on_delete,match FROM pragma_foreign_key_list(?) ORDER BY id,seq', [name], SQLITE_SCHEMA_LIMITS.foreignKeyColumns, 'foreign key column')) {
+      let foreignKey = foreignKeys.find(item => item.id === Number(id));
+      if (!foreignKey) { foreignKey = {id: Number(id), targetTable: String(targetTable), columns: [], onUpdate: String(onUpdate), onDelete: String(onDelete), match: String(match)}; foreignKeys.push(foreignKey); }
+      foreignKey.columns.push({from: String(from), to: to === null ? null : String(to)});
+    }
+    const triggers = rows("SELECT name,sql FROM sqlite_master WHERE type='trigger' AND tbl_name=? ORDER BY name", [name], SQLITE_SCHEMA_LIMITS.triggers, 'trigger').map(([triggerName, sql]) => ({name: String(triggerName), definition: String(sql)}));
+    return {name, kind, columns: columns.map(([, columnName, type, notNull, , primaryKey]) => ({name: String(columnName), type: String(type), primaryKey: Boolean(primaryKey), ...(kind === 'table' ? {nullable: !notNull && !primaryKey} : {})})),
+      ...(typeof definition === 'string' ? {definition} : {}), primaryKeyColumns: columns.filter(column => Number(column[5]) > 0).sort((a,b) => Number(a[5]) - Number(b[5])).map(column => String(column[1])), indexes, foreignKeys, triggers};
+  });
+  const result = {tables};
+  if (new TextEncoder().encode(JSON.stringify(result)).length > SQLITE_SCHEMA_LIMITS.bytes) throw new Error('Schema exceeds the workspace metadata byte budget.');
+  return result;
 }
 export function createWorkbenchContext(context: PluginContext): WorkbenchContext {
   const sessions = new Map<string, Database>();
@@ -89,16 +132,7 @@ export function createWorkbenchContext(context: PluginContext): WorkbenchContext
       return {columns, rows, truncated, changes:0, elapsedMs: Math.round(performance.now()-started)};
     } finally { statement.free(); }
   };
-  const readSchema = async (request: DatabaseHandleRequest): Promise<DatabaseSchemaResult> => {
-    const db = get(request);
-    const result = db.exec("SELECT name, type FROM sqlite_master WHERE type IN ('table','view') AND name NOT LIKE 'sqlite_%' ORDER BY name LIMIT 33")[0];
-    if ((result?.values.length ?? 0) > 32) throw new Error('Schema exceeds the workspace object budget.');
-    return {tables: (result?.values ?? []).map(([name,kind]) => {
-      const columns = db.exec(`PRAGMA table_info(${quote(String(name))})`)[0]?.values ?? [];
-      if (columns.length > 64) throw new Error('Schema exceeds the workspace column budget.');
-      return {name:String(name),kind:kind as 'table'|'view',columns:columns.map(([,name,type,notNull,,primaryKey]) => ({name:String(name),type:String(type),primaryKey:Boolean(primaryKey),...(kind==='table'?{nullable:!notNull&&!primaryKey}:{})}))};
-    })};
-  };
+  const readSchema = async (request: DatabaseHandleRequest): Promise<DatabaseSchemaResult> => inspectSqliteSchema(get(request));
   const database: PluginDatabaseClient & {capabilities: ReadonlySet<string>} = {
     capabilities: new Set(['database.sqlite-fixture.v1','database.saved-connections.v1']),
     openFixture: open, readSchema, query, close, cancel:close,

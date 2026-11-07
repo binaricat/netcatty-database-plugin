@@ -10,7 +10,7 @@
     "en": "Plugin-owned SQLite memory workbench for Netcatty main. Additional drivers are not yet ported.",
     "zh-CN": "适用于 Netcatty main 的插件自有 SQLite 内存工作台，其他驱动尚未迁移。"
   },
-  "version": "0.1.0-alpha.1",
+  "version": "0.1.0-alpha.4",
   "publisher": "binaricat",
   "license": "GPL-3.0-or-later",
   "engines": {
@@ -22,14 +22,17 @@
       "views.host-drawn",
       "views.vault-pages",
       "metadata.brand-icon",
-      "ai.model-invocation"
+      "ai.model-invocation",
+      "ai.agent-sessions",
+      "vault.host-actions"
     ]
   },
   "main": {
     "browser": "browser.js"
   },
   "activationEvents": [
-    "onView:com.binaricat.netcatty-database.workbench"
+    "onView:com.binaricat.netcatty-database.workbench",
+    "onView:com.binaricat.netcatty-database.connection"
   ],
   "permissions": {
     "required": [
@@ -43,6 +46,27 @@
           "*"
         ],
         "reason": "Request unexecuted SQL drafts using schema metadata / 使用数据库结构请求未执行的 SQL 草稿"
+      },
+      {
+        "permission": "ai.agent.use",
+        "resources": [
+          "*"
+        ],
+        "reason": "Optional host Agent conversations; no tool actions / 可选宿主 Agent 对话，不启用工具操作"
+      },
+      {
+        "permission": "vault.metadata",
+        "resources": [
+          "*"
+        ],
+        "reason": "Choose existing hosts using host UI / 通过宿主界面选择已有主机"
+      },
+      {
+        "permission": "ui.interact",
+        "resources": [
+          "*"
+        ],
+        "reason": "Request selected host SSH connection in native host UI / 在宿主界面请求已选主机 SSH 连接"
       }
     ]
   },
@@ -55,6 +79,14 @@
           "zh-CN": "数据库"
         },
         "location": "vault-page"
+      },
+      {
+        "id": "com.binaricat.netcatty-database.connection",
+        "title": {
+          "en": "Database: New connection",
+          "zh-CN": "数据库：新建连接"
+        },
+        "location": "modal"
       }
     ]
   },
