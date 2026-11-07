@@ -37,3 +37,18 @@ boundaries, protection failures and token lifecycle. RELEASE-failure rollback is
 fault injection. Because FK-associated targets are refused, this batch slice does
 not claim real deferred-FK acceptance. It is not a full DBX pending-change editor,
 server transaction management, native app qualification or remote database writes.
+
+## UI candidate
+
+The returned-result header now offers Batch delete for exact generated table reads
+with complete column provenance. The panel freezes those returned rows, pages six
+at a time, selects at most ten, and shows complete original values, bound DELETE
+statements and parameters before a separate confirmation. Selection changes discard
+review; preview/apply lock navigation. Success clears results but never queries
+automatically. FK-related tables explain the currently unsupported scope.
+
+The main SDK remote-DOM regression qualifies two-row selection, preview, one
+confirmation, cleared stale results and explicit SELECT readback. This is real
+SQL.js plus injected host view/storage transport, not native GUI acceptance. Native
+batch DELETE remains pending. The underlying adapter supports mixed UPDATE/DELETE;
+the UI does not yet expose batch UPDATE or a full staged-cell editor.

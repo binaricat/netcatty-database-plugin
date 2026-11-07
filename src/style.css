@@ -500,3 +500,10 @@ pre { padding: 12px; background: hsl(var(--muted)/.4); border: 1px solid hsl(var
 .relationship-overview > .results-heading { margin-bottom:12px; }
 .relationship-overview article { border:0 !important; border-top:1px solid hsl(var(--border)) !important; border-radius:0 !important; }
 .relationship-overview h3, .relationship-overview h4 { margin:8px 0; }
+.grid-batch-panel { overflow:auto; }
+.grid-batch-rows { display:flex; flex-direction:column; gap:8px; }
+.grid-batch-rows > label { display:grid; grid-template-columns:20px 72px minmax(0,1fr); align-items:start; gap:8px; padding:8px 0; border-bottom:1px solid hsl(var(--border)); }
+.grid-batch-rows input[type="checkbox"] { width:16px; min-height:16px; margin-top:4px; }
+.grid-batch-panel pre { max-height:130px; overflow:auto; white-space:pre-wrap; overflow-wrap:anywhere; font-size:11px; line-height:1.55; }
+.grid-batch-rows pre { max-height:72px; margin:0; }
+.grid-batch-panel details { padding:6px 0; }
