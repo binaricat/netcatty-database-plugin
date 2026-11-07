@@ -1,4 +1,5 @@
 const zh:Record<string,string>={
+ 'Permanently deletes 1 row after confirmation.':'确认后将永久删除 1 行。',
  'Original row':'原始行','Edit fields':'编辑字段','{count} columns':'{count} 列','Review change':'审阅修改','1 row':'1 行','Parameters in binding order':'按绑定顺序排列的参数','All values are shown as JSON, in placeholder order.':'按占位符顺序以 JSON 显示全部值。',
 
  'The row change definition is invalid. Check the selected action and fields.':'行修改定义无效，请检查所选操作和字段。',

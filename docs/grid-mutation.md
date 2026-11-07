@@ -18,3 +18,11 @@ This is a real SQL.js engine with synthetic disposable data in the full Netcatty
 ## Review UI refinement
 
 Alpha.18 replaces large read-only form fields with compact original-value lists in DELETE mode and separates editable fields from the review panel. SQL is rendered as escaped React text tokens, not HTML or editable content. The former 20-token editor budget made generated DELETE statements fall back to plain text; read-only previews now use a bounded 128-segment budget with an exact generated-DELETE regression. Actual full Netcatty screenshots verify keyword highlighting, reduced borders and aligned field layouts. Dark-theme and narrow-window native acceptance remain pending; responsive CSS and inherited host palette alone are not evidence of that acceptance.
+
+Alpha.20 follows the [DBX source layout audit](dbx-row-layout-audit.md): a compact
+single-column delete review with full original JSON, highlighted SQL, all bound
+parameters and one footer. Legacy two-column CSS was removed. The shared safe
+SQL preview is also used for CREATE TABLE/INDEX, CSV and manual write reviews.
+Remote-DOM interaction regression passes; native alpha.20 screenshots remain
+pending runtime port-closure isolation. Previous alpha.18 screenshots are not
+presented as this revision.

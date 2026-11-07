@@ -1,3 +1,4 @@
+import {SqlPreview} from './SqlPreview';
 import {createTableTranslator,translateCreateTableNotice} from './createTableI18n';
 import React,{useEffect,useMemo,useRef,useSyncExternalStore} from 'react';
 import type {WorkbenchContext} from './databaseClient';
@@ -52,7 +53,7 @@ export function CreateTable({context,handleId,onCreated,onClose}:{context:Workbe
   </div>)}</div>
   <p className="hint create-table-constraints-note">{tr('At most one primary key. Selecting it clears the previous primary key and forces NOT NULL. No defaults, expressions, foreign keys, DROP or ALTER are executed here.')}</p>
   <div className="results-heading create-table-actions"><button className="secondary toolbar-button" disabled={locked||state.busy!=='idle'} onClick={()=>void controller.preview()}>{tr(state.busy==='preview'?'Preparing preview…':'Preview CREATE TABLE')}</button><button className="secondary toolbar-button" disabled={locked||state.busy!=='idle'||!state.review} onClick={()=>void controller.confirm()}>{tr('Confirm create table')}</button></div>
-  <section className="create-table-review" aria-label={tr('CREATE TABLE review')}><strong>{tr('SQL preview')}</strong><p className="hint">{state.review?tr('Schema revision {revision}. Any form edit invalidates this preview.',{revision:state.review.schemaRevision}):tr('Preview does not create a table. Confirmation is unavailable until a current preview exists.')}</p><textarea className="create-table-sql" aria-label={tr('Reviewed CREATE TABLE SQL')} rows={8} readOnly value={state.review?.sql??''}/></section>
+  <section className="create-table-review" aria-label={tr('CREATE TABLE review')}><strong>{tr('SQL preview')}</strong><p className="hint">{state.review?tr('Schema revision {revision}. Any form edit invalidates this preview.',{revision:state.review.schemaRevision}):tr('Preview does not create a table. Confirmation is unavailable until a current preview exists.')}</p><SqlPreview label={tr('Reviewed CREATE TABLE SQL')} sql={state.review?.sql??''}/></section>
   <p className="create-table-status" role="status">{translateCreateTableNotice(locale,state.notice)}</p>
  </section>;
 }

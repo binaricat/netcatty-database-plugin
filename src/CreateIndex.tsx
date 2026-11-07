@@ -1,3 +1,4 @@
+import {SqlPreview} from './SqlPreview';
 import {createIndexTranslator,translateCreateIndexNotice} from './createIndexI18n';
 import React,{useEffect,useMemo,useRef,useSyncExternalStore} from 'react';
 import type {WorkbenchContext} from './databaseClient';
@@ -56,7 +57,7 @@ export function CreateIndex({context,handleId,schema,onCreated,onClose}:{context
   </div>)}</div>
   <p className="hint create-table-constraints-note">{tr('Column order is significant. UNIQUE rejects duplicate values. No expressions, WHERE clauses, DROP or ALTER are executed here.')}</p>
   <div className="results-heading create-table-actions"><button className="secondary toolbar-button" disabled={locked||state.busy!=='idle'||!state.draft.columns.length} onClick={()=>void controller.preview()}>{tr(state.busy==='preview'?'Preparing preview…':'Preview CREATE INDEX')}</button><button className="secondary toolbar-button" disabled={locked||state.busy!=='idle'||!state.review} onClick={()=>void controller.confirm()}>{tr('Confirm create index')}</button></div>
-  <section className="create-table-review" aria-label={tr('CREATE INDEX review')}><strong>{tr('SQL preview')}</strong><p className="hint">{state.review?tr('Schema revision {revision}. Any form edit invalidates this preview.',{revision:state.review.schemaRevision}):tr('Preview does not create an index. Confirmation requires a current preview.')}</p><textarea className="create-table-sql" aria-label={tr('Reviewed CREATE INDEX SQL')} rows={6} readOnly value={state.review?.sql??''}/></section>
+  <section className="create-table-review" aria-label={tr('CREATE INDEX review')}><strong>{tr('SQL preview')}</strong><p className="hint">{state.review?tr('Schema revision {revision}. Any form edit invalidates this preview.',{revision:state.review.schemaRevision}):tr('Preview does not create an index. Confirmation requires a current preview.')}</p><SqlPreview label={tr('Reviewed CREATE INDEX SQL')} sql={state.review?.sql??''}/></section>
   <p className="create-table-status" role="status">{translateCreateIndexNotice(locale,state.notice)}</p>
  </section>;
 }
