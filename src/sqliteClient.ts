@@ -116,7 +116,7 @@ export function inspectSqliteSchema(db: Database): DatabaseSchemaResult {
       return result;
     } finally { statement.free(); }
   };
-  const objects = rows("SELECT name, type, sql FROM sqlite_master WHERE type IN ('table','view') AND name NOT LIKE 'sqlite_%' ORDER BY name", [], SQLITE_SCHEMA_LIMITS.objects, 'object');
+  const objects = rows("SELECT name, type, sql FROM sqlite_master WHERE type IN ('table','view') AND lower(substr(name,1,7)) != 'sqlite_' ORDER BY name", [], SQLITE_SCHEMA_LIMITS.objects, 'object');
   const tables: DatabaseSchemaResult['tables'] = objects.map(([rawName, rawKind, definition]) => {
     const name = String(rawName); const kind = rawKind as 'table' | 'view';
     const columns = rows('SELECT cid,name,type,[notnull],dflt_value,pk FROM pragma_table_info(?) ORDER BY cid', [name], SQLITE_SCHEMA_LIMITS.columns, 'column');

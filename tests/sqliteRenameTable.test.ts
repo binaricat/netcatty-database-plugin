@@ -11,3 +11,19 @@ test('existing transaction is rejected without committing caller changes',async(
 test('entry guard drift refuses DDL and restores protections',async()=>{for(const change of ['PRAGMA query_only=OFF','PRAGMA foreign_keys=OFF','PRAGMA trusted_schema=ON']){const f=await setup();try{const r=f.adapter.preview({handleId:'h',draft});f.db.run(change);assert.throws(()=>f.adapter.apply({handleId:'h',review:r}),/protection/);assert.ok(inspectSqliteSchema(f.db).tables.some(t=>t.name==='notes'));assert.equal(f.db.exec('PRAGMA query_only')[0].values[0][0],1);assert.equal(f.db.exec('PRAGMA foreign_keys')[0].values[0][0],1);assert.equal(f.db.exec('PRAGMA trusted_schema')[0].values[0][0],0);}finally{f.close();}}});
 test('guard drift before commit rolls back; failed rollback closes database and notifies owner',async()=>{for(const fatal of [false,true]){const f=await setup();let notified=0;const adapter=createRenameTableAdapter({getDatabase:()=>f.db,inspectSchema:inspectSqliteSchema,reviewTokens:f.reviews,onFatal:()=>notified++});const r=adapter.preview({handleId:'h',draft}),run=f.db.run.bind(f.db);f.db.run=((sql,...args)=>{if(fatal&&sql==='ROLLBACK')throw new Error('rollback unavailable');const result=run(sql,...args);if(sql===r.sql)run('PRAGMA trusted_schema=ON');return result;}) as typeof f.db.run;assert.throws(()=>adapter.apply({handleId:'h',review:r}),/protection/);if(fatal){assert.equal(notified,1);assert.throws(()=>f.db.exec('SELECT 1'));}else{assert.equal(notified,0);assert.ok(inspectSqliteSchema(f.db).tables.some(t=>t.name==='notes'));}f.close();}});
 test('quoted CHECK identifiers are not treated as constraint keywords',async()=>{const f=await setup('CREATE TABLE "CHECK"("GENERATED" TEXT);');try{const r=f.adapter.preview({handleId:'h',draft:{from:'CHECK',to:'safe'}});f.adapter.apply({handleId:'h',review:r});assert.ok(inspectSqliteSchema(f.db).tables.some(t=>t.name==='safe'));}finally{f.close();}});
+test('rename retains embedded-NUL text, signed64, binary and rowid bytes',async()=>{
+ const SQL=await initSqlJs(),db=new SQL.Database();try{db.run("CREATE TABLE exact(id INTEGER PRIMARY KEY,t TEXT,n INTEGER,b BLOB);INSERT INTO exact VALUES(7,CAST(x'610062' AS TEXT),9223372036854775807,x'00ff80');PRAGMA foreign_keys=ON;PRAGMA trusted_schema=OFF;PRAGMA query_only=ON;");
+ const before=db.exec('SELECT CAST(rowid AS TEXT),hex(CAST(t AS BLOB)),CAST(n AS TEXT),hex(b),typeof(t),typeof(n),typeof(b) FROM exact')[0].values;
+ const adapter=createRenameTableAdapter({getDatabase:()=>db,inspectSchema:inspectSqliteSchema,reviewTokens:new Map()});const review=adapter.preview({handleId:'h',draft:{from:'exact',to:'exact_renamed'}});adapter.apply({handleId:'h',review});
+ assert.deepEqual(db.exec('SELECT CAST(rowid AS TEXT),hex(CAST(t AS BLOB)),CAST(n AS TEXT),hex(b),typeof(t),typeof(n),typeof(b) FROM exact_renamed')[0].values,before);
+ assert.deepEqual(before,[['7','610062','9223372036854775807','00FF80','text','integer','blob']]);
+ }finally{db.close();}
+});
+test('legal sqliteX view is inspected and legacy ALTER mode refuses before rename',async()=>{
+ const f=await setup('CREATE VIEW sqliteXv AS SELECT title FROM notes;');try{
+ assert.ok(inspectSqliteSchema(f.db).tables.some(t=>t.name==='sqliteXv'));
+ f.db.run('PRAGMA legacy_alter_table=ON');assert.throws(()=>f.adapter.preview({handleId:'h',draft}),/protection/);
+ f.db.run('PRAGMA legacy_alter_table=OFF');const r=f.adapter.preview({handleId:'h',draft});f.db.run('PRAGMA legacy_alter_table=ON');assert.throws(()=>f.adapter.apply({handleId:'h',review:r}),/protection/);
+ assert.deepEqual(f.db.exec('SELECT * FROM sqliteXv')[0].values,[['hello']]);assert.equal(f.db.exec('PRAGMA legacy_alter_table')[0].values[0][0],1);
+ }finally{f.close();}
+});

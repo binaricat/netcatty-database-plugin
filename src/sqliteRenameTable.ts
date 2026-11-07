@@ -7,7 +7,9 @@ function fail(c:RenameTableError['code']):never{throw new RenameTableError(c);}c
 function name(v:unknown):v is string{return typeof v==='string'&&!!v.trim()&&v.length<=128&&!v.includes('\0')&&!/^sqlite_/i.test(v);}
 function version(db:Database,scope='main'){const v=db.exec(`PRAGMA ${scope}.schema_version`)[0]?.values[0]?.[0];if(typeof v!=='number'||!Number.isSafeInteger(v))return fail('stale');return v;}
 function rows(db:Database,sql:string,params:string[]=[],max=128){const s=db.prepare(sql),result:ReturnType<typeof s.get>[]=[];try{s.bind(params);while(s.step()){if(result.length>=max)fail('budget');result.push(s.get());}if(new TextEncoder().encode(JSON.stringify(result)).length>96*1024)fail('budget');return result;}finally{s.free();}}
+function modernAlter(db:Database){if(db.exec('PRAGMA legacy_alter_table')[0]?.values[0]?.[0]!==0)fail('protection');}
 function authority(db:Database,table:string){
+ modernAlter(db);
  if(rows(db,'SELECT name FROM temp.sqlite_schema',[],1).length)fail('dependency');
  const all=rows(db,'SELECT type,name,tbl_name,rootpage,sql FROM main.sqlite_schema ORDER BY type,name');
  if(all.some(r=>r[0]==='trigger'))fail('dependency');
@@ -36,7 +38,8 @@ export function createRenameTableAdapter({getDatabase,inspectSchema,reviewTokens
   },
   apply({handleId,review}:{handleId:string;review:RenameTableReview}){
    const saved=reviewTokens.get(handleId);reviewTokens.delete(handleId);if(!saved||review.handleId!==handleId||saved!==JSON.stringify(review))fail('review');const db=getDatabase(handleId);if(version(db)!==review.schemaRevision||version(db,'temp')!==review.tempSchemaRevision)fail('stale');let transaction=false,closed=false;const fatal=()=>{closed=true;try{onFatal?.(handleId);}catch{}try{db.close();}catch{}};
-   const guards=(readOnly:number)=>{if(db.exec('PRAGMA query_only')[0]?.values[0]?.[0]!==readOnly||db.exec('PRAGMA foreign_keys')[0]?.values[0]?.[0]!==1||db.exec('PRAGMA trusted_schema')[0]?.values[0]?.[0]!==0)fail('protection');};
+   const guards=(readOnly:number)=>{modernAlter(db);if(db.exec('PRAGMA query_only')[0]?.values[0]?.[0]!==readOnly||db.exec('PRAGMA foreign_keys')[0]?.values[0]?.[0]!==1||db.exec('PRAGMA trusted_schema')[0]?.values[0]?.[0]!==0)fail('protection');};
+   modernAlter(db);
    try{guards(1);const before=inspectSchema(db),p=previewRenameTableSql(review.draft,before),a=authority(db,p.draft.from);if(p.sql!==review.sql)fail('review');
     // BEGIN fails without touching an existing caller transaction.
     try{db.run('BEGIN');}catch{fail('transaction');}transaction=true;db.run('SAVEPOINT plugin_rename_table');db.run('PRAGMA query_only=OFF');guards(0);db.run(p.sql);

@@ -78,3 +78,13 @@ claiming the already-submitted operation was undone. Success survives schema
 prop publication. Error text states conservative scope, not automatic dependency
 rewrite. Six controller/SSR tests pass; this does not constitute native UI
 integration or smoke-test evidence.
+
+### Legacy ALTER and system-prefix hardening
+
+A follow-up audit reproduced an unsafe combination in the earlier candidate:
+`legacy_alter_table=ON` plus a dependent view named `sqliteXv` (a legal user name)
+could escape a LIKE-based system-prefix filter. Shared schema/snapshot inspection
+now excludes only the literal `sqlite_` prefix. Table rename explicitly requires
+legacy_alter_table=OFF and refuses a changed setting without silently changing it.
+Regression checks verify the view remains queryable after refusal; exact embedded
+NUL text, signed64 integers, BLOBs and rowid survive successful rename.
