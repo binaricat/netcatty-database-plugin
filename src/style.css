@@ -266,3 +266,22 @@ pre { padding: 12px; background: hsl(var(--muted)/.4); border: 1px solid hsl(var
 .query-library button { margin:3px; padding:4px 8px; font-size:11px; }
 .cell-inspector { padding:8px 12px; max-height:180px; overflow:auto; border-top:1px solid hsl(var(--border)); }
 .cell-inspector textarea { width:100%; font-family:monospace; }
+/* Navigation and library are deliberately quiet; primary color is for query execution. */
+.result-controls { display:flex; align-items:center; gap:8px; min-height:34px; padding:3px 10px; border-bottom:1px solid hsl(var(--border)); flex-shrink:0; }
+.result-controls input { width:180px; min-height:24px; padding:3px 7px; font-size:11px; }
+.result-controls-spacer { flex:1; }
+.result-page-group { display:flex; align-items:center; gap:4px; font-size:11px; color:hsl(var(--muted-foreground)); white-space:nowrap; }
+.result-page-group button { min-height:24px; width:24px; padding:0; font-size:18px; }
+.query-library { padding:24px; max-height:none; flex:1; display:flex; flex-direction:column; overflow:auto; }
+.library-heading { display:flex; align-items:flex-start; justify-content:space-between; gap:16px; margin-bottom:20px; }
+.library-heading h2 { font-size:18px; margin:0 0 6px; }
+.library-heading p { margin:0; }
+.library-toolbar { display:flex; align-items:center; gap:8px; margin-bottom:16px; }
+.library-toolbar input { width:240px; }
+.library-list { border-top:1px solid hsl(var(--border)); flex:1; }
+.library-row { display:flex; align-items:center; gap:12px; border-bottom:1px solid hsl(var(--border)); padding:8px 0; }
+.library-kind { width:18px; color:hsl(var(--muted-foreground)); text-align:center; }
+.library-entry { flex:1; min-width:0; display:flex; flex-direction:column; align-items:flex-start; gap:4px; background:transparent; color:hsl(var(--foreground)); text-align:left; }
+.library-entry strong { max-width:100%; overflow:hidden; text-overflow:ellipsis; font-family:monospace; font-size:12px; font-weight:400; }
+.library-entry small { color:hsl(var(--muted-foreground)); font-size:10px; }
+.library-pagination { display:flex; justify-content:flex-end; align-items:center; gap:8px; padding-top:12px; color:hsl(var(--muted-foreground)); font-size:11px; }

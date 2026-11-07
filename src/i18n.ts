@@ -1,6 +1,8 @@
 // Original plugin-owned copy. English source keys keep the fallback explicit.
 // Only the host environment selects language; never navigator/OS/input locale.
 export const zhCN = {
+"Back to editor":"返回编辑器",
+"No saved queries or history yet.":"暂无保存的查询或历史记录。",
 "New AI conversation":"新建 AI 对话",
 "Recent turns stay in this panel only and are sent with follow-up requests.":"最近几轮仅保留在此面板内，并随追问发送。",
 "No unambiguous SQL block to insert. Explanation remains a draft.":"未找到唯一明确的 SQL 代码块，说明仍保留为草稿。",
