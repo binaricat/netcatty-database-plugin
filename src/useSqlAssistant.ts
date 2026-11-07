@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { PluginContext } from '@netcatty/plugin-sdk';
 import type { DatabaseSchemaResult } from './databaseTypes';
-import { AI_FEATURE, AssistantError, buildPrompt, DraftStream, type Task } from './domain';
+import { AI_FEATURE, AssistantError, buildPrompt, DraftStream, extractSqlDraft, type AssistantExchange, type Task } from './domain';
 import type { Message } from './i18n';
 
 export function useSqlAssistant(context: PluginContext, schema: DatabaseSchemaResult | null, sql: string, label: string, engine = 'sqlite', dialect = 'SQLite') {
@@ -10,6 +10,8 @@ export function useSqlAssistant(context: PluginContext, schema: DatabaseSchemaRe
   const [request, setRequest] = useState('');
   const [draft, setDraft] = useState('');
   const [model, setModel] = useState('');
+  const [conversation, setConversation] = useState<AssistantExchange[]>([]);
+  const [draftTask, setDraftTask] = useState<Task>('generate');
   const [busy, setBusy] = useState(false);
   const [failure, setFailure] = useState<Message | null>(null);
   const [stopped, setStopped] = useState(false);
@@ -27,11 +29,13 @@ export function useSqlAssistant(context: PluginContext, schema: DatabaseSchemaRe
     const rev = ++generation.current; locked.current = true;
     setBusy(true); setFailure(null); setStopped(false); setDraft(''); setModel('');
     try {
-      const prompt = buildPrompt(task, schema, sql, request, label, engine, dialect);
-      let received = false;
+      const prompt = buildPrompt(task, schema, sql, request, label, engine, dialect, conversation);
+      setDraftTask(task);
+      let received = false; let completed = '';
       await stream.current!.run(prompt, (text) => {
-        if (rev === generation.current) { received = true; setDraft(text); }
+        if (rev === generation.current) { received = true; completed = text; setDraft(text); }
       }, (name) => { if (rev === generation.current) setModel(name); });
+      if (rev === generation.current && received) setConversation(previous => [...previous, { request, draft: completed }].slice(-3));
       if (rev === generation.current && !received) setFailure('The host model returned no draft.');
     } catch (error) {
       if (rev === generation.current) {
@@ -44,5 +48,7 @@ export function useSqlAssistant(context: PluginContext, schema: DatabaseSchemaRe
       }
     } finally { if (rev === generation.current) { locked.current = false; setBusy(false); } }
   };
-  return { enabled, task, setTask, request, setRequest, draft, model, busy, failure, stopped, run, stop };
+  const reset = () => { stop(); setConversation([]); setDraft(''); setFailure(null); setStopped(false); setModel(''); };
+  const insertableSql = extractSqlDraft(draft, draftTask);
+  return { conversation, reset, insertableSql, enabled, task, setTask, request, setRequest, draft, model, busy, failure, stopped, run, stop };
 }

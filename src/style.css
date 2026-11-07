@@ -21,7 +21,10 @@ button.secondary:hover:not(:disabled),.toolbar-button:hover:not(:disabled) { bac
 .sidebar-hidden .connection-sidebar { display: none; }
 .sidebar-heading { display: flex; align-items: center; justify-content: space-between; padding: 16px 14px 2px; }
 .sidebar-heading strong { font-size: 12px; font-weight: 600; } .sidebar-heading span { border-radius: 4px; background: hsl(var(--muted)); padding: 0 6px; color: hsl(var(--muted-foreground)); font-size: 11px; }
-.sidebar-status { color: hsl(var(--muted-foreground)); padding: 0 14px 10px; font-size: 11px; }
+.sidebar-status { width: fit-content; margin: 0 14px 10px; padding: 3px 9px; border-radius: 999px; font-size: 11px; color: hsl(var(--muted-foreground)); background: hsl(var(--muted)); }
+.sidebar-status.is-connected { color: #15803d; background: #dcfce7; }
+.sidebar-status.is-error { color: #b91c1c; background: #fee2e2; }
+.cell-value { background: transparent; color: inherit; border: 0; padding: 0; text-align: left; font: inherit; }
 .connection-filter { padding: 0 10px 10px; } .connection-filter input,.schema-filter input { padding: 5px 8px; font-size: 11px; min-height: 28px; }
 .connection-list { padding: 0 5px; } .saved-connection,.tree-connection-row { display: flex; align-items: center; min-width: 0; }
 .connection-name,.tree-toggle { min-width: 0; justify-content: flex-start; background: transparent; color: hsl(var(--foreground)); text-align: left; }
@@ -252,3 +255,14 @@ pre { padding: 12px; background: hsl(var(--muted)/.4); border: 1px solid hsl(var
 /* Scoped to the contributed workbench: main has no cross-view modal controller. */
 .connection-inline { position: absolute; inset: 0; z-index: 10; display: flex; align-items: center; justify-content: center; padding: 20px; background: var(--plugin-overlay, rgba(0, 0, 0, .45)); overflow: auto; }
 .connection-inline .connection-dialog { width: 880px; max-width: 100%; max-height: 100%; overflow: auto; background: hsl(var(--background)); border: 1px solid hsl(var(--border)); border-radius: 12px; }
+
+.result-filter, .result-pagination { display:flex; align-items:center; flex-wrap:wrap; gap:8px; padding:4px 12px; font-size:11px; border-bottom:1px solid hsl(var(--border)); }
+.result-filter label { display:flex; align-items:center; gap:8px; }
+.result-filter input { width:160px; min-height:24px; padding:3px 6px; }
+.result-pagination button { min-height:24px; padding:3px 6px; font-size:11px; }
+.query-library { padding:10px 12px; max-height:240px; overflow:auto; border-bottom:1px solid hsl(var(--border)); }
+.query-library p { color:hsl(var(--muted-foreground)); font-size:11px; margin-bottom:6px; }
+.query-library input { max-width:240px; }
+.query-library button { margin:3px; padding:4px 8px; font-size:11px; }
+.cell-inspector { padding:8px 12px; max-height:180px; overflow:auto; border-top:1px solid hsl(var(--border)); }
+.cell-inspector textarea { width:100%; font-family:monospace; }

@@ -126,3 +126,12 @@ Netcatty shell, native permission dialogs, a real model, or any TCP database.
 
 The next tasks
 must remain open until functionality and evidence actually close these gaps.
+
+## Follow-up: result navigation, query library and AI (2026-11-07)
+
+- Added bounded returned-result row/column paging, numeric/stable client sorting, all-column filtering and cell inspection. These navigate the returned 100-row/64-column budget, not server-side pagination or a complete DBX grid.
+- Added an in-view query history (successful and failed dispatched queries) and named SQL library; bounded 30 entries each, reload fills the editor without executing. No disk persistence of SQL/parameters has been enabled.
+- Sidebar connection status is a green capsule only for an actual open session; disconnected/error states remain distinct. Removed repeated “SQLite memory only / Read-only memory” sidebar copy; connection form still discloses read-only disposable data.
+- AI gained bounded follow-up context, reset, and SQL code-block extraction. See `ai-parity.md`; live provider remains unverified.
+- Local main SDK/SQLite UI regression now exercises 25 rows / 9 columns, paging, filtering, cell inspection, save/reload, and AI unavailable behavior. Native controlled-Xfce recording covers connection, query and history. This is not Docker multi-database or full application qualification.
+- Overall parity remains far from completion; these turn history into a partial capability, not a complete reproduction. No merge or release.

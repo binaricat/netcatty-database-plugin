@@ -12,6 +12,8 @@ export function SqlAssistant({ context, schema, sql, label, engine, dialect, dis
   const ai = useSqlAssistant(context, schema, sql, label, engine, dialect);
   const status = !ai.enabled || ai.failure ? t('Unavailable') : ai.busy ? t('Generating unexecuted draft...') : ai.stopped ? t('Stopped - draft remains unexecuted.') : t('Host model - checked when you run assistance.');
   return <div className="ai-content">
+    <button className="secondary" disabled={ai.busy || !ai.conversation.length} onClick={ai.reset}>{t('New AI conversation')}</button>
+    <p className="hint">{t('Recent turns stay in this panel only and are sent with follow-up requests.')}</p>
     <p role="status">{status + (ai.model ? ` ${t('Host model')}: ${ai.model}` : '')}</p>
     {!ai.enabled ? <p>{t('Host AI is unavailable on this host.')}</p> : <>
       <p className="hint">{t('Shares connected schema metadata, connection label, current editor SQL and your request with the host model. No result rows. Do not include secrets.')}</p>
@@ -22,6 +24,7 @@ export function SqlAssistant({ context, schema, sql, label, engine, dialect, dis
       {ai.failure && <p role="alert">{t(ai.failure)}</p>}
     </>}
     <p className="hint">{`${t('Unexecuted AI draft')}. ${t('Insertion replaces editor text only. Review SQL and parameters before Run read query or Review write. Nothing executes automatically.')}`}</p><pre aria-label={t('Unexecuted AI draft')}>{ai.draft || t('No draft generated.')}</pre>
-    <button className="secondary" disabled={disabled || ai.busy || ai.stopped || Boolean(ai.failure) || !ai.draft} onClick={() => insert(ai.draft)}>{t('Insert draft into editor')}</button>
+    {ai.draft && !ai.insertableSql && <p>{t('No unambiguous SQL block to insert. Explanation remains a draft.')}</p>}
+    <button className="secondary" disabled={disabled || ai.busy || ai.stopped || Boolean(ai.failure) || !ai.insertableSql} onClick={() => { if (ai.insertableSql) insert(ai.insertableSql); }}>{t('Insert draft into editor')}</button>
   </div>;
 }

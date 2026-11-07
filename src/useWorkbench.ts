@@ -8,6 +8,7 @@ import { useHostPortProbe } from './useHostPortProbe';
 import { useHostLiveSshPg } from './useHostLiveSshPg';
 import { useTunnelTest } from './useTunnelTest';
 import { translator, type Message } from './i18n';
+import { emptyQueryLibrary, recordQuery, saveQuery, removeSavedQuery as removeLibraryQuery, clearQueryHistory, type SavedQuery } from './queryLibrary';
 export const SAVED_FEATURE = 'database.saved-connections.v1';
 type Session = DatabaseOpenResult | DatabaseFileOpenResult | DatabaseTcpOpenResult;
 export type QueryTab = { id: number; sql: string; parameters: string; result: DatabaseQueryResult | null; resultSql?: string; objectName?: string; surface?: 'data' | 'structure' };
@@ -21,6 +22,8 @@ export function useWorkbench(context: PluginContext) {
   const selectedDriver = driverById(driverId);
   const tcpEnabled = context.database.capabilities.has('database.tcp.v1');
   const [saved, setSaved] = useState<DatabaseSavedConnection[]>([]);
+  // Deliberately view-local: query text and bound values are never written to storage.
+  const [queryLibrary, setQueryLibrary] = useState(emptyQueryLibrary);
   const [session, setSession] = useState<Session | null>(null);
   const [connectionName, setConnectionName] = useState('');
   const [connectedId, setConnectedId] = useState('');
@@ -171,11 +174,39 @@ export function useWorkbench(context: PluginContext) {
     setTabs((items) => [...items, item]); setActiveTab(id);
   };
   const closeTab = (id: number) => { const remaining = tabs.filter((t) => t.id !== id); setTabs(remaining); if (id === activeTab) setActiveTab(remaining[0]?.id ?? 0); };
+  const saveCurrentQuery = (name: string) => {
+    if (locked.current || !tab) return;
+    try {
+      const next = saveQuery(queryLibrary, { name, sql: tab.sql, parameters: tab.parameters, time: Date.now() });
+      setQueryLibrary(next); setFailure(null);
+    } catch (e) { setFailure({ key: 'Host operation failed', ...(e instanceof Error ? { diagnostic: e.message } : {}) }); }
+  };
+  const removeSavedQuery = (id: string) => setQueryLibrary(items => removeLibraryQuery(items, id));
+  const clearHistory = () => setQueryLibrary(clearQueryHistory);
+  const loadQuery = (entry: Pick<SavedQuery, 'sql' | 'parameters'>) => {
+    if (locked.current || !tab || !live.current) return;
+    edit({ sql: entry.sql, parameters: entry.parameters, result: null, resultSql: undefined, objectName: undefined, surface: 'data' });
+    setFailure(null);
+  };
   const run = (mode: 'read' | 'write') => action(async (rev) => {
     if (!live.current || !tab) return; const id = tab.id;
-    edit({ result: null });
-    const value = await context.database.query({ ...target(live.current), sql: tab.sql, parameters: parseParameters(tab.parameters), mode, maxRows: 100, timeoutMs: 3000 });
-    if (rev === epoch.current) setTabs((items) => items.map((item) => item.id === id ? { ...item, result: value, resultSql: tab.sql } : item));
+    edit({ result: null, resultSql: undefined });
+    // Invalid JSON is not a dispatched execution. Do not retain malformed input.
+    const parameters = parseParameters(tab.parameters);
+    const execution = { sql: tab.sql, parameters: tab.parameters, connectionName, time: Date.now() };
+    let success = false;
+    try {
+      const value = await context.database.query({ ...target(live.current), sql: tab.sql, parameters, mode, maxRows: 100, timeoutMs: 3000 });
+      success = true;
+      if (rev === epoch.current) setTabs((items) => items.map((item) => item.id === id ? { ...item, result: value, resultSql: tab.sql } : item));
+    } finally {
+      if (rev === epoch.current) {
+        // History is best-effort metadata and must not mask the execution outcome.
+        setQueryLibrary(items => {
+          try { return recordQuery(items, { ...execution, success }); } catch { return items; }
+        });
+      }
+    }
   });
-  return { selectedDriver, selectDriver, tcpEnabled, testTcp, connectTcp, invalidateDraft, liveSshPg, portProbe, tunnel, t, locale, tabTitle, saved, session, connectedId, connectionName: session && !connectedId && session.engine === 'sqlite' ? t('Disposable SQLite') : connectionName, schema, tabs, tab, activeTab, setActiveTab, addTab, closeTab, edit, busy, error, modal, setModal: (next: 'picker' | 'connection' | null) => { tunnel.reset(); portProbe.reset(); liveSshPg.reset(); setModal(next); }, draftSession, tested, hosts, theme, enabled, persistence, fileEnabled, walEnabled, walConcurrentEnabled, walCheckpointEnabled, walCaptureEnabled, malformedRejectEnabled, walRefreshEnabled, refresh, dismiss, disconnect, selectSource, test, save, open, openUnsaved, remove, loadHosts, run };
+  return { queryLibrary, saveCurrentQuery, removeSavedQuery, clearHistory, loadQuery, selectedDriver, selectDriver, tcpEnabled, testTcp, connectTcp, invalidateDraft, liveSshPg, portProbe, tunnel, t, locale, tabTitle, saved, session, connectedId, connectionName: session && !connectedId && session.engine === 'sqlite' ? t('Disposable SQLite') : connectionName, schema, tabs, tab, activeTab, setActiveTab, addTab, closeTab, edit, busy, error, modal, setModal: (next: 'picker' | 'connection' | null) => { tunnel.reset(); portProbe.reset(); liveSshPg.reset(); setModal(next); }, draftSession, tested, hosts, theme, enabled, persistence, fileEnabled, walEnabled, walConcurrentEnabled, walCheckpointEnabled, walCaptureEnabled, malformedRejectEnabled, walRefreshEnabled, refresh, dismiss, disconnect, selectSource, test, save, open, openUnsaved, remove, loadHosts, run };
 }

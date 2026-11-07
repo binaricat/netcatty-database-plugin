@@ -1,6 +1,29 @@
 // Original plugin-owned copy. English source keys keep the fallback explicit.
 // Only the host environment selects language; never navigator/OS/input locale.
 export const zhCN = {
+"New AI conversation":"新建 AI 对话",
+"Recent turns stay in this panel only and are sent with follow-up requests.":"最近几轮仅保留在此面板内，并随追问发送。",
+"No unambiguous SQL block to insert. Explanation remains a draft.":"未找到唯一明确的 SQL 代码块，说明仍保留为草稿。",
+
+"Query library":"查询库",
+"Query library is kept in this view only. Loading never executes SQL.":"查询库仅保留在当前视图中，加载不会执行 SQL。",
+"Query name":"查询名称",
+"Save current SQL":"保存当前 SQL",
+"Clear history":"清空历史",
+"Remove saved SQL":"删除已保存 SQL",
+
+  "Connection unavailable": "连接不可用",
+  "Filter returned rows": "筛选已返回的行",
+  "Returned rows only; not a database filter.": "仅筛选已返回结果，不是数据库查询条件。",
+  "Previous rows": "上一页行",
+  "Next rows": "下一页行",
+  "Previous columns": "上一组列",
+  "Next columns": "下一组列",
+  "Page {page} / {pages}": "第 {page} / {pages} 页",
+  "Inspect row {row}, column {column}": "查看第 {row} 行、第 {column} 列",
+  "Cell inspector": "单元格查看器",
+  "Full cell value": "完整单元格内容",
+
   "SQLite memory only": "仅支持 SQLite 内存数据库",
   "Read-only memory": "只读内存数据库",
   "Connection successful - SQLite schema validated": "连接成功 - SQLite 数据库结构已验证",
