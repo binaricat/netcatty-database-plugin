@@ -103,7 +103,7 @@ const language = async (locale) => { await act(async () => { context.environment
 
 try {
   await mount(); assert.ok(document.body.textContent.includes('No connections yet')); await snapshot('01-home'); checks.push('home + counters + empty sidebar');
-  await click('New Connection'); assert.ok(button('PostgreSQLHost TCP')); assert.ok(!('disabled' in button('MySQLHost TCP').attributes)); await snapshot('02-picker'); await click('Next');
+  await click('New Connection'); assert.ok(button('PostgreSQL')); assert.ok(!('disabled' in button('MySQL').attributes)); await snapshot('02-picker'); await click('Next');
   await change('Connection name', 'Synthetic saved memory'); await click('Advanced'); await click('Load permitted hosts'); await change('Existing host', 'host-2'); await click('Connection');
   await click('Test'); assert.match(document.body.textContent, /Connection successful/); await snapshot('03-tested-modal');
   const checkbox = find((n) => n.element === 'input' && n.attributes.type === 'checkbox'); await event(checkbox, { type: 'click', checked: true });
@@ -245,8 +245,8 @@ try {
   assert.match(document.body.textContent, /快速开始/); assert.match(document.body.textContent, /实验功能/);
   assert.ok(byLabel('筛选连接')); assert.ok(button('历史记录本阶段暂不可用'));
   await snapshot('zh-01-home');
-  await click('新建连接'); assert.ok(!('disabled' in button('PostgreSQL宿主 TCP').attributes));
-  assert.ok(!('disabled' in button('MySQL宿主 TCP').attributes)); await snapshot('zh-02-picker');
+  await click('新建连接'); assert.ok(!('disabled' in button('PostgreSQL').attributes));
+  assert.ok(!('disabled' in button('MySQL').attributes)); await snapshot('zh-02-picker');
   await click('下一步'); assert.equal(byLabel('连接名称').attributes.value, '模拟 SQLite');
   await language('en'); assert.equal(byLabel('Connection name').attributes.value, 'Synthetic SQLite');
   await change('Connection name', 'User 名称 {name}'); await language('zh-CN');
