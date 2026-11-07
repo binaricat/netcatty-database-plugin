@@ -1,3 +1,4 @@
+import {isFixedMysqlMetadataPlan,mysqlMetadataDecodeColumn,mysqlMetadataExpressionOrigin} from './mysqlMetadataAuthority';
 import type {PluginByteConnection} from '@netcatty/plugin-sdk';
 import {encodeMysqlPacket,MysqlPacketDecoder,type MysqlPacket} from './mysqlProtocol';
 import {encodeMysqlPrepare,encodeMysqlExecute,encodeMysqlStatementClose,parseMysqlPrepareOk,parseMysqlPreparedColumn,parseMysqlBinaryRow,MysqlPreparedError,type MysqlPreparedSelect,type MysqlPreparedColumn} from './mysqlPreparedProtocol';
@@ -14,7 +15,14 @@ function eof(p:Uint8Array,select=false){if(p.length!==5||p[0]!==254||p[1]!==0||p
  * This module does not connect/verify TLS or support arbitrary SQL, cursors,
  * long-data, RESET/re-execute, multiresults or extensions with external effects.
  */
-export async function executeMysqlPreparedRead(connection:PluginByteConnection,options:MysqlPreparedReadOptions){
+export function executeMysqlPreparedRead(connection:PluginByteConnection,options:MysqlPreparedReadOptions){return executePrepared(connection,options,false);}
+/** Only the complete fixed metadata projections and bound scope predicates may
+ * enter this lane; ordinary callers cannot supply arbitrary origin exceptions. */
+export async function executeMysqlMetadataPreparedRead(connection:PluginByteConnection,options:MysqlPreparedReadOptions){
+ if(!isFixedMysqlMetadataPlan(options))fail('input');
+ return executePrepared(connection,options,true);
+}
+async function executePrepared(connection:PluginByteConnection,options:MysqlPreparedReadOptions,metadata:boolean){
  if(failed.has(connection))fail('closed');if(active.has(connection))fail('busy');
  const ms=options.timeoutMs??5000,signal=options.signal;if(!Number.isInteger(ms)||ms<1||ms>10000)fail('input');
  const schema=options.schema,table=options.table;let prepared:ReturnType<typeof encodeMysqlPrepare>;
@@ -38,7 +46,7 @@ export async function executeMysqlPreparedRead(connection:PluginByteConnection,o
   finally{for(const p of held)p.payload.fill(0);held=[];}
   }
  };
- const resultColumn=(p:Uint8Array,index:number)=>{const c=parseMysqlPreparedColumn(p);if(c.schema!==schema||c.table!==table||c.originalTable!==table||c.name!==plan.columns[index]||c.originalName!==plan.columns[index])fail('protocol');parseMysqlBinaryRow(Uint8Array.of(0,4),[c]);return c;};
+ const resultColumn=(p:Uint8Array,index:number)=>{const c=parseMysqlPreparedColumn(p);if((c.schema!==schema&&!(metadata&&mysqlMetadataExpressionOrigin(table,c)))||c.table!==table||c.originalTable!==table||c.name!==plan.columns[index]||c.originalName!==plan.columns[index])fail('protocol');parseMysqlBinaryRow(Uint8Array.of(0,4),[metadata?mysqlMetadataDecodeColumn(table,c):c]);return c;};
  try{
   const run=async()=>{
    await exchange(query('START TRANSACTION READ ONLY'),p=>{ok(p,true);return true;});phase='prepare';
@@ -56,7 +64,7 @@ export async function executeMysqlPreparedRead(connection:PluginByteConnection,o
     if(resultPhase==='columns'){const c=resultColumn(p,fields.length);if(JSON.stringify(c)!==JSON.stringify(declared[fields.length]))fail('protocol');fields.push(c);if(fields.length===plan.columns.length)resultPhase='fields-end';return false;}
     if(resultPhase==='fields-end'){eof(p,true);resultPhase='rows';return false;}
     if(p[0]===254&&p.length<9){eof(p,true);return true;}
-    if(rows.length>=plan.limit)fail('limit');rows.push(parseMysqlBinaryRow(p,fields));return false;
+    if(rows.length>=plan.limit)fail('limit');rows.push(parseMysqlBinaryRow(p,metadata?fields.map(c=>mysqlMetadataDecodeColumn(table,c)):fields));return false;
    });
    // COM_STMT_CLOSE has NO response. A spurious packet will fail the subsequent
    // ROLLBACK decoder rather than be silently discarded.
