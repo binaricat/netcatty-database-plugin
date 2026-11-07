@@ -97,7 +97,7 @@ function Structure({ vm }: { vm: Model }) {
     <div className="results-heading"><strong>{`${vm.connectionName} / ${object.name}`}</strong><span>{t("Connected database / Read-only structure")}</span></div>
     <div className="results-heading"><strong>{t("Columns")}</strong><span>{t("{count} columns / {kind}", { count: object.columns.length, kind: t(object.kind ?? "table") })}</span></div>
     <div className="table-scroll"><table><thead><tr><th>#</th><th>{t("Column")}</th><th>{t("Type")}</th><th>{t("Nullable")}</th><th>{t("Primary Key")}</th></tr></thead><tbody>{object.columns.map((c, i) => <tr key={c.name} tabIndex={0}><td className="row-index">{i + 1}</td><td>{c.name}</td><td className="column-type"><span className="type-label">{c.type}</span></td><td>{c.nullable === undefined ? t("Unknown") : c.nullable ? t("Yes") : t("No")}</td><td>{c.primaryKey ? t("Yes") : t("No")}</td></tr>)}</tbody></table></div>
-    <StructureMetadata key={object.name} object={object} t={t} /><div className="result-status">{object.kind === 'view' ? t("View nullability is not inferred.") : t("Column metadata from the connected database.")} {t("Schema editing is unavailable.")}</div>
+    <StructureMetadata key={object.name} object={object} t={t} /><div className="result-status">{object.kind === 'view' ? t("View nullability is not inferred.") : t("Column metadata from the connected database.")} {t("This metadata view is read-only.")}</div>
   </section>;
 }
 function QueryLibraryPanel({ vm, close }: { vm: Model; close: () => void }) {

@@ -315,7 +315,7 @@ export const zhCN = {
   "No": "否",
   "View nullability is not inferred.": "不推断视图列是否允许空值。",
   "Column metadata from the connected SQLite schema.": "列信息来自已连接的 SQLite 数据库结构。",
-  "Schema editing is unavailable.": "不支持编辑数据库结构。",
+  "This metadata view is read-only.": "此元数据视图为只读。",
   "Database": "数据库",
   "+ New Connection": "+ 新建连接",
   "+ New Query": "+ 新建查询",
