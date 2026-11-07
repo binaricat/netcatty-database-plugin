@@ -11,7 +11,8 @@ function lex(source:string):Token[]{
  bounded(source);const tokens:Token[]=[];let i=0,depth=0;
  const push=(start:number,kind:Token['kind'])=>{if(tokens.length>=2048)fail('budget');tokens.push({text:source.slice(start,i),kind});};
  while(i<source.length){if(/[ \t\r\n]/.test(source[i])){i++;continue;}const start=i,c=source[i],next=source[i+1];
-  if(c==='-'&&next==='-'){i+=2;while(i<source.length&&source[i]!=='\r'&&source[i]!=='\n')i++;if(source[i]==='\r'){i++;if(source[i]==='\n')i++;}else if(source[i]==='\n')i++;push(start,'line-comment');continue;}
+  // SQLite ends -- comments at LF only; bare CR remains opaque comment text.
+  if(c==='-'&&next==='-'){i+=2;while(i<source.length&&source[i]!=='\n')i++;if(source[i]==='\n')i++;push(start,'line-comment');continue;}
   if(c==='/'&&next==='*'){i+=2;let done=false;while(i<source.length){if(source[i]==='/'&&source[i+1]==='*')fail('unsupported');if(source[i]==='*'&&source[i+1]==='/'){i+=2;done=true;break;}i++;}if(!done)fail('incomplete');push(start,'comment');continue;}
   if(c==="'"||c==='"'||c==='`'||c==='['){const end=c==='['?']':c;i++;let done=false;while(i<source.length){if(source[i]===end){i++;if(c!=='['&&source[i]===end){i++;continue;}done=true;break;}i++;}if(!done)fail('incomplete');push(start,'opaque');continue;}
   // Blob adjacency (X'...') is semantic: keep the entire literal indivisible.

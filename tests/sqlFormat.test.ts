@@ -1,6 +1,6 @@
 import test from 'node:test';import assert from 'node:assert/strict';import initSqlJs from 'sql.js/dist/sql-asm.js';import {formatSqliteWhitespace as format} from '../src/sqlFormat';
 test('formats full SQLite document without changing keyword case or opaque values',()=>{assert.equal(format("select  'a  b', \"FROM\"  from  notes where id= ?1"),"select 'a  b', \"FROM\"\nfrom notes\nwhere id = ?1");assert.equal(format('SELECT x\'00ff\',1e-3,0xFF,.5;'),"SELECT x'00ff', 1e-3, 0xFF, .5;");});
-test('line comments retain exact LF CRLF CR or EOF terminators and embedded semicolons',()=>{for(const nl of ['\n','\r\n','\r']){const input='SELECT 1 -- exact ; comment'+nl+' ,2';const output=format(input);assert.ok(output.includes('-- exact ; comment'+nl));assert.equal(format(output),output);}assert.equal(format('SELECT 1 -- EOF'),'SELECT 1 -- EOF');});
+test('line comments retain exact bytes with LF/CRLF termination and CR-only opaque tails',()=>{for(const nl of ['\n','\r\n','\r']){const input='SELECT 1 -- exact ; comment'+nl+' ,2';const output=format(input);assert.ok(output.includes('-- exact ; comment'+nl));assert.equal(format(output),output);}assert.equal(format('SELECT 1 -- EOF'),'SELECT 1 -- EOF');});
 test('quotes comments and placeholders are indivisible and never expanded',()=>{const sql='SELECT \'it\'\'s ; WHERE\', "a""b", `a``b`, [a b], :name, @other, $value, ?123 /* x\n y */';const out=format(sql);for(const text of ["'it''s ; WHERE'",'"a""b"','`a``b`','[a b]',':name','@other','$value','?123','/* x\n y */'])assert.ok(out.includes(text));});
 test('unknown, ambiguous dialect and incomplete constructs fail without returning changed SQL',()=>{for(const sql of ["SELECT 'oops",'SELECT (1','SELECT 1)','SELECT /*oops','SELECT /* outer /* inner */ */ 1','SELECT $$x$$','SELECT $x$abc$x$','SELECT 1_000','SELECT 1e+','SELECT :','SELECT \\x','CREATE TRIGGER tr AFTER INSERT ON t BEGIN SELECT 1;END;','PRAGMA writable_schema=ON','SELECT \u0000','SELECT \ud800'])assert.throws(()=>format(sql));});
 test('input/output/token/depth budgets are bounded',()=>{assert.throws(()=>format(' '.repeat(8193)),/budget/);assert.throws(()=>format("SELECT '"+'汉'.repeat(3000)+"'"),/budget/);assert.throws(()=>format('SELECT '+ '('.repeat(65)+'1'+')'.repeat(65)),/budget/);assert.throws(()=>format('SELECT '+Array(1100).fill('1').join(',')),/budget/);});
@@ -8,3 +8,11 @@ test('idempotence and actual SQLite results match across spacing changes',async(
 
 test('blob literals, numeric exponents and parameter spellings are atomic; complex suffixes decline',()=>{const sql="SELECT X'ABCD', x'', 0xff, 1e-2, 1E+3, ?123, :name, @name, $name";const out=format(sql);for(const token of ["X'ABCD'","x''",'0xff','1e-2','1E+3','?123',':name','@name','$name'])assert.ok(out.includes(token));for(const invalid of ["SELECT X'A'","SELECT X'GG'","SELECT E'backslash'","SELECT N'national'",'SELECT $name::suffix','SELECT $name(suffix)'])assert.throws(()=>format(invalid));});
 test('final relex refuses whitespace removal that would merge lexical tokens',()=>{assert.throws(()=>format('SELECT 1 . 2'),/invariant/);assert.equal(format('SELECT - -1'),'SELECT - - 1');assert.equal(format('SELECT 1 / * 2'),'SELECT 1 / * 2');});
+
+test('SQLite bare CR never ends a line comment or exposes hidden SQL during formatting',async()=>{const SQL=await initSqlJs(),db=new SQL.Database();try{for(const source of [
+ 'SELECT 1; -- hidden\rSELECT 2 FROM (SELECT 3);',
+ 'SELECT 1; -- hidden\rSELECT 2 WHERE 1; /* fake block */ -- still hidden',
+ 'SELECT 1; -- hidden\rSELECT \'unterminated WHERE FROM /*',
+ 'SELECT 1; -- hidden\rSELECT 2\rWHERE 1\nSELECT 3;',
+ 'SELECT 1; -- hidden\rSELECT 2\r\nSELECT 3;'
+ ]){const formatted=format(source);assert.deepEqual(db.exec(formatted),db.exec(source));assert.equal(format(formatted),formatted);assert.ok(formatted.includes(source.slice(source.indexOf('--'),source.indexOf('\n')<0?undefined:source.indexOf('\n')+1)));}}finally{db.close();}});
