@@ -1,3 +1,4 @@
+import {createRenameTableAdapter} from './sqliteRenameTable';
 import {previewSqliteGridBatch,executeSqliteGridBatch} from './sqliteGridBatch';
 import {GridBatchError} from './gridBatchMutation';
 import type {GridBatchRequest,GridBatchReview,GridBatchApplyRequest} from './databaseTypes';
@@ -256,6 +257,9 @@ export function createWorkbenchContext(context: PluginContext): WorkbenchContext
   let disposed = false;
   const assertLive = () => { if (disposed) throw new Error("Database runtime is closed."); };
   const get = ({handleId}: DatabaseHandleRequest) => { assertLive(); if(snapshotLocks.has(handleId))throw new SqliteSnapshotError('busy');discardRestore(handleId); const db = sessions.get(handleId); if (!db) throw new Error('Database connection is closed.'); return db; };
+  const renameTableAdapter=createRenameTableAdapter({getDatabase:handleId=>get({handleId}),inspectSchema:inspectSqliteSchema,reviewTokens:tableReviews,onFatal:handleId=>{tableReviews.delete(handleId);savedIds.delete(handleId);sessions.delete(handleId);discardRestore(handleId);}});
+  const previewRenameTable:WorkbenchContext['database']['previewRenameTable']=async request=>renameTableAdapter.preview(request);
+  const applyRenameTable:WorkbenchContext['database']['applyRenameTable']=async request=>renameTableAdapter.apply(request);
   const list = async () => {
     assertLive();
     const value = await context.storage.get(STORE_KEY);
@@ -594,9 +598,9 @@ export function createWorkbenchContext(context: PluginContext): WorkbenchContext
     remove:(id,entryId,revision)=>withQueryLibrary(id,()=>storedQueries.remove(id,entryId,revision))
   };
   const database: PluginDatabaseClient & {capabilities: ReadonlySet<string>} = {
-    capabilities: new Set(['database.sqlite-grid-batch.v1','database.sqlite-snapshot.v1','database.sqlite-fixture.v1','database.saved-connections.v1','database.sqlite-reviewed-writes.v1','database.sqlite-create-table.v1','database.sqlite-create-index.v1','database.sqlite-grid-mutation.v1','database.sqlite-csv-import.v1','database.sqlite-rename-column.v1','database.sqlite-row-insert.v1','database.sqlite-drop-index.v1','database.sqlite-add-column.v1']),
+    capabilities: new Set(['database.sqlite-rename-table.v1','database.sqlite-grid-batch.v1','database.sqlite-snapshot.v1','database.sqlite-fixture.v1','database.saved-connections.v1','database.sqlite-reviewed-writes.v1','database.sqlite-create-table.v1','database.sqlite-create-index.v1','database.sqlite-grid-mutation.v1','database.sqlite-csv-import.v1','database.sqlite-rename-column.v1','database.sqlite-row-insert.v1','database.sqlite-drop-index.v1','database.sqlite-add-column.v1']),
     snapshotInfo,saveSnapshot,previewRestoreSnapshot,applyRestoreSnapshot,deleteSnapshot,
-    previewGridBatch,applyGridBatch,previewRowInsert,applyRowInsert,previewDropIndex,applyDropIndex,previewRenameColumn,applyRenameColumn,previewAddColumn,applyAddColumn,previewCsvImport,applyCsvImport,previewCreateTable,applyCreateTable,previewCreateIndex,applyCreateIndex,previewGridMutation:previewGridRow,applyGridMutation,
+    previewRenameTable,applyRenameTable,previewGridBatch,applyGridBatch,previewRowInsert,applyRowInsert,previewDropIndex,applyDropIndex,previewRenameColumn,applyRenameColumn,previewAddColumn,applyAddColumn,previewCsvImport,applyCsvImport,previewCreateTable,applyCreateTable,previewCreateIndex,applyCreateIndex,previewGridMutation:previewGridRow,applyGridMutation,
     openFixture: open, readSchema, query, close, cancel:close,
     listSavedConnections:list,
     saveConnection: (request: DatabaseSaveConnectionRequest) => mutate(async () => {

@@ -92,3 +92,12 @@ lexing now preserves bare CR inside -- comments, and single-row mutation refuses
 implicit ON CONFLICT side effects. Plain HTML reported-FK relationships and explicit
 AI draft Retry/Edit-last are implemented; no real AI provider or full ER editor
 claim is added. See sqlite-grid-batch.md and ai-parity.md for exact boundaries.
+
+## Verified follow-up (alpha30, 2026-11-07)
+
+- **N**: whole-SQL formatting preview/apply/undo, named SQL saved and recovered after true original-app process restart, loading without automatic execution followed by explicit readback.
+- **N**: actual reported FK relationship overview; bounded selected-row atomic DELETE, full SQL/parameter review, confirmation, explicit reread. Alpha30 repeats native verification with highlighted shared SQL, compact parameters and corrected editor height.
+- **R**: independent MySQL 8.4.7 fixed TABLES/COLUMNS/STATISTICS reads passed strict TLS1.3, bound SQL-looking name negative and same-connection read reuse. Exact system-view metadata profiles are isolated from ordinary prepared reads. This is not installed-plugin MySQL connectivity.
+- **T**: conservative SQLite table rename now integrated in facade and UI, 44 actual main remote-DOM scenes including preview/confirm/new schema. Native alpha31 acceptance remains pending. Dependencies outside the supported subset refuse or rollback; general table rebuilds are not implemented.
+
+Actual image/video details: native-alpha29.md (also covers alpha30), mysql-metadata-boundaries.md. Core remote-transport and broader DDL gaps above remain; no near-complete claim.
