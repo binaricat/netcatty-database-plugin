@@ -36,9 +36,9 @@ Under `database-parity-evidence/full-main-round1/`:
 
 - `netcatty-mysql-full-auth.jpg`
 - `netcatty-mysql-auth-all-lanes.jpg`
-- `full-app-mysql-protocol.mp4`: continuous 120-second recording requested;
-  recording/validation was still finishing when this record was written. Do not
-  describe it as validated or ready to share until the coordinator checks it.
+- `full-app-mysql-protocol.mp4`: continuous 120-second recording, **1,414,029 bytes**;
+  coordinating worker verified metadata, full decode and the 105-second frame
+  showing full/fast authentication and negative results.
 
 This is a real independent protocol-integration lane, **not installed-plugin
 MySQL connectivity**, main broker/permission acceptance or Docker. The Node
