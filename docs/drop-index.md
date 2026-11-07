@@ -51,3 +51,5 @@ Real-engine tests cover preservation of rows and other indexes, quoted names,
 autoindex/partial/expression/FK/hint rejection, TEMP/default/metadata-budget error
 classes, post-DROP size-budget rollback, one-shot and cross-DDL invalidation,
 tampered/cross-session/closed reviews. The 29-scene main remote-DOM lane covers ordinary/UNIQUE removal and metadata readback, but uses injected transports and does not replace native screenshots or confirmation acceptance.
+
+Native alpha.25 scoped acceptance is now recorded in `native-schema-alpha25.md`; only its explicitly exercised paths are qualified.
