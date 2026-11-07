@@ -138,6 +138,22 @@ try {
     assert.doesNotMatch(document.body.textContent, /PASSIVE\/FULL\/RESTART/);
     features.add(dependency); await language('en');
   }
+  features.add('database.sqlite-wal-capture.fixture.v1'); await language('zh-CN');
+  assert.match(document.body.textContent, /选择文件及读取期间需暂停所有写入/);
+  assert.match(document.body.textContent, /已显示的行仅为历史数据/);
+  assert.match(document.body.textContent, /不支持实时刷新或自动重试/);
+  await language('en'); assert.match(document.body.textContent, /pause all writers through file selection and reads/);
+  assert.match(document.body.textContent, /displayed rows are historical/);
+  assert.match(document.body.textContent, /No live refresh or automatic retry/);
+  for (const dependency of ['database.sqlite-file-fixture.v1', 'database.sqlite-wal-readonly.fixture.v1', 'database.sqlite-wal-concurrent.fixture.v1', 'database.sqlite-wal-checkpoint.fixture.v1']) {
+    features.delete(dependency); await language('zh-CN');
+    assert.doesNotMatch(document.body.textContent, /测试文件捕获/);
+    features.add(dependency); await language('en');
+  }
+  features.delete('database.sqlite-wal-capture.fixture.v1'); await language('zh-CN');
+  assert.doesNotMatch(document.body.textContent, /测试文件捕获/);
+  await language('en'); assert.match(document.body.textContent, /Old snapshots invalidate/);
+  checks.push('Capture qualification requires file/E/F/G/H; en/zh-CN states pause through reads, fresh selection, historical rows and no live refresh');
   features.delete('database.sqlite-wal-checkpoint.fixture.v1'); await language('zh-CN');
   assert.doesNotMatch(document.body.textContent, /PASSIVE\/FULL\/RESTART/);
   await language('en');

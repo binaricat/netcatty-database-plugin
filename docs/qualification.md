@@ -8,7 +8,7 @@ and the implementation report, with real Electron evidence under
 | Area | Current slice | Next production gate |
 | --- | --- | --- |
 | Build/package | Locked npm, vendored source SDK/CLI, validator, reproducible `.ncpkg` | CI on isolated Linux/macOS/Windows, SBOM and provenance attestation |
-| SQLite | Memory + fixed M2/M3b files; C held-fd identity; E verified WAL snapshots; F writer invalidation/reselection; G fresh selection after PASSIVE/FULL/RESTART with a complete committed WAL, interrupted/stale-tail rejection | Broader checkpoint/reset availability and actual recovery/tail salvage, continuous-writer capture/live refresh, broader admission, malformed DB corpus and cross-platform locks |
+| SQLite | Memory + fixed M2/M3b files; C held-fd identity; E verified WAL snapshots; F writer invalidation/reselection; G fresh selection after PASSIVE/FULL/RESTART with a complete committed WAL, interrupted/stale-tail rejection; H autonomous writer with bounded pause through fresh selection and reads, resume invalidates | Uninterrupted capture and explicit in-session refresh; broader checkpoint/reset availability and actual recovery/tail salvage, broader admission, malformed DB corpus and cross-platform locks |
 | Authority | Source/runtime-bound handles; default Ask; per-write exact native review | Broader target revision/plan receipts; lock/policy/source-swap stress and crash recovery |
 | Execution limits | Fixed subprocess; 3 s kill; row/string/payload limits | Hard native-memory/CPU OS constraints and cross-platform kill/reap qualification |
 | SQL semantics | SQLite authorizer allowlist, no scripts/PRAGMA/ATTACH/extensions | Driver-aware typed plans, cross-schema policy and nontransactional outcomes |
@@ -139,3 +139,35 @@ corpus, broader file admission and cross-platform locks remain production gates.
 M1, C/E/F non-atomic/native-reopen/cleanup/filesystem and D SKIPPED_NO_PROVIDER
 residuals are unchanged. Evidence, exact counts, commits and package hash:
 `/workspace/agent-tools/database/gate-g-checkpoint-recovery/`.
+
+
+Gate H adds optional `database.sqlite-wal-capture.fixture.v1` with file + E + F + G
+under the same default-off Linux experiment. This is **pause-required capture**,
+not live refresh. The bounded test-only autonomous writer keeps one process and
+connection across three pause/capture/resume windows, committing independently
+before and after each. During each pause, explicit fresh chooser selection and
+reads return exact schema/committed notes with unchanged source hashes. Each
+selection has a new handle/revision. Resuming commits invalidates and reaps the
+old session; historical returned rows never become a current live view.
+
+The pause must span admission **and read publication**, not just copying files.
+It is cooperative external orchestration, not a host pause RPC, SQLite read lock,
+or guarantee against another writer. Autonomous commits during admission or
+before publication suppress the result; an independent writer during a pause
+also invalidates. Checkpoint and hostile WAL/SHM replacement inside a pause still
+reject old sessions; a fresh partial WAL tail still rejects. Close/cancel return
+fds to baseline. SQLITE_BUSY stops the autonomous harness without retry; an
+explicit restart after rollback succeeds. C/E/F/G identity, ABA, strict tail,
+checkpoint, recovery-reject and lock suites remain required and unchanged in
+meaning. H alone cannot enable WAL or plugin-supplied paths.
+
+English/zh-CN notices require all dependencies and explicitly instruct pause
+through selection/reads, choose again for new rows, and treat displayed rows as
+historical. H adds no refresh button, auto polling, automatic retry, in-session
+re-snapshot, product writer capability, new admission root or wire/SDK change.
+Earlier E/F/G continuous-writer non-claims remain historical; H qualifies only
+this cooperative pause slice. Uninterrupted capture/live refresh, broad malformed
+inputs, broader checkpoint/reset/recovery, cross-platform locks and general file
+admission remain production work. M1/C/E/F/G resource/filesystem/native/cleanup
+and Gate D SKIPPED_NO_PROVIDER residuals persist. Evidence/design/counts/artifact:
+`/workspace/agent-tools/database/gate-h-continuous-writer/`.

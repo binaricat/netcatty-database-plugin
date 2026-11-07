@@ -73,6 +73,7 @@ export const zhCN = {
   "File Path": "文件路径",
   "SQLite source": "SQLite 数据源",
   ":memory: - disposable synthetic notes": ":memory: - 一次性模拟笔记",
+  "Fixture capture: pause all writers through file selection and reads. Choose again for new rows. Resuming writes invalidates the session; displayed rows are historical. No live refresh or automatic retry.": "测试文件捕获：选择文件及读取期间需暂停所有写入。重新选择以获取新行；恢复写入后会话失效，已显示的行仅为历史数据。不支持实时刷新或自动重试。",
   "Fixture checkpoints: after PASSIVE/FULL/RESTART, pause writing and choose again to read a verified committed WAL. Old snapshots invalidate. Empty, interrupted or stale WAL tails reject. No live refresh or crash recovery.": "测试文件检查点：PASSIVE/FULL/RESTART 完成后，暂停写入并重新选择，可读取经核验的已提交 WAL。旧快照会失效；空 WAL、中断或陈旧尾部均拒绝。不支持实时刷新或崩溃恢复。",
   "Fixture WAL writer checks: source changes invalidate the snapshot. Pause writing and choose the file again for new rows. No live refresh, checkpoint or recovery support.": "测试文件 WAL 写入校验：源文件变化会使快照失效。暂停写入并重新选择文件以读取新行。不支持实时刷新、检查点或恢复。",
   "Stable fixture WAL: verified read-only snapshot. Changes require reopening; no concurrent writers, checkpoint or recovery.": "稳定测试文件的 WAL：经核验的只读快照。文件变化后需重新打开；不支持并发写入、检查点或恢复。",
