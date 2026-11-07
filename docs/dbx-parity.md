@@ -156,15 +156,15 @@ Native alpha.25 rename and ordinary index removal passed with a 300-second conti
 
 After Redis protocol qualification, 346 tests and lint pass. Production Redis endpoint policy remains unchanged; no loopback alias or broker bypass was introduced.
 
-### Reviewed single-row INSERT (alpha26 candidate; native acceptance pending)
+### Reviewed single-row INSERT (alpha26 native acceptance passed)
 
 - DBX reference: `apps/desktop/src/composables/useDataGridEditor.ts:1438–1457` adds an undoable blank draft row and starts cell editing; this plugin instead opens one compact, explicitly reviewed row form from the existing table Data navigation. It does not claim DBX's bulk pending-row/transaction editor parity.
 - Implemented plugin-owned SQLite only: one complete row, 1–16 `INTEGER`/`REAL`/`TEXT`/`NUMERIC` columns, explicit Value / NULL / DEFAULT / verified Auto key modes. DEFAULT is decoded from authoritative `dflt_value` as a literal bound parameter, never evaluated as SQL; unknown/expression defaults refuse when selected. Missing default is NULL only where allowed. No BLOB, generated/hidden layouts, triggers, CHECK expressions, expression/partial indexes or conflict-policy side effects.
 - Auto requires authoritative ordinary rowid-table metadata, one exact INTEGER primary key, no primary-key backing index and no default. `INTEGER PRIMARY KEY DESC` and `WITHOUT ROWID` are explicitly tested and rejected for Auto. The generated number is not guessed; a subsequent read query verifies it.
 - Preview performs no INSERT. An issued one-shot review binds exact SQL, parameters, column modes and schema revision. Apply rechecks metadata, executes in a savepoint, requires exactly one changed row and the 1 MiB database budget, then restores read protection. Constraints roll back. UI edits/cancel/disposal invalidate stale reviews; synchronous workspace lock prevents navigation during apply; success clears prior results without automatic queries.
-- Evidence: real SQL.js tests cover quoted defaults, automatic IDs, DESC/WITHOUT ROWID rejection, SQL-like bound text, unique/immediate-FK failures, deferred-FK RELEASE failure through the same production transaction executor, rollback/read-protection recovery and altered reviews. Main SDK remote-DOM regression adds explicit INSERT preview, successful table readback, duplicate-key failure and absence of a partial row. Injected host transports are not native-app or Docker evidence; alpha26 real Netcatty acceptance remains pending.
+- Evidence: real SQL.js tests cover quoted defaults, automatic IDs, DESC/WITHOUT ROWID rejection, SQL-like bound text, unique/immediate-FK failures, deferred-FK RELEASE failure through the same production transaction executor, rollback/read-protection recovery and altered reviews. Main SDK remote-DOM regression adds explicit INSERT preview, successful table readback, duplicate-key failure and absence of a partial row. Injected host transports are not native-app or Docker evidence; alpha26 actual Netcatty preview, insert/readback and duplicate rollback/readback passed; see native-insert-alpha26.md.
 
-### Explicit local SQLite snapshots (alpha27 candidate; native acceptance pending)
+### Explicit local SQLite snapshots (alpha27 native acceptance passed)
 
 The plugin can explicitly save a complete SQL.js database, inspect its local snapshot,
 review restoration, confirm replacement, and permanently clear the saved copy in two
@@ -189,3 +189,15 @@ rows, NULL and indexes; tests cover corruption, close/restore races, deletion/sa
 races, constraint validation and export protection failure. Main SDK remote-DOM
 covers save, reconnect, explicit restore and readback, cancel/confirm clear. These
 are injected storage/view tests, not native app or Docker acceptance.
+
+
+Alpha27 native acceptance now additionally covers save, reconnect/restore and a
+full app process restart followed by restore/readback. See native-snapshot-alpha27.md.
+No encrypted storage/native file sync claim is made.
+
+Real MySQL 8.4.7 prepared binary reads (three bound int64/text/NULL exchanges,
+SQL-looking parameter zero rows and connection reuse) and PostgreSQL 17.6 index
+metadata (three bound reads, raw definition preservation) passed via actual
+Netcatty SSH with strict TLS 1.3. These execute plugin protocol modules using
+independent Node transport, not main plugin database connections. Public broker
+STARTTLS/local-endpoint limits remain; no bypass, merge or release.
