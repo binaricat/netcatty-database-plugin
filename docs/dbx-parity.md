@@ -31,8 +31,8 @@ behavior exists but scope or qualification is materially narrower than DBX.
 Missing means no usable implementation on main. Historical experimental-host
 results cannot be carried forward as main acceptance.
 
-After the returned-result export slice: **0 of 24 capability groups complete; 10 partial;
-14 missing**. This coarse count is not a percentage of engineering effort or a
+After the explicit workspace-drafts slice: **0 of 24 capability groups complete; 11 partial;
+13 missing**. This coarse count is not a percentage of engineering effort or a
 weighted product completion score. It also does not establish that every DBX
 advertised driver itself has been independently tested in DBX.
 
@@ -49,7 +49,7 @@ advertised driver itself has been independently tested in DBX.
 | 9. Completion, formatting and diagnostics | Missing | No schema-aware completion or formatter/diagnostic engine. |
 | 10. Selection/scripts/manual transactions | Missing | One read or reviewed simple DML statement only; no batch, script execution or manual transaction controls. |
 | 11. Query history and saved SQL/snippets | Partial | Bounded in-view history and named SQL library. No persisted SQL library or richer snippets yet. |
-| 12. Restored editor tabs/drafts | Missing | Query state lasts only for the mounted workspace/session. |
+| 12. Restored editor tabs/drafts | Partial | Explicit bounded save/restore/clear by saved connection, native confirmation and stale-operation protection. Full-app synthetic lifecycle tested; restart/multi-connection native acceptance remains. See `workspace-drafts.md`. |
 | 13. Result browsing/search/sort/paging | Partial | Bounded returned-result paging, filtering, sorting and cell inspection. No server-side paging or virtual scrolling. |
 | 14. Grid insert/edit/delete with SQL preview | Missing | Reviewed simple SQL INSERT/UPDATE/DELETE now work on disposable memory; direct grid mutation controls are still absent. |
 | 15. CSV/JSON/Markdown/XLSX/INSERT export | Partial | CSV/JSON/Markdown/SQLite INSERT export of returned rows only, bounded preview and explicit clipboard action (4096 UTF-8 bytes). Upstream truncation is disclosed. No XLSX, disk or full-table export. Full-App alpha.9 previews and explicit copying tested for all four formats, including SQL explicit-target protection; native cancellation/limits remain deterministic-only. Native confirmation depends on host permission mode. See `result-export.md`. |

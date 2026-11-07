@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { PluginContext } from './databaseClient';
 import type { DatabaseOpenResult, DatabaseFileOpenResult, DatabaseHandleRequest, DatabaseSchemaResult, DatabaseSavedConnection, DatabaseHostList, DatabaseConnectionMeta, DatabaseQueryResult } from './databaseTypes';
 import { parseParameters, ParameterError, DATABASE_FEATURE, defaultQuery, selectObject } from './domain';
@@ -9,6 +9,7 @@ import { useHostLiveSshPg } from './useHostLiveSshPg';
 import { useTunnelTest } from './useTunnelTest';
 import { translator, type Message } from './i18n';
 import { emptyQueryLibrary, recordQuery, saveQuery, removeSavedQuery as removeLibraryQuery, clearQueryHistory, type SavedQuery } from './queryLibrary';
+import {createEditorDraftStorage, type DraftSnapshot, type DraftStorageOutcome} from './editorDraftStorage';
 export const SAVED_FEATURE = 'database.saved-connections.v1';
 type Session = DatabaseOpenResult | DatabaseFileOpenResult | DatabaseTcpOpenResult;
 export type QueryTab = { id: number; sql: string; parameters: string; result: DatabaseQueryResult | null; resultSql?: string; objectName?: string; surface?: 'data' | 'structure' };
@@ -33,10 +34,14 @@ export function useWorkbench(context: PluginContext) {
   const [connectedId, setConnectedId] = useState('');
   const [schema, setSchema] = useState<DatabaseSchemaResult | null>(null);
   const [tabs, setTabs] = useState<QueryTab[]>([]); const [activeTab, updateActiveTab] = useState(1);
+  const editorRevision = useRef(0);
+  const [draftStorageBusy,setDraftStorageBusy]=useState(false);
+  const draftStorageRunning=useRef(false);
+  const [draftStorageNotice,setDraftStorageNotice]=useState<DraftStorageOutcome|null>(null);
   const [pendingWrite, setPendingWrite] = useState<ReviewedWrite | null>(null);
   const reviewed = useRef<ReviewedWrite | null>(null);
   const invalidateWrite = () => { reviewed.current = null; setPendingWrite(null); };
-  const setActiveTab = (id: number) => { invalidateWrite(); updateActiveTab(id); };
+  const setActiveTab = (id: number) => { editorRevision.current++; invalidateWrite(); updateActiveTab(id); };
   const [busy, setBusy] = useState(false);
   const [failure, setFailure] = useState<{ key: Message; diagnostic?: string } | null>(null);
   const [modal, setModal] = useState<'picker' | 'connection' | null>(null);
@@ -92,6 +97,7 @@ export function useWorkbench(context: PluginContext) {
   const refresh = () => {
     invalidateWrite();
     if (locked.current || !walRefreshEnabled || !live.current || !('revision' in live.current)) return;
+    editorRevision.current++;
     epoch.current++;
     return action(async (rev) => {
       const old = live.current!; let fresh: DatabaseFileOpenResult | null = null;
@@ -177,7 +183,7 @@ export function useWorkbench(context: PluginContext) {
   });
   const loadHosts = () => action(async (rev) => { tunnel.reset(); portProbe.reset(); liveSshPg.reset(); const list = await context.database.listHostsForDatabase({}); if (rev === epoch.current) setHosts(list); });
   const tab = tabs.find((item) => item.id === activeTab);
-  const edit = (patch: Partial<QueryTab>) => { invalidateWrite(); setTabs((items) => items.map((item) => item.id === activeTab ? { ...item, ...patch } : item)); };
+  const edit = (patch: Partial<QueryTab>) => { editorRevision.current++; invalidateWrite(); setTabs((items) => items.map((item) => item.id === activeTab ? { ...item, ...patch } : item)); };
   const addTab = (table?: string) => {
     const existing = table && tabs.find((item) => item.objectName === table);
     if (existing) { setActiveTab(existing.id); return; }
@@ -186,7 +192,7 @@ export function useWorkbench(context: PluginContext) {
     if (table) { item.objectName = table; item.surface = 'structure'; item.sql = selectObject(table, session?.engine); item.parameters = '[]'; }
     setTabs((items) => [...items, item]); setActiveTab(id);
   };
-  const closeTab = (id: number) => { invalidateWrite(); const remaining = tabs.filter((t) => t.id !== id); setTabs(remaining); if (id === activeTab) setActiveTab(remaining[0]?.id ?? 0); };
+  const closeTab = (id: number) => { editorRevision.current++; invalidateWrite(); const remaining = tabs.filter((t) => t.id !== id); setTabs(remaining); if (id === activeTab) setActiveTab(remaining[0]?.id ?? 0); };
   const saveCurrentQuery = (name: string) => {
     if (locked.current || !tab) return;
     try {
@@ -203,6 +209,7 @@ export function useWorkbench(context: PluginContext) {
   };
   const execute = (mode: 'read' | 'write', snapshot: QueryTab, write?: ReviewedWrite) => action(async (rev) => {
     if (!live.current) return;
+    editorRevision.current++; // Invalidate any pending restore even if execution finishes before its review closes.
     if (mode === 'write' && (!write || !matchesReviewedWrite(write, live.current.handleId, snapshot))) return;
     const tab = snapshot; const id = tab.id;
     edit({ result: null, resultSql: undefined });
@@ -243,5 +250,21 @@ export function useWorkbench(context: PluginContext) {
     invalidateWrite();
     return execute('write', {...tab!, sql: review.sql, parameters: review.parameters}, review);
   };
-  return { pendingWrite, canReviewWrite, confirmWrite, cancelWrite: invalidateWrite, queryLibrary, saveCurrentQuery, removeSavedQuery, clearHistory, loadQuery, selectedDriver, selectDriver, tcpEnabled, testTcp, connectTcp, invalidateDraft, liveSshPg, portProbe, tunnel, t, locale, tabTitle, saved, session, connectedId, connectionName: session && !connectedId && session.engine === 'sqlite' ? t('Disposable SQLite') : connectionName, schema, tabs, tab, activeTab, setActiveTab, addTab, closeTab, edit, busy, error, modal, setModal: (next: 'picker' | 'connection' | null) => { invalidateWrite(); tunnel.reset(); portProbe.reset(); liveSshPg.reset(); setModal(next); }, draftSession, tested, hosts, theme, enabled, persistence, fileEnabled, walEnabled, walConcurrentEnabled, walCheckpointEnabled, walCaptureEnabled, malformedRejectEnabled, walRefreshEnabled, refresh, dismiss, disconnect, selectSource, test, save, open, openUnsaved, remove, loadHosts, run };
+  const draftSnapshot = useRef<DraftSnapshot|null>(null);
+  draftSnapshot.current=session && connectedId && saved.some(item=>item.id===connectedId) && !busy ? {connectionId:connectedId,handleId:session.handleId,revision:editorRevision.current,tabs,activeTab:tabs.length?activeTab:null,objectNames:schema?.tables.map(item=>item.name)??[]} : null;
+  const draftIntegration = useRef({t,apply:(restored: QueryTab[],active:number|null,next:number)=>{invalidateWrite();editorRevision.current++;setTabs(restored);updateActiveTab(active??0);nextTab.current=next;}});
+  draftIntegration.current={t,apply:(restored,active,next)=>{invalidateWrite();editorRevision.current++;setTabs(restored);updateActiveTab(active??0);nextTab.current=next;}};
+  const draftController=useMemo(()=>createEditorDraftStorage({storage:context.storage,snapshot:()=>{
+    const snapshot=draftSnapshot.current;
+    return snapshot && !locked.current && live.current?.handleId===snapshot.handleId ? {...snapshot,revision:editorRevision.current} : null;
+  },confirm:async kind=>await context.ui.quickPick(draftIntegration.current.t(kind==='restore'?'Replace current editor tabs with saved drafts?':'Delete saved workspace drafts for this connection?'),[{id:'confirm',label:draftIntegration.current.t(kind==='restore'?'Replace editor tabs':'Delete saved drafts')},{id:'cancel',label:draftIntegration.current.t('Cancel')}])==='confirm',apply:(restored,active,next)=>draftIntegration.current.apply(restored.map(item=>({...item,result:null,resultSql:undefined})),active,next)}),[context]);
+  const workspaceDrafts = async (operation:'save'|'restore'|'clear')=>{
+    if(draftStorageRunning.current)return;draftStorageRunning.current=true;setDraftStorageBusy(true);setDraftStorageNotice(null);
+    const rev=epoch.current;
+    const outcome=await draftController.run(operation);
+    draftStorageRunning.current=false;
+    if(rev===epoch.current){setDraftStorageNotice(outcome);setDraftStorageBusy(false);}
+    else setDraftStorageBusy(false);
+  };
+  return { workspaceDrafts, draftStorageBusy, draftStorageNotice, canStoreDrafts:Boolean(draftSnapshot.current), pendingWrite, canReviewWrite, confirmWrite, cancelWrite: invalidateWrite, queryLibrary, saveCurrentQuery, removeSavedQuery, clearHistory, loadQuery, selectedDriver, selectDriver, tcpEnabled, testTcp, connectTcp, invalidateDraft, liveSshPg, portProbe, tunnel, t, locale, tabTitle, saved, session, connectedId, connectionName: session && !connectedId && session.engine === 'sqlite' ? t('Disposable SQLite') : connectionName, schema, tabs, tab, activeTab, setActiveTab, addTab, closeTab, edit, busy, error, modal, setModal: (next: 'picker' | 'connection' | null) => { invalidateWrite(); tunnel.reset(); portProbe.reset(); liveSshPg.reset(); setModal(next); }, draftSession, tested, hosts, theme, enabled, persistence, fileEnabled, walEnabled, walConcurrentEnabled, walCheckpointEnabled, walCaptureEnabled, malformedRejectEnabled, walRefreshEnabled, refresh, dismiss, disconnect, selectSource, test, save, open, openUnsaved, remove, loadHosts, run };
 }

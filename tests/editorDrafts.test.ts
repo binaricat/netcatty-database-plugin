@@ -20,10 +20,10 @@ test('malformed/version/duplicate ids/missing active tab and invalid object surf
   for(const value of [{version:1,tabs:[tab,tab],activeTab:7},{version:1,tabs:[tab],activeTab:9},{version:1,tabs:[],activeTab:7},{version:1,tabs:[{...tab,id:-1}],activeTab:-1},{version:1,tabs:[{id:1,sql:'',parameters:'',surface:'structure'}],activeTab:1}])assert.deepEqual(parseEditorDrafts(JSON.stringify(value)),{ok:false,reason:'invalid-document'});
 });
 test('tab, character and UTF-8 total limits fail without truncating content',()=>{
-  assert.throws(()=>createEditorDrafts(Array.from({length:11},(_,i)=>({...tab,id:i+1})),1));
+  assert.throws(()=>createEditorDrafts(Array.from({length:9},(_,i)=>({...tab,id:i+1})),1));
   assert.throws(()=>createEditorDrafts([{...tab,sql:'x'.repeat(8193)}],7));
   assert.throws(()=>createEditorDrafts([{...tab,parameters:'x'.repeat(8193)}],7));
-  const tabs=Array.from({length:10},(_,i)=>({...tab,id:i+1,sql:'界'.repeat(8192)}));
+  const tabs=Array.from({length:8},(_,i)=>({...tab,id:i+1,sql:'界'.repeat(8192)}));
   assert.throws(()=>createEditorDrafts(tabs,1),/96 KiB/);
   assert.deepEqual(parseEditorDrafts(JSON.stringify({version:1,tabs,activeTab:1})),{ok:false,reason:'too-large'});
 });

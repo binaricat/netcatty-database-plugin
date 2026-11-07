@@ -1,6 +1,28 @@
 // Original plugin-owned copy. English source keys keep the fallback explicit.
 // Only the host environment selects language; never navigator/OS/input locale.
 export const zhCN = {
+  "Workspace drafts": "工作区草稿",
+  "Saving stores SQL and parameters, which may contain sensitive data. Results and connection credential fields are excluded. Only this saved connection is affected.": "保存将存储 SQL 和参数，其中可能含敏感信息；不保存查询结果或连接凭据字段。仅影响当前已保存连接。",
+  "Save workspace drafts": "保存工作区草稿",
+  "Restore saved drafts": "恢复已存草稿",
+  "Clear saved drafts": "清除已存草稿",
+  "Connect a saved connection to store or restore drafts.": "请先连接一个已保存连接，再存储或恢复草稿。",
+  "Waiting for storage or host confirmation.": "正在等待存储或宿主确认。",
+  "Workspace drafts saved.": "工作区草稿已保存。",
+  "The clicked snapshot was saved; later edits remain unsaved.": "点击时的草稿已保存；后续编辑尚未保存。",
+  "Drafts restored without executing SQL.": "草稿已恢复，未执行 SQL。",
+  "Drafts restored. Missing objects were converted to ordinary SQL tabs.": "草稿已恢复；不存在的对象已转为普通 SQL 页签。",
+  "Saved drafts cleared.": "已清除存储的草稿。",
+  "Draft operation cancelled.": "已取消草稿操作。",
+  "Editor or connection changed. Restore was not applied.": "编辑器或连接已变化，未应用恢复。",
+  "No saved workspace drafts.": "没有已存工作区草稿。",
+  "Saved drafts are invalid or too large; nothing was restored.": "已存草稿无效或过大，未恢复任何内容。",
+  "Draft storage failed. Check permission or size limits.": "草稿存储失败，请检查权限或大小限制。",
+  "Replace current editor tabs with saved drafts?": "用已存草稿替换当前编辑器页签？",
+  "Delete saved workspace drafts for this connection?": "删除此连接的已存工作区草稿？",
+  "Replace editor tabs": "替换编辑器页签",
+  "Delete saved drafts": "删除已存草稿",
+
 "NUL characters are displayed as \\0 in this preview only. Original export is unchanged; choose JSON to copy safely.":"仅在预览中将 NUL 显示为 \\0，原导出文本没有改变；请使用 JSON 安全复制。",
 "SQL is SQLite-oriented and is not executed. Confirm destination schema and types before importing.":"SQL 面向 SQLite 且不会执行，导入前请确认目标表结构和类型。",
 "NULL and empty strings use display labels; Markdown is a presentation format, not lossless interchange.":"NULL 和空字符串使用显示标签；Markdown 用于展示，不是无损交换格式。",

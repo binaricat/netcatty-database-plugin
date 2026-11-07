@@ -2,7 +2,7 @@
  * data: persistence is not enabled here. No results, credentials, connection handles,
  * pending writes or execution state enter the allowlisted document.
  */
-export const EDITOR_DRAFT_LIMITS = Object.freeze({ tabs: 10, sql: 8192, parameters: 8192, objectName: 256, bytes: 96 * 1024 });
+export const EDITOR_DRAFT_LIMITS = Object.freeze({ tabs: 8, sql: 8192, parameters: 8192, objectName: 256, bytes: 96 * 1024 });
 export interface EditorDraftTab { id: number; sql: string; parameters: string; objectName?: string; surface?: 'data' | 'structure'; }
 export interface EditorDrafts { version: 1; tabs: EditorDraftTab[]; activeTab: number | null; }
 export type EditorDraftLoad = {ok: true; value: EditorDrafts} | {ok: false; reason: 'missing' | 'invalid-json' | 'unsupported-version' | 'invalid-document' | 'too-large'};

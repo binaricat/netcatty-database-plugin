@@ -10,7 +10,7 @@
     "en": "Plugin-owned SQLite memory workbench for Netcatty main. Additional drivers are not yet ported.",
     "zh-CN": "适用于 Netcatty main 的插件自有 SQLite 内存工作台，其他驱动尚未迁移。"
   },
-  "version": "0.1.0-alpha.9",
+  "version": "0.1.0-alpha.10",
   "publisher": "binaricat",
   "license": "GPL-3.0-or-later",
   "engines": {
