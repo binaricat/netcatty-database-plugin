@@ -14,7 +14,7 @@ export function SqlAssistant({ context, schema, sql, label, engine, dialect, dis
   const ai = useSqlAssistant(context, schema, sql, label, engine, dialect);
   const status = !ai.enabled || ai.failure ? t('Unavailable') : ai.busy ? t('Generating unexecuted draft...') : ai.stopped ? t('Stopped - draft remains unexecuted.') : t('Host model - checked when you run assistance.');
   return <><label className="ai-mode">{t('AI mode')}<select aria-label={t('AI mode')} value={mode} onChange={e=>{ai.stop();setMode(e.currentTarget.value as typeof mode);}}><option value="draft">{t('SQL draft assistant')}</option><option value="agent">{t('Agent conversation')}</option></select></label>{mode === 'agent' ? <AgentAssistant context={context} schema={schema} sql={sql} label={label} engine={engine} dialect={dialect} disabled={disabled} insert={insert} t={t}/> : <div className="ai-content">
-    <button className="secondary" disabled={ai.busy || !ai.conversation.length} onClick={ai.reset}>{t('New AI conversation')}</button>
+    <button className="secondary" disabled={ai.busy || !ai.conversation.length && !ai.hasLastRequest} onClick={ai.reset}>{t('New AI conversation')}</button>
     <p className="hint">{t('Recent turns stay in this panel only and are sent with follow-up requests.')}</p>
     <p role="status">{status + (ai.model ? ` ${t('Host model')}: ${ai.model}` : '')}</p>
     {!ai.enabled ? <p>{t('Host AI is unavailable on this host.')}</p> : <>
@@ -23,6 +23,10 @@ export function SqlAssistant({ context, schema, sql, label, engine, dialect, dis
       <label>{t('Your request')}<textarea aria-label={t('Your request')} value={ai.request} maxLength={1500} disabled={ai.busy} onChange={(e) => ai.setRequest(e.currentTarget.value)} /></label>
       <button className="secondary" disabled={disabled || ai.busy || !schema?.tables.length} onClick={() => void ai.run()}>{t('Run assistance')}</button>
       <button className="secondary" disabled={!ai.busy} onClick={ai.stop}>{t('Stop')}</button>
+      {ai.hasLastRequest && <><button className="secondary" disabled={disabled || ai.busy} onClick={() => void ai.retryLast()}>{t('Retry last request')}</button>
+      <button className="secondary" disabled={ai.busy} onClick={ai.editLast}>{t('Edit last request')}</button>
+      <p>{ai.lastRequest ? `${t(ai.lastRequest.task)}: ${ai.lastRequest.request.slice(0, 240)}${ai.lastRequest.request.length > 240 ? '…' : ''}` : ''}</p>
+      <p className="hint">{t('Retry reuses the original SQL and schema, which may differ from the current editor. Edit restores the request without sending; Run assistance uses current context.')}</p></>}
       {ai.failure && <p role="alert">{t(ai.failure)}</p>}
     </>}
     <p className="hint">{`${t('Unexecuted AI draft')}. ${t('Insertion replaces editor text only. Review SQL and parameters before Run read query or Review write. Nothing executes automatically.')}`}</p><pre aria-label={t('Unexecuted AI draft')}>{ai.draft || t('No draft generated.')}</pre>

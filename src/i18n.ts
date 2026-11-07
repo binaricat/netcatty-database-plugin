@@ -1,6 +1,9 @@
 // Original plugin-owned copy. English source keys keep the fallback explicit.
 // Only the host environment selects language; never navigator/OS/input locale.
 export const zhCN = {
+  "Retry last request": "重试上一请求",
+  "Edit last request": "编辑上一请求",
+  "Retry reuses the original SQL and schema, which may differ from the current editor. Edit restores the request without sending; Run assistance uses current context.": "重试沿用原 SQL 与表结构，可能与当前编辑器不同。编辑仅恢复请求，不会发送；点击运行辅助才会使用当前上下文。",
   "New table":"新建表",
   "New index":"新建索引",
   "Edit":"编辑",

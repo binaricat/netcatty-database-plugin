@@ -26,7 +26,7 @@ Compared with DBX `b6c3d47`, in particular `apps/desktop/src/components/editor/A
 
 ## Remaining differences, not claimed complete
 
-DBX's editing/retry/branching, provider/model configuration UI, attachments, selected skills, Agent database tools with approval, rich chart/HTML output, query/explain tooling and execution-plan views remain incomplete here. Durable Agent conversation history is no longer classified as absent: its SDK integration exists, with real-provider acceptance pending. Some remaining features can be implemented as bounded plugin UI after associated database features exist; they are not blanket classified as host limitations.
+The draft assistant now has explicit Retry and Edit-last-request branches, described below. General transcript branching/editing, provider/model configuration UI, attachments, selected skills, Agent database tools with approval, rich chart/HTML output, query/explain tooling and execution-plan views remain incomplete here. Durable Agent conversation history is no longer classified as absent: its SDK integration exists, with real-provider acceptance pending. Some remaining features can be implemented as bounded plugin UI after associated database features exist; they are not blanket classified as host limitations.
 
 ## Corrected host-capability audit
 
@@ -62,3 +62,21 @@ Source evidence: main `PluginAgentClient`; generated `PluginAgentBackend`, `Plug
 - The actual full-App environment currently has no configured provider. No live configured draft model or Agent backend has passed end-to-end acceptance there. DBX Agent/database-tool parity is not complete.
 
 Current status: **SDK draft and Agent conversation integrations implemented; deterministic checks passing; real provider acceptance pending; DB-tool registry integration still missing.**
+
+
+## Explicit draft Retry / Edit-last candidate
+
+Retry reuses the captured task/request/prompt including the original schema/SQL,
+with a visible warning that it may differ from the current editor. It does not
+silently send new context. Edit-last restores the request and preceding history
+without calling a provider; the next explicit Run uses then-current context. A
+successful retry replaces that branch rather than duplicating history. Stop and
+failed requests do not become completed history, and generation guards reject
+late output. New conversation clears the retained request snapshot.
+
+`scripts/ai-branch-regression.mjs` mounts the real React component/hook and dispatches
+click/input events with an injected provider. Ten simulated invocations exercise
+original-context retry, non-sending edit, subsequent new context, nonduplicated
+history, stop/retry late-stream isolation, failure retry and reset. This is not a
+real configured model or native permission test. Native/provider acceptance remains
+pending. No database tools or automatic query execution were added.
