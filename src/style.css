@@ -470,3 +470,10 @@ pre { padding: 12px; background: hsl(var(--muted)/.4); border: 1px solid hsl(var
 
 .database-workbench .row-insert-field input:disabled,.database-workbench .row-insert-field select:disabled {background:hsl(var(--muted)/.25);color:hsl(var(--muted-foreground));opacity:.65;}
 .row-insert-field label:last-child {min-width:0;}
+
+.snapshot-panel { max-width: 800px; margin: 0 auto; width: 100%; }
+.snapshot-panel > p[role="alert"] { color: var(--muted-foreground); font-size: 12px; line-height: 1.6; }
+.snapshot-panel .hint { overflow-wrap: anywhere; font-size: 12px; }
+.snapshot-panel .hint p { margin: 5px 0; }
+.snapshot-panel .create-table-actions { flex-wrap: wrap; justify-content: flex-start; }
+.snapshot-panel > div > button { margin: 8px 8px 0 0; }

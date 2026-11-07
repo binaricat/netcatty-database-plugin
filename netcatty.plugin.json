@@ -10,7 +10,7 @@
     "en": "SQLite workbench and experimental Redis TLS browser. Redis requires an authorized declared endpoint; real-server qualification is pending.",
     "zh-CN": "SQLite 工作台与实验性 Redis TLS 浏览器。Redis 需配置已授权的声明端点，真实服务器验收尚未完成。"
   },
-  "version": "0.1.0-alpha.26",
+  "version": "0.1.0-alpha.27",
   "publisher": "binaricat",
   "license": "GPL-3.0-or-later",
   "engines": {

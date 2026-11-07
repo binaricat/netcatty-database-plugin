@@ -318,3 +318,5 @@ export type RowInsertReview=import('./rowInsertModel').RowInsertPlan & {handleId
 export type RowInsertRequest={handleId:DatabaseHandle;draft:import('./rowInsertModel').RowInsertDraft};
 export type RowInsertApplyRequest={handleId:DatabaseHandle;review:RowInsertReview};
 export type RowInsertResult={changes:1};
+
+export type SnapshotRestoreReview={handleId:DatabaseHandle;token:string;info:import('./snapshotStorage').SnapshotInfo;schema:DatabaseSchemaResult};

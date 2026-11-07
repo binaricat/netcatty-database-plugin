@@ -10,6 +10,11 @@ import type {DatabaseCreateIndexRequest,DatabaseCreateIndexApplyRequest,Database
 import type {GridMutationRequest,GridMutationApplyRequest,GridMutationReview,GridMutationResult} from './databaseTypes';
 import type {CsvImportRequest,CsvImportApplyRequest,CsvImportReview,CsvImportResult} from './databaseTypes';
 export interface PluginDatabaseClient {
+  snapshotInfo(params:DatabaseHandleRequest):Promise<import('./snapshotStorage').SnapshotInfo|undefined>;
+  saveSnapshot(params:DatabaseHandleRequest):Promise<import('./snapshotStorage').SnapshotInfo>;
+  previewRestoreSnapshot(params:DatabaseHandleRequest):Promise<import('./databaseTypes').SnapshotRestoreReview>;
+  applyRestoreSnapshot(params:DatabaseHandleRequest & {review:import('./databaseTypes').SnapshotRestoreReview}):Promise<{schema:DatabaseSchemaResult}>;
+  deleteSnapshot(params:DatabaseHandleRequest):Promise<null>;
   previewRowInsert(params:RowInsertRequest):Promise<RowInsertReview>;
   applyRowInsert(params:RowInsertApplyRequest):Promise<RowInsertResult>;
   previewDropIndex(params:DropIndexRequest):Promise<DropIndexReview>;

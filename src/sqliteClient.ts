@@ -1,3 +1,6 @@
+import {createSnapshotStorage} from './snapshotStorage';
+import {SqliteSnapshotError,exportProtectedSnapshot,validateSnapshotDatabase} from './sqliteSnapshot';
+import type {SnapshotRestoreReview} from './databaseTypes';
 import {previewRowInsert as buildRowInsert,RowInsertError,type RowInsertPlan} from './rowInsertModel';
 import type {RowInsertRequest,RowInsertReview,RowInsertApplyRequest,RowInsertResult} from './databaseTypes';
 import {previewDropIndexSql,DropIndexError,type DropIndexDraft} from './schemaDropIndex';
@@ -241,9 +244,13 @@ export function executeSqliteRowInsert(db:Database,plan:RowInsertPlan,onFatal:()
 export function createWorkbenchContext(context: PluginContext): WorkbenchContext {
   const sessions = new Map<string, Database>();
   const tableReviews=new Map<string,string>();
+  const savedIds=new Map<string,string>(),snapshotLocks=new Set<string>(),snapshotSavedLocks=new Set<string>();
+  const restoreReviews=new Map<string,{review:SnapshotRestoreReview;candidate:Database}>();
+  const snapshots=createSnapshotStorage(context.storage);
+  const discardRestore=(handleId:string)=>{const old=restoreReviews.get(handleId);restoreReviews.delete(handleId);old?.candidate.close();};
   let disposed = false;
   const assertLive = () => { if (disposed) throw new Error("Database runtime is closed."); };
-  const get = ({handleId}: DatabaseHandleRequest) => { assertLive(); const db = sessions.get(handleId); if (!db) throw new Error('Database connection is closed.'); return db; };
+  const get = ({handleId}: DatabaseHandleRequest) => { assertLive(); if(snapshotLocks.has(handleId))throw new SqliteSnapshotError('busy');discardRestore(handleId); const db = sessions.get(handleId); if (!db) throw new Error('Database connection is closed.'); return db; };
   const list = async () => {
     assertLive();
     const value = await context.storage.get(STORE_KEY);
@@ -253,7 +260,7 @@ export function createWorkbenchContext(context: PluginContext): WorkbenchContext
   };
   let mutations: Promise<unknown> = Promise.resolve();
   function mutate<T>(operation: () => Promise<T>): Promise<T> { const next = mutations.then(operation); mutations = next.catch(() => {}); return next; }
-  const close = async (target: DatabaseHandleRequest): Promise<null> => { const db = sessions.get(target.handleId); tableReviews.delete(target.handleId); sessions.delete(target.handleId); db?.close(); return null; };
+  const close = async (target: DatabaseHandleRequest): Promise<null> => { const db = sessions.get(target.handleId); discardRestore(target.handleId);savedIds.delete(target.handleId);tableReviews.delete(target.handleId); sessions.delete(target.handleId); db?.close(); return null; };
   const open = async () => {
     assertLive();
     if (sessions.size >= 4) throw new Error('Close an existing connection before opening another.');
@@ -530,8 +537,35 @@ export function createWorkbenchContext(context: PluginContext): WorkbenchContext
       if(sessions.has(request.handleId)){try{db.run('PRAGMA query_only=ON');}catch{tableReviews.delete(request.handleId);sessions.delete(request.handleId);db.close();throw new Error('SQLite read protection could not be restored; session closed.');}}
     }
   };
+  async function withSnapshot<T>(request:DatabaseHandleRequest,work:(db:Database,id:string)=>Promise<T>):Promise<T>{
+    assertLive();const db=sessions.get(request.handleId),id=savedIds.get(request.handleId);
+    if(!db||!id)throw new SqliteSnapshotError('unbound');if(snapshotLocks.has(request.handleId)||snapshotSavedLocks.has(id))throw new SqliteSnapshotError('busy');
+    snapshotLocks.add(request.handleId);snapshotSavedLocks.add(id);tableReviews.delete(request.handleId);
+    try{return await work(db,id);}finally{snapshotLocks.delete(request.handleId);snapshotSavedLocks.delete(id);}
+  }
+  const stillCurrent=(handleId:string,db:Database)=>{if(disposed||sessions.get(handleId)!==db)throw new SqliteSnapshotError('stale');};
+  const snapshotInfo=(request:DatabaseHandleRequest)=>withSnapshot(request,async(db,id)=>{discardRestore(request.handleId);const record=await snapshots.get(id);record?.bytes.fill(0);stillCurrent(request.handleId,db);return record?.info;});
+  const saveSnapshot=(request:DatabaseHandleRequest)=>withSnapshot(request,async(db,id)=>{
+    discardRestore(request.handleId);const bytes=exportProtectedSnapshot(db,()=>{sessions.delete(request.handleId);savedIds.delete(request.handleId);db.close();});
+    try{const result=await snapshots.save(id,bytes);return result;}finally{bytes.fill(0);}
+  });
+  const previewRestoreSnapshot=(request:DatabaseHandleRequest)=>withSnapshot(request,async(db,id)=>{
+    discardRestore(request.handleId);const record=await snapshots.get(id);if(!record)throw new SqliteSnapshotError('missing');let candidate:Database|undefined;
+    try{const SQL=await(engine??=initSqlJs());stillCurrent(request.handleId,db);candidate=new SQL.Database(record.bytes);validateSnapshotDatabase(candidate);const schema=inspectSqliteSchema(candidate);
+      const review:SnapshotRestoreReview={handleId:request.handleId,token:crypto.randomUUID(),info:record.info,schema};restoreReviews.set(request.handleId,{candidate,review:JSON.parse(JSON.stringify(review)) as SnapshotRestoreReview});candidate=undefined;return review;
+    }catch(error){if(error instanceof SqliteSnapshotError)throw error;throw new SqliteSnapshotError('invalid');}finally{candidate?.close();record.bytes.fill(0);}
+  });
+  const applyRestoreSnapshot=(request:DatabaseHandleRequest & {review:SnapshotRestoreReview})=>withSnapshot(request,async(db,id)=>{
+    const pending=restoreReviews.get(request.handleId);restoreReviews.delete(request.handleId);if(!pending)throw new SqliteSnapshotError('stale');let installed=false;
+    try{if(JSON.stringify(pending.review)!==JSON.stringify(request.review))throw new SqliteSnapshotError('stale');const record=await snapshots.get(id);record?.bytes.fill(0);
+      stillCurrent(request.handleId,db);if(!record||JSON.stringify(record.info)!==JSON.stringify(pending.review.info))throw new SqliteSnapshotError('stale');
+      validateSnapshotDatabase(pending.candidate);const schema=inspectSqliteSchema(pending.candidate);sessions.set(request.handleId,pending.candidate);installed=true;try{db.close();}catch{/* Commit already succeeded: cleanup failure must not report replacement as failed. */}return {schema};
+    }finally{if(!installed)pending.candidate.close();}
+  });
+  const deleteSnapshot=(request:DatabaseHandleRequest)=>withSnapshot(request,async(db,id)=>{discardRestore(request.handleId);await snapshots.delete(id);return null;});
   const database: PluginDatabaseClient & {capabilities: ReadonlySet<string>} = {
-    capabilities: new Set(['database.sqlite-fixture.v1','database.saved-connections.v1','database.sqlite-reviewed-writes.v1','database.sqlite-create-table.v1','database.sqlite-create-index.v1','database.sqlite-grid-mutation.v1','database.sqlite-csv-import.v1','database.sqlite-rename-column.v1','database.sqlite-row-insert.v1','database.sqlite-drop-index.v1','database.sqlite-add-column.v1']),
+    capabilities: new Set(['database.sqlite-snapshot.v1','database.sqlite-fixture.v1','database.saved-connections.v1','database.sqlite-reviewed-writes.v1','database.sqlite-create-table.v1','database.sqlite-create-index.v1','database.sqlite-grid-mutation.v1','database.sqlite-csv-import.v1','database.sqlite-rename-column.v1','database.sqlite-row-insert.v1','database.sqlite-drop-index.v1','database.sqlite-add-column.v1']),
+    snapshotInfo,saveSnapshot,previewRestoreSnapshot,applyRestoreSnapshot,deleteSnapshot,
     previewRowInsert,applyRowInsert,previewDropIndex,applyDropIndex,previewRenameColumn,applyRenameColumn,previewAddColumn,applyAddColumn,previewCsvImport,applyCsvImport,previewCreateTable,applyCreateTable,previewCreateIndex,applyCreateIndex,previewGridMutation:previewGridRow,applyGridMutation,
     openFixture: open, readSchema, query, close, cancel:close,
     listSavedConnections:list,
@@ -542,15 +576,20 @@ export function createWorkbenchContext(context: PluginContext): WorkbenchContext
       if (saved.length >= MAX_CONNECTIONS) throw new Error('The saved connection limit has been reached.');
       const value: DatabaseSavedConnection = {id:crypto.randomUUID(),name:request.meta.name,color:request.meta.color,engine:'sqlite',targetKind:'memory',readOnly:false};
       if (!validSaved(value)) throw new Error('Invalid connection metadata.');
-      assertLive(); await context.storage.set(STORE_KEY,[...saved,value]); return value;
+      assertLive(); await context.storage.set(STORE_KEY,[...saved,value]); get(request);savedIds.set(request.handleId,value.id);return value;
     }),
-    openSavedConnection: async ({id}) => { if (!(await list()).some(c => c.id===id)) throw new Error('Saved connection not found.'); return open(); },
-    deleteConnection: ({id}) => mutate(async () => { await context.storage.set(STORE_KEY,(await list()).filter(c=>c.id!==id)); return null; }),
+    openSavedConnection: async ({id}) => { if(snapshotSavedLocks.has(id))throw new SqliteSnapshotError('busy');snapshotSavedLocks.add(id);try{if (!(await list()).some(c => c.id===id)) throw new Error('Saved connection not found.');const result=await open();savedIds.set(result.handleId,id);return result;}finally{snapshotSavedLocks.delete(id);} },
+    deleteConnection: ({id}) => mutate(async () => {
+      if(snapshotSavedLocks.has(id))throw new SqliteSnapshotError('busy');snapshotSavedLocks.add(id);
+      try{const snapshot=await snapshots.get(id);if(snapshot){snapshot.bytes.fill(0);throw new Error('Clear this connection’s local database snapshot explicitly before deleting the connection.');}
+        await context.storage.set(STORE_KEY,(await list()).filter(c=>c.id!==id));for(const [handle,saved] of savedIds)if(saved===id){discardRestore(handle);savedIds.delete(handle);}return null;
+      }finally{snapshotSavedLocks.delete(id);}
+    }),
     openTcp: unavailable, openSqliteFile: unavailable, refreshSqliteFile: unavailable,
     listHostsForDatabase: unavailable, testTunnel: unavailable, cancelTunnelTest: unavailable,
     probeHostDatabasePorts: unavailable, cancelHostDatabasePorts: unavailable,
     openHostLiveSshPgFixture: unavailable, cancelHostLiveSshPgFixture: unavailable, closeHostLiveSshPgSession: unavailable,
   };
-  context.subscriptions.add({dispose() { disposed = true; for (const db of sessions.values()) db.close(); sessions.clear(); tableReviews.clear(); }});
+  context.subscriptions.add({dispose() { disposed = true; for(const h of restoreReviews.keys())discardRestore(h);savedIds.clear();for (const db of sessions.values()) db.close(); sessions.clear(); tableReviews.clear(); }});
   return Object.assign(Object.create(context), {database}) as WorkbenchContext;
 }
