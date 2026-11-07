@@ -54,7 +54,7 @@ function ConnectionDialog({ vm }: { vm: Model }) {
         <nav aria-label={t("Database categories")}>{categories.map(([id, label]) => <button key={id} aria-pressed={category === id} className={category === id ? 'selected-category' : ''} onClick={() => setCategory(id)}>{t(label)}</button>)}</nav>
         <div className="type-list">
           <label className="catalog-search"><Icon name="search" /><input aria-label={t("Search databases")} placeholder={t("Search databases...")} value={search} maxLength={64} onChange={event => setSearch(event.currentTarget.value)} /></label>
-          <div className="catalog-results">
+          <div className="catalog-results" tabIndex={0} role="region" aria-label={t("Database Types")}>
             <div className="engine-grid">{filterDrivers(category, search).map(engine => <button key={engine.id} aria-label={engine.label} className={`type-option ${driver.id === engine.id ? 'selected' : ''}`} aria-pressed={driver.id === engine.id} disabled={vm.busy} onClick={() => void vm.selectDriver(engine.id)}>
               {driver.id === engine.id && <span className="engine-check"><Icon name="check" /></span>}
               <span className="engine-mark"><EngineIcon engine={engine.id} theme={vm.theme} /></span><strong>{engine.label}</strong>

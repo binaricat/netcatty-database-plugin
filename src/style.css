@@ -150,6 +150,25 @@ pre { padding: 12px; background: hsl(var(--muted)/.4); border: 1px solid hsl(var
 .type-picker nav button.selected-category { color: hsl(var(--foreground)); background: hsl(var(--muted)); font-weight: 500; }
 .type-list { display: flex; flex-direction: column; padding: 24px 24px 0 16px; min-width: 0; min-height: 0; }
 .catalog-results { overflow: auto; min-height: 0; padding: 4px 4px 24px; }
+/* Native scrolling, using the host's notes-tree thumb palette. */
+.connection-dialog :is(.catalog-results,.modal-content,.type-picker nav,.connection-feedback .error) { --plugin-scroll-thumb: hsl(var(--muted-foreground)/.28); scrollbar-gutter: stable; scrollbar-width: thin; scrollbar-color: var(--plugin-scroll-thumb) transparent; }
+.connection-dialog :is(.catalog-results,.modal-content,.type-picker nav,.connection-feedback .error):is(:hover,:focus-within) { --plugin-scroll-thumb: hsl(var(--muted-foreground)/.46); }
+.catalog-results:focus-visible { outline: 2px solid hsl(var(--ring)); outline-offset: -2px; }
+/* Standard non-auto colors override Chromium's rounded pseudo-element styling. */
+@supports selector(::-webkit-scrollbar) {
+  .connection-dialog :is(.catalog-results,.modal-content,.type-picker nav,.connection-feedback .error) { scrollbar-width: auto; scrollbar-color: auto; }
+  .connection-dialog :is(.catalog-results,.modal-content,.type-picker nav,.connection-feedback .error)::-webkit-scrollbar { width: 8px; height: 8px; }
+  .connection-dialog :is(.catalog-results,.modal-content,.type-picker nav,.connection-feedback .error)::-webkit-scrollbar-track,
+  .connection-dialog :is(.catalog-results,.modal-content,.type-picker nav,.connection-feedback .error)::-webkit-scrollbar-corner { background: transparent; }
+  .connection-dialog :is(.catalog-results,.modal-content,.type-picker nav,.connection-feedback .error)::-webkit-scrollbar-thumb { min-height: 28px; border: 2px solid transparent; border-radius: 999px; background-color: var(--plugin-scroll-thumb); background-clip: content-box; }
+  .connection-dialog :is(.catalog-results,.modal-content,.type-picker nav,.connection-feedback .error)::-webkit-scrollbar-button { display: none; width: 0; height: 0; }
+}
+@media (forced-colors: active) {
+  .connection-dialog :is(.catalog-results,.modal-content,.type-picker nav,.connection-feedback .error),
+  .connection-dialog :is(.catalog-results,.modal-content,.type-picker nav,.connection-feedback .error):is(:hover,:focus-within) { --plugin-scroll-thumb: ButtonText; scrollbar-width: auto; scrollbar-color: auto; }
+  .connection-dialog :is(.catalog-results,.modal-content,.type-picker nav,.connection-feedback .error)::-webkit-scrollbar { width: auto; height: auto; }
+  .connection-dialog :is(.catalog-results,.modal-content,.type-picker nav,.connection-feedback .error)::-webkit-scrollbar-track { background: Canvas; }
+}
 .engine-grid { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 16px 12px; }
 .type-option { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 16px 6px 12px; min-height: 112px; gap: 6px; border: 0; color: hsl(var(--foreground)); background: transparent; border-radius: var(--radius); box-shadow: none; white-space: normal; }
 .type-option:disabled { opacity: 1; color: hsl(var(--muted-foreground)); }
@@ -224,7 +243,7 @@ pre { padding: 12px; background: hsl(var(--muted)/.4); border: 1px solid hsl(var
 .progress-dots { display: flex; gap: 5px; flex-shrink: 0; }
 .progress-dots span { width: 7px; height: 7px; border-radius: 50%; background: hsl(var(--muted)); }
 .progress-dots span.complete { background: hsl(var(--primary)); }
-.catalog-search { display: flex; gap: 8px; align-items: center; margin-bottom: 20px; flex-shrink: 0; }
-.catalog-search .host-icon { color: hsl(var(--muted-foreground)); }
-.catalog-search input { font-size: 12px; }
+.catalog-search { position: relative; display: block; margin-bottom: 20px; flex-shrink: 0; }
+.catalog-search .host-icon { position: absolute; left: 12px; top: calc(50% - 8px); color: hsl(var(--muted-foreground)); pointer-events: none; }
+.catalog-search input { font-size: 12px; padding-left: 36px; }
 @container (max-width: 700px) { .engine-grid { grid-template-columns: repeat(3,minmax(0,1fr)); } }
