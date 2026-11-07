@@ -230,11 +230,15 @@ pre { padding: 12px; background: hsl(var(--muted)/.4); border: 1px solid hsl(var
 .sql-label textarea { border: 0; border-radius: 0; }
 .query-split { min-height: 260px; }
 .query-split > .results { min-height: 120px; }
-.object-split > .object-editor { flex: 0 0 160px; min-height: 160px; }
+.object-split > .object-editor { flex: 0 0 240px; min-height: 240px; }
 @container (max-width: 900px) { .workspace.ai-open { padding-right: 0; } .ai-secondary { box-shadow: -12px 0 30px hsl(var(--foreground)/.08); width: min(340px,90%); } .query-context { display: none; } }
 @container (max-width: 850px) { .connection-sidebar { width: 200px; } .experimental { display: none; } .ai-toggle { margin-left: auto; } .app-toolbar { flex-wrap: wrap; } .home { padding: 24px; } .home-panels { grid-template-columns: 1fr; } .home-intro h1 { font-size: 20px; } .home-metrics div { padding: 12px; } .results-heading { align-items: flex-start; flex-wrap: wrap; gap: 2px; } .result-sql { display: none; } .app-status span { max-width: 45%; } }
 @container (max-width: 600px) { .connection-sidebar { width: 168px; } .sidebar-heading { padding-left: 10px; } .app-toolbar { padding: 5px; gap: 2px; } .app-toolbar button { font-size: 11px; padding: 5px; } .home { padding: 20px 12px; } .home-metrics { grid-template-columns: 1fr; } .home-metrics div { border-right: 0; border-bottom: 1px solid hsl(var(--border)); } .modal-shade { padding: 10px; } .modal-heading,.modal-content { padding: 16px; } .modal-content > label:not(.check),.color-field { grid-template-columns: 1fr; gap: 6px; } .connection-engine { flex-wrap: wrap; } .connection-engine span:last-child { margin-left: 0; } .type-picker { grid-template-columns: 1fr; } .type-picker nav { display: none; } .app-status span { display: none; } }
-.sql-label { flex: 1; min-height: 0; }
+.sql-label { flex: 1; min-height: 120px; }
+/* Formatting controls must never squeeze the text editing surface to a line. */
+.editor { overflow: auto; }
+.sql-scroll { min-height: 80px; flex-shrink: 0; }
+.sql-format-controls { flex-shrink: 0; }
 .editor-gutter,.sql-highlight { margin: 0; border-radius: 0; border-top: 0; border-bottom: 0; border-left: 0; }
 
 /* Brand marks stay bare and retain raster colors in both host themes. */
@@ -507,3 +511,19 @@ pre { padding: 12px; background: hsl(var(--muted)/.4); border: 1px solid hsl(var
 .grid-batch-panel pre { max-height:130px; overflow:auto; white-space:pre-wrap; overflow-wrap:anywhere; font-size:11px; line-height:1.55; }
 .grid-batch-rows pre { max-height:72px; margin:0; }
 .grid-batch-panel details { padding:6px 0; }
+
+/* Batch deletion shares the restrained single-row review, not raw JSON cards. */
+.database-workbench .grid-batch-panel { max-width:760px; width:100%; }
+.database-workbench .grid-batch-selection-heading { display:flex; justify-content:space-between; align-items:center; font-size:12px; margin:8px 0; }
+.database-workbench .grid-batch-row-card { padding:8px 0; border-bottom:1px solid hsl(var(--border)/.45); }
+.database-workbench .grid-batch-row-choice { display:flex; align-items:flex-start; gap:10px; margin:0; max-width:none; }
+.database-workbench .grid-batch-row-choice > span { min-width:0; flex:1; }
+.database-workbench .grid-batch-row-choice strong { font-size:12px; font-weight:500; overflow-wrap:anywhere; }
+.database-workbench .grid-batch-row-choice input[type="checkbox"] { width:15px; height:15px; min-height:15px; padding:0; margin:2px 0 0; flex-shrink:0; }
+.database-workbench .grid-batch-row-fields { display:flex; gap:12px; flex-wrap:wrap; margin-top:4px; font-size:12px; overflow-wrap:anywhere; }
+.database-workbench .grid-batch-row-fields small { color:hsl(var(--muted-foreground)); margin-right:4px; }
+.database-workbench .grid-batch-original { margin-left:25px; padding:2px 0 0; font-size:11px; color:hsl(var(--muted-foreground)); }
+.database-workbench .grid-batch-original pre { margin:6px 0; padding:8px; max-height:90px; }
+.database-workbench .grid-batch-binding { margin-top:9px; }
+.database-workbench .grid-batch-binding > strong { font-size:11px; font-weight:500; overflow-wrap:anywhere; }
+.database-workbench .grid-batch-panel .sql-preview { margin:8px 0; max-height:160px; }
