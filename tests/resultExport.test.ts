@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {exportQueryResult} from '../src/resultExport';
+import {exportQueryResult} from '../src/resultExportModel';
 import type {DatabaseQueryResult} from '../src/databaseTypes';
 const result=(rows:DatabaseQueryResult['rows'],columns=rows[0]?.map((_,i)=>`c${i}`)??[]):DatabaseQueryResult=>({columns,rows,truncated:false,changes:0,elapsedMs:0});
 test('CSV RFC4180 quotes commas, quotes, CRLF and Unicode; documents NULL versus empty text',()=>{

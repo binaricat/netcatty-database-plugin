@@ -31,8 +31,8 @@ behavior exists but scope or qualification is materially narrower than DBX.
 Missing means no usable implementation on main. Historical experimental-host
 results cannot be carried forward as main acceptance.
 
-After the full-app/metadata slice: **0 of 24 capability groups complete; 9 partial;
-15 missing**. This coarse count is not a percentage of engineering effort or a
+After the returned-result export slice: **0 of 24 capability groups complete; 10 partial;
+14 missing**. This coarse count is not a percentage of engineering effort or a
 weighted product completion score. It also does not establish that every DBX
 advertised driver itself has been independently tested in DBX.
 
@@ -52,7 +52,7 @@ advertised driver itself has been independently tested in DBX.
 | 12. Restored editor tabs/drafts | Missing | Query state lasts only for the mounted workspace/session. |
 | 13. Result browsing/search/sort/paging | Partial | Bounded returned-result paging, filtering, sorting and cell inspection. No server-side paging or virtual scrolling. |
 | 14. Grid insert/edit/delete with SQL preview | Missing | Reviewed simple SQL INSERT/UPDATE/DELETE now work on disposable memory; direct grid mutation controls are still absent. |
-| 15. CSV/JSON/Markdown/XLSX/INSERT export | Missing | No export controls or file destination flow. |
+| 15. CSV/JSON/Markdown/XLSX/INSERT export | Partial | CSV/JSON/Markdown/SQLite INSERT export of returned rows only, bounded preview and explicit clipboard action (4096 UTF-8 bytes). Upstream truncation is disclosed. No XLSX, disk or full-table export. Full-App alpha.9 previews and explicit copying tested for all four formats, including SQL explicit-target protection; native cancellation/limits remain deterministic-only. Native confirmation depends on host permission mode. See `result-export.md`. |
 | 16. CSV/Excel import | Missing | No importer. |
 | 17. Data transfer and data comparison | Missing | No cross-connection engine or reviewed synchronization. |
 | 18. Database dumps/backups/scheduling | Missing | No dump drivers, persistent scheduler or background service. |

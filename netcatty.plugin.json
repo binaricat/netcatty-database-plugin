@@ -10,7 +10,7 @@
     "en": "Plugin-owned SQLite memory workbench for Netcatty main. Additional drivers are not yet ported.",
     "zh-CN": "适用于 Netcatty main 的插件自有 SQLite 内存工作台，其他驱动尚未迁移。"
   },
-  "version": "0.1.0-alpha.6",
+  "version": "0.1.0-alpha.9",
   "publisher": "binaricat",
   "license": "GPL-3.0-or-later",
   "engines": {
@@ -24,7 +24,8 @@
       "metadata.brand-icon",
       "ai.model-invocation",
       "ai.agent-sessions",
-      "vault.host-actions"
+      "vault.host-actions",
+      "host.interactions"
     ]
   },
   "main": {
@@ -67,6 +68,13 @@
           "*"
         ],
         "reason": "Request selected host SSH connection in native host UI / 在宿主界面请求已选主机 SSH 连接"
+      },
+      {
+        "permission": "clipboard.write",
+        "resources": [
+          "*"
+        ],
+        "reason": "Copy explicitly reviewed returned query results using host clipboard controls / 通过宿主剪贴板接口复制已返回的查询结果"
       }
     ]
   },
