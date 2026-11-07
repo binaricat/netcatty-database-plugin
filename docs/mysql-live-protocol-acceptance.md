@@ -47,3 +47,11 @@ STARTTLS upgrade remains unresolved. Query/result handling, MariaDB auth,
 auth-switch/RSA paths and broader MySQL compatibility remain unqualified or
 unimplemented; immediate OK is intentionally not supported. No endpoint/TLS
 policy was weakened and no plaintext fallback was introduced.
+
+### Subsequent query slice
+
+The later `--read` mode now qualifies actual `executeMysqlRead` against this
+fixture, not CLI substitution: two same-connection SELECT/ROLLBACK cycles, exact
+integer text, label and NULL pass. See `mysql-read-boundaries.md`. This does not
+add main-broker TLS upgrade, arbitrary SQL, writes or installed-plugin MySQL UI
+connectivity. The authentication recording above predates this query test.

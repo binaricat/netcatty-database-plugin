@@ -1,16 +1,18 @@
 /** MANUAL independent Node protocol integration, not plugin transport.
  * Node supplies SSLRequest -> TLS upgrade absent from current main public API.
  * Warm caching_sha2 cache using the separately authorized VERIFY_IDENTITY CLI.
- * node --import tsx scripts/mysql-local-protocol.ts [--reject-cert|--bad-password|--fast-only|--full-auth-required]
+ * node --import tsx scripts/mysql-local-protocol.ts [--reject-cert|--bad-password|--fast-only|--full-auth-required|--read]
  * Full-auth password is sent only inside this same verified TLS connection.
- * No RSA response, SQL query or production policy change.
+ * --read uses bounded production read module; no arbitrary SQL or policy change.
  */
+import type {PluginByteConnection} from '@netcatty/plugin-sdk';
+import {executeMysqlRead,MysqlReadError} from '../src/mysqlRead';
 import net from 'node:net';import tls from 'node:tls';import {readFile} from 'node:fs/promises';import {fileURLToPath} from 'node:url';
 import {MysqlPacketDecoder,parseMysqlHandshake,parseMysqlError,type MysqlPacket} from '../src/mysqlProtocol';
 import {planMysqlSslRequest,MysqlTlsFastAuth} from '../src/mysqlAuth';
 const base=fileURLToPath(new URL('../../local-db-host/mysql-test/',import.meta.url));
 const host='127.0.0.1',port=15479,mode=process.argv[2]??'auth';
-if(!['auth','--reject-cert','--bad-password','--fast-only','--full-auth-required'].includes(mode)||process.argv.length>3){console.error('Unsupported test mode.');process.exit(2);}
+if(!['auth','--reject-cert','--bad-password','--fast-only','--full-auth-required','--read'].includes(mode)||process.argv.length>3){console.error('Unsupported test mode.');process.exit(2);}
 class FixtureError extends Error{constructor(readonly code:'transport'|'timeout'|'protocol'|'certificate'|'fixture'|'full-auth-required'|'server-auth-denied'|'auth-flow'){super(`MySQL fixture ${code}`);}}
 let raw:net.Socket|undefined,secure:tls.TLSSocket|undefined,auth:MysqlTlsFastAuth|undefined,stage='fixture-files';
 function greeting():Promise<MysqlPacket>{return new Promise((resolve,reject)=>{
@@ -33,7 +35,7 @@ function upgrade(ca:Buffer):Promise<tls.TLSSocket>{return new Promise((resolve,r
 });}
 function authenticate(socket:tls.TLSSocket,client:MysqlTlsFastAuth,wire:Uint8Array):Promise<{fullAuth:boolean}>{return new Promise((resolve,reject)=>{
  let done=false,bytes=0,reads=0,fullAuth=false;let fullWire:Uint8Array|undefined;let inspector=new MysqlPacketDecoder(3);const timer=setTimeout(()=>finish(new FixtureError('timeout')),5000);
- const finish=(error?:FixtureError)=>{if(done)return;done=true;clearTimeout(timer);socket.off('data',data);wire.fill(0);fullWire?.fill(0);if(error){socket.destroy();reject(error);}else resolve({fullAuth});};
+ const finish=(error?:FixtureError)=>{if(done)return;done=true;clearTimeout(timer);socket.pause();socket.off('data',data);socket.off('end',onEnd);socket.off('error',onError);wire.fill(0);fullWire?.fill(0);if(error){socket.destroy();reject(error);}else resolve({fullAuth});};
  const data=(chunk:Buffer)=>{
   if(done)return;if(++reads>4096||(bytes+=chunk.length)>96*1024){finish(new FixtureError('protocol'));return;}
   let packets:MysqlPacket[]=[];
@@ -54,9 +56,21 @@ function authenticate(socket:tls.TLSSocket,client:MysqlTlsFastAuth,wire:Uint8Arr
    }
   }catch{finish(new FixtureError('auth-flow'));}finally{for(const p of packets)p.payload.fill(0);}
  };
- socket.on('data',data);socket.once('end',()=>finish(new FixtureError('transport')));socket.once('error',()=>finish(new FixtureError('transport')));
+ const onEnd=()=>finish(new FixtureError('transport')),onError=()=>finish(new FixtureError('transport'));
+ socket.on('data',data);socket.once('end',onEnd);socket.once('error',onError);
  void write(socket,wire).catch(()=>finish(new FixtureError('transport')));
 });}
+/** Attach only after auth has paused the stream and removed its data listener.
+ * Unconsumed socket bytes are preserved by pause/resume, not thrown away. */
+function readConnection(socket:tls.TLSSocket):PluginByteConnection{
+ const queue:Uint8Array[]=[];let queued=0,closed=false,pending:((b:Uint8Array|null)=>void)|undefined;
+ const wires=new Set<Buffer>();
+ const close=()=>{if(closed)return;closed=true;socket.pause();socket.off('data',data);socket.off('error',close);socket.off('end',close);socket.off('close',close);for(const b of queue)b.fill(0);queue.length=0;queued=0;for(const b of wires)b.fill(0);wires.clear();pending?.(null);pending=undefined;socket.destroy();};
+ const data=(input:Buffer)=>{if(closed)return;const b=new Uint8Array(input);if(pending){const resolve=pending;pending=undefined;resolve(b);return;}queued+=b.length;if(queued>96*1024){b.fill(0);close();return;}queue.push(b);};
+ socket.on('data',data);socket.on('error',close);socket.on('end',close);socket.on('close',close);socket.resume();
+ return {readable:{read:async()=>{if(queue.length){const b=queue.shift()!;queued-=b.length;return b;}if(closed)return null;if(pending)throw new FixtureError('protocol');return new Promise<Uint8Array|null>(resolve=>pending=resolve);},cancel:close},
+ writable:{write:async(value:Uint8Array|ArrayBuffer)=>{if(closed)throw new FixtureError('transport');const b=Buffer.from(value instanceof Uint8Array?value:new Uint8Array(value));wires.add(b);try{await new Promise<void>((resolve,reject)=>socket.write(b,error=>error?reject(new FixtureError('transport')):resolve()));}finally{b.fill(0);wires.delete(b);}},cancel:close},close:async()=>{close();}} as unknown as PluginByteConnection;
+}
 const report=(status:string,check:string,extra:Record<string,unknown>={})=>console.log(JSON.stringify({status,lane:'independent-node-mysql-fast-auth',check,nativePluginConnected:false,queryCovered:false,...extra}));
 try{
  const ca=await readFile(base+'server.crt');stage='server-greeting';const packet=await greeting();
@@ -71,11 +85,18 @@ try{
   }finally{secret?.fill(0);password='';}
   if(mode==='--bad-password')throw new FixtureError('fixture');
   if(mode==='--full-auth-required'&&!usedFullAuth){report('NOT_COVERED','full-auth-not-observed',{authenticated:true,authFlow:'fast'});process.exitCode=2;}
+  else if(mode==='--read'){
+   stage='bounded-read';const connection=readConnection(secure!);try{
+    const options={schema:'netcatty_test',table:'netcatty_smoke',columns:['id','label','optional_value'],limit:10};
+    for(let pass=0;pass<2;pass++){const result=await executeMysqlRead(connection,options);if(result.rowCount!==1||JSON.stringify(result.columns)!==JSON.stringify(options.columns)||JSON.stringify(result.rows)!==JSON.stringify([['1','real-tls-mysql',null]]))throw new FixtureError('fixture');}
+    report('PASS','bounded-read-twice',{queryCovered:true,queryCount:2,connectionReused:true,rollbackVerified:true,labelVerified:true,nullVerified:true,exactIntegerVerified:true,authFlow:usedFullAuth?'full':'fast',tlsVerified:true,tlsVersion:secure!.getProtocol(),serverVersion});
+   }finally{await connection.close();}
+  }
   else report('PASS',usedFullAuth?'verified-tls-full-auth':'cached-fast-auth',{authFlow:usedFullAuth?'full':'fast',tlsVerified:true,tlsVersion:secure!.getProtocol(),serverVersion,sslRequestDescriptorMatched:true});
  }
 }catch(error){
- const code=error instanceof FixtureError?error.code:'fixture';
+ const code=error instanceof FixtureError?error.code:error instanceof MysqlReadError?`mysql-read-${error.code}`:'fixture';
  if(code==='full-auth-required'){report('UNSUPPORTED','full-auth-required',{authenticated:false,passwordRejectedByServer:false});process.exitCode=2;}
  else if(mode==='--bad-password'&&code==='server-auth-denied')report('PASS','explicit-server-auth-denied',{errorCode:1045,sqlState:'28000'});
- else{console.error(JSON.stringify({status:'FAIL',lane:'independent-node-mysql-fast-auth',stage,reason:code,nativePluginConnected:false,queryCovered:false}));process.exitCode=1;}
+ else{console.error(JSON.stringify({status:'FAIL',lane:'independent-node-mysql-fast-auth',stage,reason:code,...(error instanceof MysqlReadError?{diagnostic:error.diagnostic}:{}),nativePluginConnected:false,queryCovered:false}));process.exitCode=1;}
 }finally{auth?.close();secure?.destroy();raw?.destroy();}
