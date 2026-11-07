@@ -217,6 +217,8 @@ export type DatabaseSchemaResult = {
       type: string;
       primaryKey: boolean;
       nullable?: boolean;
+      defaultSql?: string|null;
+      rowidAlias?: boolean;
     }>;
     kind?: "table" | "view";
     /** Optional engine metadata. Absence means unavailable, not an empty list. */
@@ -311,3 +313,8 @@ export type DropIndexReview=import('./schemaDropIndex').DropIndexPreview & {hand
 export type DropIndexRequest={handleId:DatabaseHandle;draft:import('./schemaDropIndex').DropIndexDraft};
 export type DropIndexApplyRequest={handleId:DatabaseHandle;review:DropIndexReview};
 export type DropIndexResult={changes:0;schema:DatabaseSchemaResult;sql:string};
+
+export type RowInsertReview=import('./rowInsertModel').RowInsertPlan & {handleId:DatabaseHandle;schemaRevision:number};
+export type RowInsertRequest={handleId:DatabaseHandle;draft:import('./rowInsertModel').RowInsertDraft};
+export type RowInsertApplyRequest={handleId:DatabaseHandle;review:RowInsertReview};
+export type RowInsertResult={changes:1};

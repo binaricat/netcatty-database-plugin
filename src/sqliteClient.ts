@@ -1,3 +1,5 @@
+import {previewRowInsert as buildRowInsert,RowInsertError,type RowInsertPlan} from './rowInsertModel';
+import type {RowInsertRequest,RowInsertReview,RowInsertApplyRequest,RowInsertResult} from './databaseTypes';
 import {previewDropIndexSql,DropIndexError,type DropIndexDraft} from './schemaDropIndex';
 import type {DropIndexRequest,DropIndexReview,DropIndexApplyRequest,DropIndexResult} from './databaseTypes';
 import {previewRenameColumnSql,RenameColumnError,type RenameColumnDraft} from './schemaRenameColumn';
@@ -123,7 +125,10 @@ export function inspectSqliteSchema(db: Database): DatabaseSchemaResult {
       foreignKey.columns.push({from: String(from), to: to === null ? null : String(to)});
     }
     const triggers = rows("SELECT name,sql FROM sqlite_master WHERE type='trigger' AND tbl_name=? ORDER BY name", [name], SQLITE_SCHEMA_LIMITS.triggers, 'trigger').map(([triggerName, sql]) => ({name: String(triggerName), definition: String(sql)}));
-    return {name, kind, columns: columns.map(([, columnName, type, notNull, , primaryKey]) => ({name: String(columnName), type: String(type), primaryKey: Boolean(primaryKey), ...(kind === 'table' ? {nullable: !notNull && !primaryKey} : {})})),
+    const tableFlags=kind==='table'?rows("SELECT type,wr FROM pragma_table_list WHERE schema='main' AND name=?",[name],1,'table flags')[0]:undefined;
+    const xinfo=kind==='table'?rows('SELECT hidden FROM pragma_table_xinfo(?)',[name],SQLITE_SCHEMA_LIMITS.columns,'column flags'):[];
+    const ordinary=tableFlags?.[0]==='table'&&xinfo.length===columns.length&&xinfo.every(row=>row[0]===0);
+    return {name, kind, columns: columns.map(([, columnName, type, notNull, defaultSql, primaryKey]) => ({name: String(columnName), type: String(type), primaryKey: Boolean(primaryKey), ...(kind === 'table' ? {nullable: !notNull && !primaryKey,...(ordinary?{defaultSql:defaultSql===null?null:String(defaultSql),rowidAlias:tableFlags?.[1]===0&&columns.filter(c=>Number(c[5])>0).length===1&&Number(primaryKey)>0&&String(type).toUpperCase()==='INTEGER'&&!indexes.some(i=>i.origin==='pk')}:{})} : {})})),
       ...(typeof definition === 'string' ? {definition} : {}), primaryKeyColumns: columns.filter(column => Number(column[5]) > 0).sort((a,b) => Number(a[5]) - Number(b[5])).map(column => String(column[1])), indexes, foreignKeys, triggers};
   });
   const result = {tables};
@@ -221,6 +226,18 @@ export function applySqliteDropIndex(db:Database,draft:DropIndexDraft):DropIndex
   }finally{try{db.run('PRAGMA query_only=ON');}catch{try{db.close();}catch{}throw new Error('SQLite read protection could not be restored; session closed.');}}
 }
 
+/** @internal Adapter transaction implementation, exported only for real-engine regression.
+ * Not a Workbench/API capability: production calls only after issued-review validation. */
+export function executeSqliteRowInsert(db:Database,plan:RowInsertPlan,onFatal:()=>void=()=>db.close()):RowInsertResult{
+  let closed=false;const close=()=>{closed=true;onFatal();};
+  let transaction=false;try{db.run('PRAGMA query_only=OFF');db.run('SAVEPOINT plugin_row_insert');transaction=true;
+      const statement=db.prepare(plan.sql);try{statement.bind(plan.parameters.map(value=>typeof value==='boolean'?Number(value):value));while(statement.step()){} }finally{statement.free();}
+      if(db.getRowsModified()!==1)throw new RowInsertError('constraint');
+      const size=Number(db.exec('PRAGMA page_count')[0].values[0][0])*Number(db.exec('PRAGMA page_size')[0].values[0][0]);if(size>1024*1024)throw new RowInsertError('budget');
+      inspectSqliteSchema(db);db.run('RELEASE plugin_row_insert');transaction=false;return {changes:1};
+    }catch(error){if(transaction){try{db.run('ROLLBACK TO plugin_row_insert; RELEASE plugin_row_insert');}catch{close();throw new Error('Insert rollback failed; session closed.');}}if(error instanceof RowInsertError)throw error;throw new RowInsertError('constraint');
+    }finally{if(!closed){try{db.run('PRAGMA query_only=ON');}catch{close();throw new Error('SQLite read protection could not be restored; session closed.');}}}
+}
 export function createWorkbenchContext(context: PluginContext): WorkbenchContext {
   const sessions = new Map<string, Database>();
   const tableReviews=new Map<string,string>();
@@ -472,6 +489,17 @@ export function createWorkbenchContext(context: PluginContext): WorkbenchContext
       if(sessions.has(request.handleId)){try{db.run('PRAGMA query_only=ON');}catch{tableReviews.delete(request.handleId);sessions.delete(request.handleId);db.close();throw new Error('SQLite read protection could not be restored; session closed.');}}
     }
   };
+  const previewRowInsert=async(request:RowInsertRequest):Promise<RowInsertReview>=>{
+    const db=get(request);tableReviews.delete(request.handleId);const plan=buildRowInsert(request.draft,inspectSqliteSchema(db));
+    const review={handleId:request.handleId,...plan,schemaRevision:schemaRevision(db)};tableReviews.set(request.handleId,JSON.stringify(review));return review;
+  };
+  const applyRowInsert=async(request:RowInsertApplyRequest):Promise<RowInsertResult>=>{
+    const db=get(request),review=request.review;
+    if(!review||review.handleId!==request.handleId||review.schemaRevision!==schemaRevision(db))throw new RowInsertError('stale');
+    if(tableReviews.get(request.handleId)!==JSON.stringify(review))throw new RowInsertError('review');tableReviews.delete(request.handleId);
+    const plan=buildRowInsert(review.draft,inspectSqliteSchema(db));if(JSON.stringify(plan)!==JSON.stringify({draft:review.draft,sql:review.sql,parameters:review.parameters,resolved:review.resolved,automaticColumns:review.automaticColumns}))throw new RowInsertError('review');
+    return executeSqliteRowInsert(db,plan,()=>{tableReviews.delete(request.handleId);sessions.delete(request.handleId);db.close();});
+  };
   const previewCsvImport=async(request:CsvImportRequest):Promise<CsvImportReview>=>{
     const db=get(request);tableReviews.delete(request.handleId);
     const plan=buildCsvImport(request.draft,inspectSqliteSchema(db));
@@ -503,8 +531,8 @@ export function createWorkbenchContext(context: PluginContext): WorkbenchContext
     }
   };
   const database: PluginDatabaseClient & {capabilities: ReadonlySet<string>} = {
-    capabilities: new Set(['database.sqlite-fixture.v1','database.saved-connections.v1','database.sqlite-reviewed-writes.v1','database.sqlite-create-table.v1','database.sqlite-create-index.v1','database.sqlite-grid-mutation.v1','database.sqlite-csv-import.v1','database.sqlite-rename-column.v1','database.sqlite-drop-index.v1','database.sqlite-add-column.v1']),
-    previewDropIndex,applyDropIndex,previewRenameColumn,applyRenameColumn,previewAddColumn,applyAddColumn,previewCsvImport,applyCsvImport,previewCreateTable,applyCreateTable,previewCreateIndex,applyCreateIndex,previewGridMutation:previewGridRow,applyGridMutation,
+    capabilities: new Set(['database.sqlite-fixture.v1','database.saved-connections.v1','database.sqlite-reviewed-writes.v1','database.sqlite-create-table.v1','database.sqlite-create-index.v1','database.sqlite-grid-mutation.v1','database.sqlite-csv-import.v1','database.sqlite-rename-column.v1','database.sqlite-row-insert.v1','database.sqlite-drop-index.v1','database.sqlite-add-column.v1']),
+    previewRowInsert,applyRowInsert,previewDropIndex,applyDropIndex,previewRenameColumn,applyRenameColumn,previewAddColumn,applyAddColumn,previewCsvImport,applyCsvImport,previewCreateTable,applyCreateTable,previewCreateIndex,applyCreateIndex,previewGridMutation:previewGridRow,applyGridMutation,
     openFixture: open, readSchema, query, close, cancel:close,
     listSavedConnections:list,
     saveConnection: (request: DatabaseSaveConnectionRequest) => mutate(async () => {

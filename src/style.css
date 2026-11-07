@@ -460,3 +460,13 @@ pre { padding: 12px; background: hsl(var(--muted)/.4); border: 1px solid hsl(var
 @media(max-width:700px) {.rename-column-fields {grid-template-columns:1fr;} }
 .drop-index-fields {display:grid;grid-template-columns:minmax(140px,1fr) minmax(180px,1.4fr);gap:14px;align-items:end;}
 @media(max-width:700px) {.drop-index-fields {grid-template-columns:1fr;} }
+
+.database-workbench .row-insert {max-width:850px;margin:16px auto;}
+.row-insert-fields {display:flex;flex-direction:column;gap:12px;}
+.row-insert-field {display:grid;grid-template-columns:minmax(120px,1fr) 110px 100px minmax(140px,1.5fr);gap:12px;align-items:end;}
+.row-insert-field strong {overflow-wrap:anywhere;font-size:12px;align-self:center;}
+.row-insert-field small {display:block;color:hsl(var(--muted-foreground));font-weight:400;}
+@media(max-width:700px) {.row-insert-field {grid-template-columns:1fr 1fr;}}
+
+.database-workbench .row-insert-field input:disabled,.database-workbench .row-insert-field select:disabled {background:hsl(var(--muted)/.25);color:hsl(var(--muted-foreground));opacity:.65;}
+.row-insert-field label:last-child {min-width:0;}

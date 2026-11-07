@@ -1,3 +1,4 @@
+import type {RowInsertRequest,RowInsertReview,RowInsertApplyRequest,RowInsertResult} from './databaseTypes';
 import type {DropIndexRequest,DropIndexReview,DropIndexApplyRequest,DropIndexResult} from './databaseTypes';
 import type {RenameColumnRequest,RenameColumnReview,RenameColumnApplyRequest,RenameColumnResult} from './databaseTypes';
 import type {AddColumnRequest,AddColumnApplyRequest,AddColumnResult,AddColumnReview} from './databaseTypes';
@@ -9,6 +10,8 @@ import type {DatabaseCreateIndexRequest,DatabaseCreateIndexApplyRequest,Database
 import type {GridMutationRequest,GridMutationApplyRequest,GridMutationReview,GridMutationResult} from './databaseTypes';
 import type {CsvImportRequest,CsvImportApplyRequest,CsvImportReview,CsvImportResult} from './databaseTypes';
 export interface PluginDatabaseClient {
+  previewRowInsert(params:RowInsertRequest):Promise<RowInsertReview>;
+  applyRowInsert(params:RowInsertApplyRequest):Promise<RowInsertResult>;
   previewDropIndex(params:DropIndexRequest):Promise<DropIndexReview>;
   applyDropIndex(params:DropIndexApplyRequest):Promise<DropIndexResult>;
   previewRenameColumn(params:RenameColumnRequest):Promise<RenameColumnReview>;
