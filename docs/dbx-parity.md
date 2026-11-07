@@ -51,7 +51,7 @@ advertised driver itself has been independently tested in DBX.
 | 11. Query history and saved SQL/snippets | Partial | Bounded in-view history and named SQL library. No persisted SQL library or richer snippets yet. |
 | 12. Restored editor tabs/drafts | Partial | Explicit bounded save/restore/clear by saved connection, native confirmation and stale-operation protection. Full-app synthetic lifecycle tested; restart/multi-connection native acceptance remains. See `workspace-drafts.md`. |
 | 13. Result browsing/search/sort/paging | Partial | Bounded returned-result paging, filtering, sorting and cell inspection. No server-side paging or virtual scrolling. |
-| 14. Grid insert/edit/delete with SQL preview | Partial | Reviewed single-row grid UPDATE/DELETE with original-row conflict checks and actual full-app readback in alpha.15. No grid INSERT, bulk editing, remote or persistent database qualification. See `grid-mutation.md`. |
+| 14. Grid insert/edit/delete with SQL preview | Partial | Reviewed single-row grid UPDATE/DELETE with original-row conflict checks and actual full-app readback in alpha.15. Reviewed single-row INSERT now passes native alpha.26 Auto/text entry, highlighted bound review, confirmation/readback and duplicate-key rollback. NULL/literal-default and deferred-FK paths have engine/remote-DOM tests only. No bulk editing, remote or persistent database qualification. See `native-insert-alpha26.md`. See `grid-mutation.md`. |
 | 15. CSV/JSON/Markdown/XLSX/INSERT export | Partial | CSV/JSON/Markdown/SQLite INSERT export of returned rows only, bounded preview and explicit clipboard action (4096 UTF-8 bytes). Upstream truncation is disclosed. No XLSX, disk or full-table export. Full-App alpha.9 previews and explicit copying tested for all four formats, including SQL explicit-target protection; native cancellation/limits remain deterministic-only. Native confirmation depends on host permission mode. See `result-export.md`. |
 | 16. CSV/Excel import | Partial | Reviewed pasted CSV import into bounded disposable SQLite tables; atomic batch and explicit readback. Full-app alpha.20 two-row native acceptance passed. No file/Excel import, persistent/remote service or bulk import qualification. See `csv-import.md`. |
 | 17. Data transfer and data comparison | Missing | No cross-connection engine or reviewed synchronization. |
@@ -163,3 +163,29 @@ After Redis protocol qualification, 346 tests and lint pass. Production Redis en
 - Auto requires authoritative ordinary rowid-table metadata, one exact INTEGER primary key, no primary-key backing index and no default. `INTEGER PRIMARY KEY DESC` and `WITHOUT ROWID` are explicitly tested and rejected for Auto. The generated number is not guessed; a subsequent read query verifies it.
 - Preview performs no INSERT. An issued one-shot review binds exact SQL, parameters, column modes and schema revision. Apply rechecks metadata, executes in a savepoint, requires exactly one changed row and the 1 MiB database budget, then restores read protection. Constraints roll back. UI edits/cancel/disposal invalidate stale reviews; synchronous workspace lock prevents navigation during apply; success clears prior results without automatic queries.
 - Evidence: real SQL.js tests cover quoted defaults, automatic IDs, DESC/WITHOUT ROWID rejection, SQL-like bound text, unique/immediate-FK failures, deferred-FK RELEASE failure through the same production transaction executor, rollback/read-protection recovery and altered reviews. Main SDK remote-DOM regression adds explicit INSERT preview, successful table readback, duplicate-key failure and absence of a partial row. Injected host transports are not native-app or Docker evidence; alpha26 real Netcatty acceptance remains pending.
+
+### Explicit local SQLite snapshots (alpha27 candidate; native acceptance pending)
+
+The plugin can explicitly save a complete SQL.js database, inspect its local snapshot,
+review restoration, confirm replacement, and permanently clear the saved copy in two
+steps. No user files are read and nothing saves or restores automatically. Storage is
+unencrypted plugin-local data, not credential storage, native file synchronization,
+or a WAL backup. Limits: 512 KiB each, four saved connections, ordinary tables with
+at most 10,000 rows each; bounded schema metadata, integrity and foreign keys are
+validated. Trigger/virtual tables are refused. Existing views and indexes survive.
+
+Export reopens SQL.js internally: the adapter restores and verifies query-only,
+foreign-key and trusted-schema protections in finally, closing on protection failure.
+Restoration builds a protected independent candidate and swaps only after exact
+single-use review plus matching stored hash/metadata. Invalid snapshots preserve the
+current session. Per-saved-ID operation locks cover connection deletion/open and
+snapshot operations; these guarantees apply to this adapter owner, not independent
+plugin runtimes. Connections with snapshots cannot be deleted until the saved copy
+is explicitly cleared. Storage completion remains reported as successful even if
+its source connection closes while the storage write is pending.
+
+Regression evidence: real SQL.js adapter destruction/recreation restores schema,
+rows, NULL and indexes; tests cover corruption, close/restore races, deletion/save
+races, constraint validation and export protection failure. Main SDK remote-DOM
+covers save, reconnect, explicit restore and readback, cancel/confirm clear. These
+are injected storage/view tests, not native app or Docker acceptance.
