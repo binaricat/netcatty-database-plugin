@@ -516,7 +516,7 @@ pre { padding: 12px; background: hsl(var(--muted)/.4); border: 1px solid hsl(var
 .database-workbench .grid-batch-panel { max-width:760px; width:100%; }
 .database-workbench .grid-batch-selection-heading { display:flex; justify-content:space-between; align-items:center; font-size:12px; margin:8px 0; }
 .database-workbench .grid-batch-row-card { padding:8px 0; border-bottom:1px solid hsl(var(--border)/.45); }
-.database-workbench .grid-batch-row-choice { display:flex; align-items:flex-start; gap:10px; margin:0; max-width:none; }
+.database-workbench .grid-batch-panel .grid-batch-row-choice { display:flex; flex-direction:row; align-items:flex-start; gap:10px; margin:0; max-width:none; }
 .database-workbench .grid-batch-row-choice > span { min-width:0; flex:1; }
 .database-workbench .grid-batch-row-choice strong { font-size:12px; font-weight:500; overflow-wrap:anywhere; }
 .database-workbench .grid-batch-row-choice input[type="checkbox"] { width:15px; height:15px; min-height:15px; padding:0; margin:2px 0 0; flex-shrink:0; }
