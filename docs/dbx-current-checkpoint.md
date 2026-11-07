@@ -5,7 +5,7 @@ UI commit `9849b7d`); DBX `b6c3d47`, Netcatty main `4a55492`.
 This checkpoint intentionally does not overwrite the older parity ledger, whose
 formatter, snapshot and SQL-library rows predate newer slices. No completion
 percentage is meaningful from this evidence. The user's termination conditions
-(nearly all DBX capabilities plus Docker multi-database acceptance) are **not met**.
+(nearly all DBX capabilities plus genuine host/multi-database acceptance; the user later allowed non-Docker hosts) are **not met**.
 
 ## Evidence categories
 
@@ -48,7 +48,7 @@ this documentation audit did not re-open the desktop or independently replay vid
 | AI generate/explain/optimize/fix | Host draft/Agent integrations, explicit unexecuted insertion, cancellation and bounds **T** | No real configured provider acceptance; database-tool registry and DBX agent SQL-tool approval loop not complete. Fake provider output is not live AI | `docs/ai-parity.md`; DBX `components/editor/AiAssistant.vue:400–408,671`, `crates/dbx-core/src/ai/` |
 | ER, schema diff, explain plans, lineage | **M** usable plugin visualization/diff/plan UI | Ordinary metadata relationships are available; this is not entirely a host limitation. Host disallows dynamic SVG/canvas in remote DOM, but a bounded HTML relationship view remains feasible | DBX `components/diagram/SchemaDiagramDialog.vue:48–49,72,155–199`, `lib/diagram/erDiagram.ts`, `src-tauri/src/commands/data_compare.rs`; main `domain/pluginRemoteTreePolicy.cjs:7–9` |
 | Transfer/dumps/scheduling | **M** cross-connection compare/sync, vendor dumps and background scheduled jobs | Whole-SQLite snapshot is explicit local storage, not scheduled/vendor dump parity | DBX `commands/data_compare.rs`, `database_export.rs`, `dameng_dump.rs`; `docs/native-snapshot-alpha27.md` |
-| Requested Docker acceptance | **H**, not completed | Official binaries present do not establish daemon access. No verified Docker daemon/rootless prerequisites; approved non-Docker real services are a separate lane | `docs/local-docker-acceptance.md`, `runtime-port-isolation.md`. Do not reinterpret real SSH service tests as Docker acceptance |
+| Docker versus later authorized real-host acceptance | Docker **H**, not completed; non-Docker real services **R** | User later explicitly allowed a real host without Docker. Docker is no longer a termination prerequisite, but genuine plugin/host/multi-database qualification is still incomplete. Official binaries do not establish daemon access; their real-service tests remain separately labeled | `docs/local-docker-acceptance.md`, `runtime-port-isolation.md`. Do not reinterpret real SSH service tests as Docker acceptance |
 
 ## Three next core implementation slices
 
@@ -82,3 +82,13 @@ For the third, develop UI/controller boundaries with honest injected tests while
 obtaining the precise supported fixture/endpoint; never mark it real until the
 installed plugin actually connects. A bounded ER relationship view is worthwhile
 but ranks behind safe data/schema modification and a usable remote database lane.
+
+
+## Later candidate progress (alpha29, native acceptance pending)
+
+The atomic batch adapter and selected-row DELETE UI are now implemented with
+real SQL.js + remote-DOM acceptance, not yet native GUI acceptance. Shared schema
+lexing now preserves bare CR inside -- comments, and single-row mutation refuses
+implicit ON CONFLICT side effects. Plain HTML reported-FK relationships and explicit
+AI draft Retry/Edit-last are implemented; no real AI provider or full ER editor
+claim is added. See sqlite-grid-batch.md and ai-parity.md for exact boundaries.
