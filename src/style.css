@@ -495,3 +495,8 @@ pre { padding: 12px; background: hsl(var(--muted)/.4); border: 1px solid hsl(var
 .library-secondary .library-toolbar { flex-wrap:wrap; }
 .metadata-panel .sql-preview, .metadata-relationships { margin-top:8px; max-height:180px; overflow:auto; font-size:11px; line-height:1.55; }
 .metadata-relationships { white-space:pre-wrap; font-family:monospace; color:hsl(var(--muted-foreground)); }
+/* Read-only HTML relationship overview: lightweight sections, not an ER canvas. */
+.relationship-overview { padding:16px; overflow:auto; min-width:0; }
+.relationship-overview > .results-heading { margin-bottom:12px; }
+.relationship-overview article { border:0 !important; border-top:1px solid hsl(var(--border)) !important; border-radius:0 !important; }
+.relationship-overview h3, .relationship-overview h4 { margin:8px 0; }
