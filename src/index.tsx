@@ -10,6 +10,7 @@ import { Icon } from './Icon';
 import { driverById, filterDrivers, type DriverId, type DriverCategory } from './driverRegistry';
 import { previewSummary } from './preview';
 import { SqlEditor } from './SqlEditor';
+import type { DatabaseVariantId, DatabaseTcpOpenRequest } from '@netcatty/plugin-contract';
 import { clampEditorSplit, DEFAULT_EDITOR_SPLIT, MIN_EDITOR_SPLIT, MAX_EDITOR_SPLIT } from './sqlDisplay';
 type Model = ReturnType<typeof useWorkbench>;
 const CONNECTION_PAGE_SIZE = 10;
@@ -17,9 +18,7 @@ const MODAL_VIEW = 'com.binaricat.netcatty-database.new-connection';
 type ModalChannel = ReturnType<typeof createConnectionModalChannel<Model>>;
 function EngineIcon({ engine, theme }: { engine: DriverId | 'postgresql'; theme: string }) {
   const driver = driverById(engine === 'postgresql' ? 'postgres' : engine);
-  // These seven marks are recorded separately for this local noncommercial build.
-  const domesticMarks: readonly DriverId[] = ['goldendb', 'gaussdb', 'kingbase', 'highgo', 'vastbase', 'gbase8c', 'opengauss'];
-  const icon = driver.icon ?? (domesticMarks.includes(driver.id) ? driver.id : null);
+  const icon = driver.icon;
   return icon ? <img className={`engine-icon engine-${driver.id}`} src={`brand:assets/icons/${icon}-${theme === 'dark' ? 'dark' : 'light'}.png`} alt="" width={32} height={32} /> : <span className={`engine-fallback engine-${driver.id}`}><Icon name="database" /></span>;
 }
 function ConnectionModal({ channel, controller }: { channel: ModalChannel; controller: HostViewController }) {
@@ -41,8 +40,10 @@ function ConnectionDialog({ vm }: { vm: Model }) {
   const [username, setUsername] = useState('');
   const [tcpPassword, setTcpPassword] = useState('');
   const [tls, setTls] = useState(true);
-  useEffect(() => { setPort(String(driver.defaultPort)); setName(null); setTcpPassword(''); }, [driver.id, driver.defaultPort]);
-  const tcpRequest = () => ({ driverId: driver.id, hostname: hostname.trim(), port: Number(port), database: database.trim(), username: username.trim(), password: tcpPassword, tls });
+  const [variant, setVariant] = useState<DatabaseVariantId | ''>('');
+  const selectedVariant = driver.variants?.find(v => v.id === variant);
+  useEffect(() => { setPort(String(driver.defaultPort)); setVariant(''); setName(null); setTcpPassword(''); }, [driver.id, driver.defaultPort]);
+  const tcpRequest = (): DatabaseTcpOpenRequest => ({ driverId: driver.id, ...(variant ? { variant } : {}), hostname: hostname.trim(), port: Number(port), database: database.trim(), username: username.trim(), password: tcpPassword, tls });
   const [page, setPage] = useState<'connection' | 'advanced'>('connection');
   const [nameDraft, setName] = useState<string | null>(null);
   const name = nameDraft ?? (sqlite ? t("Synthetic SQLite") : driver.label); const [color, setColor] = useState<DatabaseConnectionMeta['color']>('default');
@@ -74,6 +75,16 @@ function ConnectionDialog({ vm }: { vm: Model }) {
         <label>{t("Name")}<input aria-label={t("Connection name")} value={name} maxLength={128} disabled={vm.busy} onChange={(e) => setName(e.currentTarget.value)} /></label>
         <div className="engine-field"><span className="field-label">{t("Type")}</span><button className="connection-engine secondary" disabled={vm.busy} onClick={() => vm.setModal('picker')} title={t("Choose a database")}><EngineIcon engine={driver.id} theme={vm.theme} /><strong>{driver.label}</strong><span>{t("Change")}</span></button></div><div className="color-field"><span className="field-label">{t("Color")}</span><div className="swatches">{colors.map((c) => <button key={c} aria-label={t("Color {color}", { color: t(c) })} aria-pressed={color === c} className={`swatch color-${c} ${color === c ? 'chosen' : ''}`} onClick={() => setColor(c)} />)}</div></div>
         {!sqlite && <>
+          {driver.variants && <>
+            <label>{t("Product variant")}<select aria-label={t("Product variant")} value={variant} disabled={vm.busy} onChange={e => {
+              const next = driver.variants?.find(v => v.id === e.currentTarget.value);
+              vm.invalidateDraft(); setVariant(next?.id ?? ''); setPort(String(next?.defaultPort ?? driver.defaultPort)); setTcpPassword('');
+            }}><option value="">{t("Choose a product variant")}</option>{driver.variants.map(v => <option key={v.id} value={v.id}>{v.label}</option>)}</select></label>
+            <p className="hint">{t("Vendor compatibility is unverified. Unsupported authentication refuses; keep server security settings.")}</p>
+            {!selectedVariant && <p className="hint">{t("Choose a product variant before testing or connecting.")}</p>}
+            {selectedVariant?.wireFamily === 'unpackaged' && <p className="hint">{t("This product variant is unsupported. Test and Connect will refuse before opening a socket.")}</p>}
+            {selectedVariant?.authPolicy === 'gauss-legacy' && <p className="hint">{t("Native SHA authentication and national cryptography are not packaged. This profile only accepts existing compatible authentication; do not downgrade the server.")}</p>}
+          </>}
           <label>{t("Hostname")}<input aria-label={t("Hostname")} disabled={vm.busy} value={hostname} maxLength={253} onChange={e => { vm.invalidateDraft(); setHostname(e.currentTarget.value); }} /></label>
           <label>{t("Port")}<input aria-label={t("Port")} disabled={vm.busy} value={port} maxLength={5} onChange={e => { vm.invalidateDraft(); setPort(e.currentTarget.value); }} /></label>
           <label>{t("Database name")}<input aria-label={t("Database name")} disabled={vm.busy} value={database} maxLength={64} onChange={e => { vm.invalidateDraft(); setDatabase(e.currentTarget.value); }} /></label>

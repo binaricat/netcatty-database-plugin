@@ -22,6 +22,11 @@ const domestic = JSON.parse(await readFile('assets/domestic-icon-ledger.json', '
 for (const entry of domestic) {
   if (!entry.distributionBasis.includes('NOT_CLEARED_FOR_GENERAL_DISTRIBUTION')) throw new Error('Missing domestic usage boundary');
   if (createHash('sha256').update(await readFile(entry.sourceFile)).digest('hex') !== entry.sourceSha256) throw new Error('Domestic source drift');
+  if (createHash('sha256').update(await readFile(entry.renderFile)).digest('hex') !== entry.renderSha256) throw new Error('Domestic render source drift');
+  for (const file of new Set([entry.sourceFile, entry.renderFile])) if (file.endsWith('.svg')) {
+    const svg = await readFile(file, 'utf8');
+    if (/<(?:script|image|foreignObject|use|style)\b|(?:href|on\w+)\s*=|url\(/i.test(svg.replace(/url\(#[a-zA-Z0-9_-]+\)/g, 'local-gradient'))) throw new Error(`Unsafe domestic SVG: ${file}`);
+  }
   for (const output of entry.outputs) {
     const png = await readFile(output.file);
     if (createHash('sha256').update(png).digest('hex') !== output.sha256) throw new Error('Domestic PNG drift');

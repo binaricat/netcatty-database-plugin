@@ -62,3 +62,12 @@ using Chromium canvas, preserving geometry and fixed theme fill. The source and
 output hashes, original licensing and trademarks are in
 `assets/brand-icon-ledger.json`. Only bounded static PNGs are sent through the
 host brand-icon resource contract. No DBX assets or code were copied.
+
+T314 domestic driver profiles extend the public schema and registry from host
+67c989c92dc231535091772f397444bc05131517 with explicit variants and schema-derived
+profile types. The contract snapshot includes corresponding generated and source
+TypeScript/schema plus build files/license. SDK API remains openTcp with the public
+schema-derived request type. Vendor tarball hashes and lockfile integrity are
+updated; no proprietary JDBC driver or copied vendor implementation is bundled.
+See docs/t314-release-notes.md for the exact unsupported product/authentication
+boundaries. Brand provenance is separate in assets/domestic-icon-ledger.json.

@@ -6,6 +6,17 @@ import { drivers, filterDrivers, driverById } from '../src/driverRegistry';
 import { translator, type Message } from '../src/i18n';
 import { defaultQuery, selectObject, buildPrompt } from '../src/domain';
 
+test('domestic variants are typed, explicit and preserve distinct transports and catalog ownership', () => {
+  const gauss = driverById('gaussdb');
+  assert.equal(gauss.variants?.find(v => v.id === 'gaussdb-dws')?.defaultPort, 8000);
+  assert.equal(gauss.variants?.find(v => v.id === 'gaussdb-mysql')?.wireFamily, 'mysql');
+  assert.equal(driverById('kingbase').variants?.find(v => v.id === 'kingbase-pg')?.metadata, 'sys');
+  assert.ok(driverById('gbase8c').variants?.every(v => v.wireFamily === 'unpackaged'));
+  const source = readFileSync('src/index.tsx', 'utf8');
+  assert.match(source, /aria-label=\{t\("Product variant"\)\}/);
+  assert.match(source, /Vendor compatibility is unverified/);
+});
+
 test('typed registry matches the shipped contract and separates aliases from packaged engines', () => {
   assert.deepEqual(drivers, JSON.parse(readFileSync('node_modules/@netcatty/plugin-contract/schema/database-drivers.json', 'utf8')));
   assert.equal(driverById('goldendb').wireFamily, 'mysql');

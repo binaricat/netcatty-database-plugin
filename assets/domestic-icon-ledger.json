@@ -21,7 +21,8 @@
         "sha256": "2af8ffc416766e7bc6b87947382328e0c7dfdaf637e252e3c8e20a2e48098c98"
       }
     ],
-    "renderFile": "assets/domestic-sources/opengauss-graphic.svg"
+    "renderFile": "assets/domestic-sources/opengauss-graphic.svg",
+    "renderSha256": "72e8076e6e4f9b1895df4ede938b1905e30e37c2e8abdf60d6fdf63aa06cad4c"
   },
   {
     "id": "goldendb",
@@ -45,7 +46,8 @@
         "sha256": "a069ec46d128e733e5b7a4f831688f11582ba6ef7be754c26c3354c46404cd60"
       }
     ],
-    "renderFile": "assets/domestic-sources/goldendb.png"
+    "renderFile": "assets/domestic-sources/goldendb.png",
+    "renderSha256": "e2ba394f6515f6a0c8e9ac5980c9d14dbcbe3d36160008edf14f4951ec01ddad"
   },
   {
     "id": "gaussdb",
@@ -69,7 +71,8 @@
         "sha256": "7bcc4584688e6e65b8136e65466cc3f6d6608c789f1bc769300b81536e8193b7"
       }
     ],
-    "renderFile": "assets/domestic-sources/gaussdb.svg"
+    "renderFile": "assets/domestic-sources/gaussdb.svg",
+    "renderSha256": "c73871c4432cab3459014e554c76718bd97a5f3ee7c290ae3a7a929099238e59"
   },
   {
     "id": "kingbase",
@@ -93,7 +96,8 @@
         "sha256": "5f97f0266c2e724588992694ad8ca0656fea088b495c80f9828a5d370b66ad89"
       }
     ],
-    "renderFile": "assets/domestic-sources/kingbase.svg"
+    "renderFile": "assets/domestic-sources/kingbase.svg",
+    "renderSha256": "b7d39427d8b760bd4003385ae8e644ed65b9f10a41861d1a154d52a61f6c6122"
   },
   {
     "id": "highgo",
@@ -117,7 +121,8 @@
         "sha256": "094455a09391fa74f0272e9d8348144f656329df843d83d547a1354af42434ef"
       }
     ],
-    "renderFile": "assets/domestic-sources/highgo-transparent.png"
+    "renderFile": "assets/domestic-sources/highgo-transparent.png",
+    "renderSha256": "7a40c21cd1b5415baca74bb01b64966596df67ed3d3e7780d73dc5793fd359ee"
   },
   {
     "id": "vastbase",
@@ -141,7 +146,8 @@
         "sha256": "fc65317e9662987b85864d85faabcfc38302c02c369b79a58a8cdf79380fae84"
       }
     ],
-    "renderFile": "assets/domestic-sources/vastbase.svg"
+    "renderFile": "assets/domestic-sources/vastbase.svg",
+    "renderSha256": "4e4c5cad72b4d6f8388e0bb64ad541c0cc763528f4a4a818db9357890b9d7c60"
   },
   {
     "id": "gbase8c",
@@ -165,6 +171,7 @@
         "sha256": "250bacd91345c05312d1c46ee0cf9d0ec9ce9ae17e12809d854e6c365205b4df"
       }
     ],
-    "renderFile": "assets/domestic-sources/gbase8c.png"
+    "renderFile": "assets/domestic-sources/gbase8c.png",
+    "renderSha256": "67c29941dd4c3b14518971a5b96a0c795df553ea5ea45bcd2cd410ef320b180d"
   }
 ]

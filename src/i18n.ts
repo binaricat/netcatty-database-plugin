@@ -1,6 +1,12 @@
 // Original plugin-owned copy. English source keys keep the fallback explicit.
 // Only the host environment selects language; never navigator/OS/input locale.
 export const zhCN = {
+  "Product variant": "产品变体",
+  "Choose a product variant": "选择产品变体",
+  "Choose a product variant before testing or connecting.": "测试或连接前请选择产品变体。",
+  "Vendor compatibility is unverified. Unsupported authentication refuses; keep server security settings.": "尚未通过厂商服务验证。不支持的认证将被拒绝；请保留服务器安全配置。",
+  "This product variant is unsupported. Test and Connect will refuse before opening a socket.": "尚不支持此产品变体。测试和连接会在打开网络连接前拒绝。",
+  "Native SHA authentication and national cryptography are not packaged. This profile only accepts existing compatible authentication; do not downgrade the server.": "原生 SHA 认证与国密尚未打包。此配置仅接受已有兼容认证，请勿降低服务器安全设置。",
   "Netcatty host permissions / database service": "Netcatty 宿主权限 / 数据库服务",
   "Explore host-owned SQLite and database TCP sessions with familiar tools.": "使用熟悉的工具，探索宿主管理的 SQLite 与数据库 TCP 会话。",
   "Live fixture passed: pinned SSH and authenticated PostgreSQL read query. Test session closed.": "真实连接测试通过：固定 SSH 密钥与 PostgreSQL 认证查询成功，测试会话已关闭。",
