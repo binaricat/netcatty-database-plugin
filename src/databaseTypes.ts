@@ -156,7 +156,8 @@ export type DatabaseOpenResult = {
   handleId: DatabaseHandle;
   engine: "sqlite";
   label: "Disposable synthetic notes";
-  readOnly?: true;
+  readOnly?: boolean;
+  supportsReviewedWrites?: true;
   fixture: true;
 };
 
@@ -165,6 +166,7 @@ export type DatabaseQueryRequest = {
   sql: string;
   parameters: Array<DatabaseScalar>;
   mode: "read" | "write";
+  writeConfirmation?: { handleId: DatabaseHandle; sql: string; parameters: Array<DatabaseScalar> };
   maxRows?: number;
   timeoutMs?: number;
   revision?: DatabaseHandle;
@@ -176,6 +178,7 @@ export type DatabaseQueryResult = {
   truncated: boolean;
   changes: number;
   elapsedMs: number;
+  schema?: DatabaseSchemaResult;
 };
 
 export type DatabaseSaveConnectionRequest = {

@@ -1,6 +1,14 @@
 // Original plugin-owned copy. English source keys keep the fallback explicit.
 // Only the host environment selects language; never navigator/OS/input locale.
 export const zhCN = {
+"Connection setup finished. Close this dialog with the host close button.":"连接设置已结束，请使用宿主对话框右上角的关闭按钮。",
+"Session":"会话",
+"Reviewed parameters":"待确认的参数",
+"Reviewed SQL":"待确认的 SQL",
+"Only this disposable memory database will change. Closing the connection discards changes. Review the exact SQL and bound parameters before confirming.":"仅修改本次一次性内存数据库，关闭连接即丢弃变更。请核对下方完整 SQL 与绑定参数后确认。",
+"Confirm memory write":"确认内存写入",
+"Disposable SQLite memory: reviewed single-statement INSERT, UPDATE and DELETE only. Changes last until this connection closes; no user files are modified.":"一次性 SQLite 内存库，仅支持经确认的单条 INSERT、UPDATE、DELETE。变更只保留到连接关闭，不修改用户文件。",
+"Disposable SQLite memory":"一次性 SQLite 内存库",
 "Open the database workspace first.":"请先打开数据库工作台。",
 "Use this host dialog to create a database connection.":"使用此宿主对话框创建数据库连接。",
 "Currently available: disposable SQLite. More database drivers are in development.":"当前可用：临时 SQLite 工作区。更多数据库驱动正在开发中。",

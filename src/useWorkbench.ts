@@ -14,6 +14,10 @@ type Session = DatabaseOpenResult | DatabaseFileOpenResult | DatabaseTcpOpenResu
 export type QueryTab = { id: number; sql: string; parameters: string; result: DatabaseQueryResult | null; resultSql?: string; objectName?: string; surface?: 'data' | 'structure' };
 const target = (s: Session): DatabaseHandleRequest => ({ handleId: s.handleId, ...('revision' in s ? { revision: s.revision } : {}) });
 const initialTab = (id: number, schema: DatabaseSchemaResult | null, engine = 'sqlite'): QueryTab => ({ id, ...defaultQuery(schema, engine), result: null });
+export type ReviewedWrite = { handleId: string; tabId: number; sql: string; parameters: string; connectionName: string };
+export function matchesReviewedWrite(review: ReviewedWrite, handleId: string | undefined, tab: QueryTab | undefined): boolean {
+  return Boolean(tab && review.handleId === handleId && review.tabId === tab.id && review.sql === tab.sql && review.parameters === tab.parameters);
+}
 export function useWorkbench(context: PluginContext) {
   const liveSshPg = useHostLiveSshPg(context);
   const tunnel = useTunnelTest(context);
@@ -28,7 +32,11 @@ export function useWorkbench(context: PluginContext) {
   const [connectionName, setConnectionName] = useState('');
   const [connectedId, setConnectedId] = useState('');
   const [schema, setSchema] = useState<DatabaseSchemaResult | null>(null);
-  const [tabs, setTabs] = useState<QueryTab[]>([]); const [activeTab, setActiveTab] = useState(1);
+  const [tabs, setTabs] = useState<QueryTab[]>([]); const [activeTab, updateActiveTab] = useState(1);
+  const [pendingWrite, setPendingWrite] = useState<ReviewedWrite | null>(null);
+  const reviewed = useRef<ReviewedWrite | null>(null);
+  const invalidateWrite = () => { reviewed.current = null; setPendingWrite(null); };
+  const setActiveTab = (id: number) => { invalidateWrite(); updateActiveTab(id); };
   const [busy, setBusy] = useState(false);
   const [failure, setFailure] = useState<{ key: Message; diagnostic?: string } | null>(null);
   const [modal, setModal] = useState<'picker' | 'connection' | null>(null);
@@ -70,16 +78,19 @@ export function useWorkbench(context: PluginContext) {
     finally { if (rev === epoch.current) { locked.current = false; setBusy(false); } }
   };
   const dismiss = async () => {
+    invalidateWrite();
     tunnel.reset(); portProbe.reset(); liveSshPg.reset();
     epoch.current++; locked.current = false; setBusy(false); setModal(null); setTested(false);
     const s = draft.current; draft.current = null; setDraftSession(null); await close(s);
   };
   const disconnect = async (cancel = false) => {
+    invalidateWrite();
     epoch.current++; locked.current = false; setBusy(false);
     const s = live.current; live.current = null; setSession(null); setSchema(null); setTabs([]); setConnectedId('');
     await close(s, cancel);
   };
   const refresh = () => {
+    invalidateWrite();
     if (locked.current || !walRefreshEnabled || !live.current || !('revision' in live.current)) return;
     epoch.current++;
     return action(async (rev) => {
@@ -115,6 +126,7 @@ export function useWorkbench(context: PluginContext) {
     catch (e) { if (rev === epoch.current) { draft.current = null; setDraftSession(null); setTested(false); } await close(s); throw e; }
   });
   const attach = async (s: Session, name: string, id: string, rev: number) => {
+    invalidateWrite();
     try {
       const inspected = await context.database.readSchema(target(s));
       if (rev !== epoch.current) { await close(s); return; }
@@ -132,6 +144,7 @@ export function useWorkbench(context: PluginContext) {
     setSaved((items) => [...items, connection]); await attach(s, connection.name, connection.id, rev);
   });
   const open = (connection: DatabaseSavedConnection) => action(async (rev) => {
+    invalidateWrite();
     const s = await context.database.openSavedConnection({ id: connection.id });
     if (rev !== epoch.current) { await close(s); return; }
     await attach(s, connection.name, connection.id, rev);
@@ -164,7 +177,7 @@ export function useWorkbench(context: PluginContext) {
   });
   const loadHosts = () => action(async (rev) => { tunnel.reset(); portProbe.reset(); liveSshPg.reset(); const list = await context.database.listHostsForDatabase({}); if (rev === epoch.current) setHosts(list); });
   const tab = tabs.find((item) => item.id === activeTab);
-  const edit = (patch: Partial<QueryTab>) => setTabs((items) => items.map((item) => item.id === activeTab ? { ...item, ...patch } : item));
+  const edit = (patch: Partial<QueryTab>) => { invalidateWrite(); setTabs((items) => items.map((item) => item.id === activeTab ? { ...item, ...patch } : item)); };
   const addTab = (table?: string) => {
     const existing = table && tabs.find((item) => item.objectName === table);
     if (existing) { setActiveTab(existing.id); return; }
@@ -173,7 +186,7 @@ export function useWorkbench(context: PluginContext) {
     if (table) { item.objectName = table; item.surface = 'structure'; item.sql = selectObject(table, session?.engine); item.parameters = '[]'; }
     setTabs((items) => [...items, item]); setActiveTab(id);
   };
-  const closeTab = (id: number) => { const remaining = tabs.filter((t) => t.id !== id); setTabs(remaining); if (id === activeTab) setActiveTab(remaining[0]?.id ?? 0); };
+  const closeTab = (id: number) => { invalidateWrite(); const remaining = tabs.filter((t) => t.id !== id); setTabs(remaining); if (id === activeTab) setActiveTab(remaining[0]?.id ?? 0); };
   const saveCurrentQuery = (name: string) => {
     if (locked.current || !tab) return;
     try {
@@ -188,17 +201,22 @@ export function useWorkbench(context: PluginContext) {
     edit({ sql: entry.sql, parameters: entry.parameters, result: null, resultSql: undefined, objectName: undefined, surface: 'data' });
     setFailure(null);
   };
-  const run = (mode: 'read' | 'write') => action(async (rev) => {
-    if (!live.current || !tab) return; const id = tab.id;
+  const execute = (mode: 'read' | 'write', snapshot: QueryTab, write?: ReviewedWrite) => action(async (rev) => {
+    if (!live.current) return;
+    if (mode === 'write' && (!write || !matchesReviewedWrite(write, live.current.handleId, snapshot))) return;
+    const tab = snapshot; const id = tab.id;
     edit({ result: null, resultSql: undefined });
     // Invalid JSON is not a dispatched execution. Do not retain malformed input.
     const parameters = parseParameters(tab.parameters);
     const execution = { sql: tab.sql, parameters: tab.parameters, connectionName, time: Date.now() };
     let success = false;
     try {
-      const value = await context.database.query({ ...target(live.current), sql: tab.sql, parameters, mode, maxRows: 100, timeoutMs: 3000 });
+      const value = await context.database.query({ ...target(live.current), sql: tab.sql, parameters, mode, ...(write ? {writeConfirmation: {handleId: write.handleId, sql: write.sql, parameters}} : {}), maxRows: 100, timeoutMs: 3000 });
       success = true;
-      if (rev === epoch.current) setTabs((items) => items.map((item) => item.id === id ? { ...item, result: value, resultSql: tab.sql } : item));
+      if (rev === epoch.current) {
+        if (value.schema) setSchema(value.schema);
+        setTabs((items) => items.map((item) => item.id === id ? { ...item, result: value, resultSql: tab.sql } : item));
+      }
     } finally {
       if (rev === epoch.current) {
         // History is best-effort metadata and must not mask the execution outcome.
@@ -208,5 +226,22 @@ export function useWorkbench(context: PluginContext) {
       }
     }
   });
-  return { queryLibrary, saveCurrentQuery, removeSavedQuery, clearHistory, loadQuery, selectedDriver, selectDriver, tcpEnabled, testTcp, connectTcp, invalidateDraft, liveSshPg, portProbe, tunnel, t, locale, tabTitle, saved, session, connectedId, connectionName: session && !connectedId && session.engine === 'sqlite' ? t('Disposable SQLite') : connectionName, schema, tabs, tab, activeTab, setActiveTab, addTab, closeTab, edit, busy, error, modal, setModal: (next: 'picker' | 'connection' | null) => { tunnel.reset(); portProbe.reset(); liveSshPg.reset(); setModal(next); }, draftSession, tested, hosts, theme, enabled, persistence, fileEnabled, walEnabled, walConcurrentEnabled, walCheckpointEnabled, walCaptureEnabled, malformedRejectEnabled, walRefreshEnabled, refresh, dismiss, disconnect, selectSource, test, save, open, openUnsaved, remove, loadHosts, run };
+  const canReviewWrite = Boolean(session && 'supportsReviewedWrites' in session && session.supportsReviewedWrites === true && session.readOnly === false);
+  const run = (mode: 'read' | 'write') => {
+    if (locked.current || !tab || !live.current) return;
+    if (mode === 'read') { invalidateWrite(); return execute('read', {...tab}); }
+    if (!canReviewWrite) return;
+    try { parseParameters(tab.parameters); }
+    catch (error) { if (error instanceof ParameterError) setFailure({key:error.messageKey}); return; }
+    const review = {handleId: live.current.handleId, tabId: tab.id, sql: tab.sql, parameters: tab.parameters, connectionName};
+    reviewed.current = review; setPendingWrite(review); setFailure(null);
+  };
+  const confirmWrite = () => {
+    const review = reviewed.current;
+    if (locked.current || !canReviewWrite || !review || !matchesReviewedWrite(review, live.current?.handleId, tab)) { invalidateWrite(); return; }
+    // Consume the exact user-reviewed snapshot once, before any asynchronous work.
+    invalidateWrite();
+    return execute('write', {...tab!, sql: review.sql, parameters: review.parameters}, review);
+  };
+  return { pendingWrite, canReviewWrite, confirmWrite, cancelWrite: invalidateWrite, queryLibrary, saveCurrentQuery, removeSavedQuery, clearHistory, loadQuery, selectedDriver, selectDriver, tcpEnabled, testTcp, connectTcp, invalidateDraft, liveSshPg, portProbe, tunnel, t, locale, tabTitle, saved, session, connectedId, connectionName: session && !connectedId && session.engine === 'sqlite' ? t('Disposable SQLite') : connectionName, schema, tabs, tab, activeTab, setActiveTab, addTab, closeTab, edit, busy, error, modal, setModal: (next: 'picker' | 'connection' | null) => { invalidateWrite(); tunnel.reset(); portProbe.reset(); liveSshPg.reset(); setModal(next); }, draftSession, tested, hosts, theme, enabled, persistence, fileEnabled, walEnabled, walConcurrentEnabled, walCheckpointEnabled, walCaptureEnabled, malformedRejectEnabled, walRefreshEnabled, refresh, dismiss, disconnect, selectSource, test, save, open, openUnsaved, remove, loadHosts, run };
 }

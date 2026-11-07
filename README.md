@@ -7,7 +7,7 @@ The compatibility baseline is host commit
 
 The first main-compatible slice includes an actual, plugin-owned SQLite engine,
 a disposable memory dataset with tables and a view, schema inspection, parameterized
-read queries, query tabs, English/Chinese labels and host model SQL drafting.
+read queries, reviewed bounded INSERT/UPDATE/DELETE, query tabs, English/Chinese labels and host model SQL drafting.
 Connection metadata uses the host's permission-controlled plugin storage. Reopening
 creates a fresh sample database; database contents are not persisted.
 
@@ -29,7 +29,7 @@ npm run pack
 npm run validate
 ```
 
-The resulting package is `dist/netcatty-database-0.1.0-alpha.4.ncpkg`. Import it in
+The resulting package is `dist/netcatty-database-0.1.0-alpha.6.ncpkg`. Import it in
 Settings > Plugins on Netcatty main, enable it and open Database. Choose
 New Connection > SQLite > Next > Test or Save & Connect. Storage is an optional
 permission requested when metadata is read or saved. The package requires main's AI API feature; actual AI invocation remains optional

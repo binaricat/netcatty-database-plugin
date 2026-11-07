@@ -20,10 +20,57 @@ function readSql(sql: string): string {
   if (!/^(SELECT|WITH|EXPLAIN)\b/i.test(head)) throw new Error('This SQLite workspace accepts one read-only SELECT, WITH or EXPLAIN statement.');
   return sql;
 }
+/** Deliberately small write grammar: no subqueries, functions, expressions, scripts or DDL. */
+function reviewedWriteSql(request: DatabaseQueryRequest): string {
+  const review = request.writeConfirmation;
+  if (!review || review.handleId !== request.handleId || review.sql !== request.sql || JSON.stringify(review.parameters) !== JSON.stringify(request.parameters)) throw new Error('Explicit write confirmation must match this connection, SQL and parameters.');
+  const tokens: string[] = []; let rest = request.sql;
+  while (rest.trim()) {
+    rest = rest.trimStart();
+    const match = /^(?:--[^\n]*(?:\n|$)|\/\*[\s\S]*?\*\/|'(?:''|[^'])*'|"(?:""|[^"])*"|`(?:``|[^`])*`|\[[^\]]*\]|(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?|[A-Za-z_][A-Za-z_0-9]*|<>|!=|<=|>=|[?(),;=<>+-])/.exec(rest);
+    if (!match) throw new Error('Reviewed writes support only simple parameterized INSERT, UPDATE or DELETE statements.');
+    rest = rest.slice(match[0].length);
+    if (!match[0].startsWith('--') && !match[0].startsWith('/*')) tokens.push(match[0]);
+    if (tokens.length > 512) throw new Error('Write exceeds the token budget.');
+  }
+  let i = 0; const peek = () => tokens[i]?.toUpperCase();
+  const expect = (token: string) => { if (peek() !== token) throw new Error('Unsupported reviewed write syntax. Use scalar values and simple AND predicates.'); i++; };
+  const identifier = () => { const token = tokens[i]; if (!token || !/^(?:[A-Za-z_][A-Za-z_0-9]*|"(?:""|[^"])*"|`(?:``|[^`])*`|\[[^\]]*\])$/.test(token)) throw new Error('Write identifier is invalid.'); i++; };
+  const tableIdentifier = () => {
+    const token = tokens[i] ?? '';
+    const name = token.startsWith('"') ? token.slice(1,-1).replaceAll('""','"') : token.startsWith('`') ? token.slice(1,-1).replaceAll('``','`') : token.startsWith('[') ? token.slice(1,-1) : token;
+    if (name.toLowerCase().startsWith('sqlite_')) throw new Error('SQLite system tables cannot be modified.');
+    identifier();
+  };
+  const value = () => {
+    if (peek() === '+' || peek() === '-') { i++; if (!/^(?:\d|\.)/.test(tokens[i] ?? '')) throw new Error('Signed write value must be numeric.'); }
+    const token = tokens[i];
+    if (!token || !/^(?:\?|'(?:''|[^'])*'|NULL|TRUE|FALSE|(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?)$/i.test(token)) throw new Error('Write values must be scalar literals or bound parameters.');
+    i++;
+  };
+  const where = () => {
+    if (peek() !== 'WHERE') return;
+    i++;
+    do { identifier(); if (!['=', '!=', '<>', '<', '>', '<=', '>=', 'IS'].includes(peek())) throw new Error('Unsupported write predicate.'); const op = peek(); i++; if (op === 'IS' && peek() === 'NOT') i++; value(); if (peek() !== 'AND') break; i++; } while (true);
+  };
+  const operation = peek(); i++;
+  if (operation === 'INSERT') {
+    expect('INTO'); tableIdentifier();
+    if (peek() === '(') { i++; identifier(); while (peek() === ',') { i++; identifier(); } expect(')'); }
+    expect('VALUES'); expect('('); value(); while (peek() === ',') { i++; value(); } expect(')');
+  } else if (operation === 'UPDATE') {
+    tableIdentifier(); expect('SET'); identifier(); expect('='); value();
+    while (peek() === ',') { i++; identifier(); expect('='); value(); } where();
+  } else if (operation === 'DELETE') { expect('FROM'); tableIdentifier(); where(); }
+  else throw new Error('Reviewed writes allow only INSERT, UPDATE or DELETE.');
+  if (peek() === ';') i++;
+  if (i !== tokens.length) throw new Error('Run one simple write statement at a time.');
+  return request.sql;
+}
 function validSaved(value: unknown): value is DatabaseSavedConnection {
   if (!value || typeof value !== 'object') return false;
   const c = value as DatabaseSavedConnection;
-  return typeof c.id === 'string' && c.id.length <= 128 && typeof c.name === 'string' && c.name.length > 0 && c.name.length <= 128 && c.engine === 'sqlite' && c.targetKind === 'memory' && c.readOnly === true && ['default','blue','green','purple','orange'].includes(c.color)
+  return typeof c.id === 'string' && c.id.length <= 128 && typeof c.name === 'string' && c.name.length > 0 && c.name.length <= 128 && c.engine === 'sqlite' && c.targetKind === 'memory' && typeof c.readOnly === 'boolean' && ['default','blue','green','purple','orange'].includes(c.color)
     && Object.keys(c).every(key => ['id','name','engine','targetKind','readOnly','color'].includes(key));
 }
 export const SQLITE_SCHEMA_LIMITS = Object.freeze({ objects: 32, columns: 64, indexes: 32, foreignKeyColumns: 64, triggers: 32, text: 8192, bytes: 96 * 1024 });
@@ -101,17 +148,50 @@ export function createWorkbenchContext(context: PluginContext): WorkbenchContext
         INSERT INTO orders VALUES (1,1,29.5,NULL),(2,2,45.25,''),(3,1,12.0,'Sample order');
         CREATE VIEW order_totals AS SELECT c.name, SUM(o.amount) AS total FROM customers c JOIN orders o ON o.customer_id=c.id GROUP BY c.id;
         PRAGMA hard_heap_limit=8388608;
+        PRAGMA foreign_keys=ON;
         PRAGMA query_only=ON;`);
       const handleId = crypto.randomUUID(); sessions.set(handleId, db);
-      return {handleId, engine: 'sqlite' as const, label: 'Disposable synthetic notes' as const, fixture: true as const, readOnly: true as const};
+      return {handleId, engine: 'sqlite' as const, label: 'Disposable synthetic notes' as const, fixture: true as const, readOnly: false as const, supportsReviewedWrites: true as const};
     } catch (error) { db.close(); throw error; }
   };
   const query = async (request: DatabaseQueryRequest): Promise<DatabaseQueryResult> => {
     const db = get(request); const started = performance.now();
-    if (request.mode !== 'read') throw new Error('This SQLite workspace is read-only.');
+    if (request.mode !== 'read' && request.mode !== 'write') throw new Error('Invalid query mode.');
     if (!request.sql || request.sql.length > 8192) throw new Error('SQL must contain at most 8192 characters.');
-    if (!Array.isArray(request.parameters) || request.parameters.length > 32) throw new Error('Invalid SQL parameters.');
+    if (!Array.isArray(request.parameters) || request.parameters.length > 32 || request.parameters.some(value => !(value === null || typeof value === 'boolean' || typeof value === 'number' && Number.isFinite(value) || typeof value === 'string' && value.length <= 2048))) throw new Error('Invalid SQL parameters.');
     if (request.maxRows !== undefined && (!Number.isInteger(request.maxRows) || request.maxRows < 1 || request.maxRows > 100)) throw new Error("Invalid row limit.");
+    if (request.mode === 'write') {
+      const sql = reviewedWriteSql(request);
+      let transaction = false;
+      try {
+        db.run('PRAGMA query_only=OFF');
+        db.run('SAVEPOINT plugin_reviewed_write'); transaction = true;
+        const statement = db.prepare(sql);
+        try { statement.bind(request.parameters.map(value => typeof value === 'boolean' ? Number(value) : value)); while (statement.step()) { /* grammar has no RETURNING */ } } finally { statement.free(); }
+        const changes = db.getRowsModified();
+        if (changes > 100) throw new Error('Write affects more than 100 rows; transaction rolled back.');
+        const size = db.exec('PRAGMA page_count')[0].values[0][0] as number;
+        const pageSize = db.exec('PRAGMA page_size')[0].values[0][0] as number;
+        if (size * pageSize > 1024 * 1024) throw new Error('Write exceeds the 1 MiB database budget; transaction rolled back.');
+        const schema = inspectSqliteSchema(db);
+        for (const table of schema.tables.filter(item => item.kind === 'table')) {
+          const quoted = '"' + table.name.replaceAll('"','""') + '"';
+          if (Number(db.exec(`SELECT COUNT(*) FROM ${quoted}`)[0].values[0][0]) > 10000) throw new Error('Write exceeds the 10000 rows per table budget; transaction rolled back.');
+        }
+        db.run('RELEASE plugin_reviewed_write'); transaction = false;
+        return {columns: [], rows: [], truncated: false, changes, elapsedMs: Math.round(performance.now()-started), schema};
+      } catch (error) {
+        if (transaction) {
+          try { db.run('ROLLBACK TO plugin_reviewed_write; RELEASE plugin_reviewed_write'); }
+          catch { sessions.delete(request.handleId); db.close(); }
+        }
+        throw error;
+      } finally {
+        if (sessions.has(request.handleId)) {
+          try { db.run('PRAGMA query_only=ON'); } catch { sessions.delete(request.handleId); db.close(); throw new Error('SQLite read protection could not be restored; session closed.'); }
+        }
+      }
+    }
     const sql = readSql(request.sql);
     let count = 0;
     for (const statement of db.iterateStatements(sql)) { void statement; if (++count > 1) throw new Error('Run one SQL statement at a time.'); }
@@ -134,7 +214,7 @@ export function createWorkbenchContext(context: PluginContext): WorkbenchContext
   };
   const readSchema = async (request: DatabaseHandleRequest): Promise<DatabaseSchemaResult> => inspectSqliteSchema(get(request));
   const database: PluginDatabaseClient & {capabilities: ReadonlySet<string>} = {
-    capabilities: new Set(['database.sqlite-fixture.v1','database.saved-connections.v1']),
+    capabilities: new Set(['database.sqlite-fixture.v1','database.saved-connections.v1','database.sqlite-reviewed-writes.v1']),
     openFixture: open, readSchema, query, close, cancel:close,
     listSavedConnections:list,
     saveConnection: (request: DatabaseSaveConnectionRequest) => mutate(async () => {
@@ -142,7 +222,7 @@ export function createWorkbenchContext(context: PluginContext): WorkbenchContext
       if (request.secret || request.meta.hostId) throw new Error('Credentials and host bindings are not supported by the memory adapter.');
       const saved = await list();
       if (saved.length >= MAX_CONNECTIONS) throw new Error('The saved connection limit has been reached.');
-      const value: DatabaseSavedConnection = {id:crypto.randomUUID(),name:request.meta.name,color:request.meta.color,engine:'sqlite',targetKind:'memory',readOnly:true};
+      const value: DatabaseSavedConnection = {id:crypto.randomUUID(),name:request.meta.name,color:request.meta.color,engine:'sqlite',targetKind:'memory',readOnly:false};
       if (!validSaved(value)) throw new Error('Invalid connection metadata.');
       assertLive(); await context.storage.set(STORE_KEY,[...saved,value]); return value;
     }),

@@ -47,11 +47,11 @@ advertised driver itself has been independently tested in DBX.
 | 7. Schema editing and reviewed DDL | Missing | SQLite memory adapter is read-only. |
 | 8. SQL editing/highlight/tabs | Partial | Bounded syntax overlay, line numbers and up to eight tabs. No CodeMirror-equivalent editing/selection behavior. |
 | 9. Completion, formatting and diagnostics | Missing | No schema-aware completion or formatter/diagnostic engine. |
-| 10. Selection/scripts/manual transactions | Missing | One read statement only; no batch, script execution or transaction controls. |
+| 10. Selection/scripts/manual transactions | Missing | One read or reviewed simple DML statement only; no batch, script execution or manual transaction controls. |
 | 11. Query history and saved SQL/snippets | Partial | Bounded in-view history and named SQL library. No persisted SQL library or richer snippets yet. |
 | 12. Restored editor tabs/drafts | Missing | Query state lasts only for the mounted workspace/session. |
 | 13. Result browsing/search/sort/paging | Partial | Bounded returned-result paging, filtering, sorting and cell inspection. No server-side paging or virtual scrolling. |
-| 14. Grid insert/edit/delete with SQL preview | Missing | No data mutations on main. |
+| 14. Grid insert/edit/delete with SQL preview | Missing | Reviewed simple SQL INSERT/UPDATE/DELETE now work on disposable memory; direct grid mutation controls are still absent. |
 | 15. CSV/JSON/Markdown/XLSX/INSERT export | Missing | No export controls or file destination flow. |
 | 16. CSV/Excel import | Missing | No importer. |
 | 17. Data transfer and data comparison | Missing | No cross-connection engine or reviewed synchronization. |

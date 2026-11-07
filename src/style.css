@@ -348,3 +348,12 @@ pre { padding: 12px; background: hsl(var(--muted)/.4); border: 1px solid hsl(var
 .native-connection-content .connection-details { height:auto; }
 .native-connection-content .flow-heading { padding:12px; }
 .native-connection-start { padding:24px; display:flex; flex-direction:column; align-items:flex-start; gap:16px; }
+
+.write-review { display: flex; flex-direction: column; flex: 0 1 210px; min-height: 76px; max-height: 210px; border: 1px solid hsl(var(--border)); background: hsl(var(--muted)); overflow: hidden; }
+.write-review-header { display: flex; flex: 0 0 auto; align-items: center; justify-content: space-between; gap: 8px; padding: 6px 10px; border-bottom: 1px solid hsl(var(--border)); }
+.write-review-header strong { font-size: 12px; }
+.write-review-actions { display: flex; flex: 0 0 auto; gap: 6px; }
+.write-review-actions button { padding: 4px 8px; font-size: 12px; }
+.write-review-body { min-height: 0; overflow: auto; padding: 6px 10px; font-size: 12px; }
+.write-review-body p { margin: 0 0 6px; }
+.write-review pre { white-space: pre-wrap; overflow-wrap: anywhere; margin: 4px 0; }

@@ -26,7 +26,7 @@ test('read-only SQLite rejects writes, pragma escapes and multi-statement script
   for (const sql of ['DELETE FROM notes','PRAGMA query_only=OFF','SELECT 1; DELETE FROM notes','WITH c AS (SELECT 1) DELETE FROM notes','ATTACH DATABASE \'x\' AS other']) {
     await assert.rejects(context.database.query({...s,sql,parameters:[],mode:'read'}));
   }
-  await assert.rejects(context.database.query({...s,sql:'DELETE FROM notes',parameters:[],mode:'write'}),/read-only/);
+  await assert.rejects(context.database.query({...s,sql:'DELETE FROM notes',parameters:[],mode:'write'}),/confirmation/);
   assert.deepEqual((await context.database.query({...s,sql:'-- comment\n/* another */ SELECT count(*) FROM notes;',parameters:[],mode:'read'})).rows,[[3]]);
   assert.deepEqual((await context.database.query({...s,sql:"SELECT '; DELETE FROM notes'",parameters:[],mode:'read'})).rows,[['; DELETE FROM notes']]);
 });

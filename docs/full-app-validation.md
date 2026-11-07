@@ -15,3 +15,9 @@ Native modal limitations: current public PluginViews SDK has no open/close-modal
 Evidence directory outside the repository: database-parity-evidence/full-main-round1. homepage-final.jpg, native-modal-final.jpg, native-details.jpg, full-query.jpg, host-selection.jpg. full-app-workbench.mp4 records the actual application workflow. full-app-flow.mp4 records installation/update debugging and is not a database acceptance recording.
 
 Not verified: Docker SSH host, remote database discovery/authentication/query, real AI provider, or DBX feature parity. SQLite data is explicitly synthetic disposable in-memory data, not a Docker server. See local-docker-acceptance.md and ai-parity.md.
+
+## Reviewed memory writes (local alpha.6)
+
+In the complete app, a new disposable SQLite session now exposes a distinct Review write action. Cancelling the review left Nothing executed. Confirming a bounded UPDATE changed exactly one row; a following SELECT read the new value. Editing the SQL after review dismissed the stale approval. The final confirmation panel keeps Cancel/Confirm in a fixed visible header and scrolls only the details. Screenshots: write-review-final.jpg and write-readback-final.jpg. The earlier full-app-writes.mp4 records alpha.5 functional verification and update preparation, not the final alpha.6 panel layout.
+
+Only simple INSERT/UPDATE/DELETE are accepted. Confirmation binds handle, SQL and parameters. SAVEPOINT protects rollback on errors and budgets (100 affected rows, 1 MiB total database, 10000 rows/table); read-mode protection is restored. There is no user-file, remote-database, DDL, script or manual-transaction support claim.
