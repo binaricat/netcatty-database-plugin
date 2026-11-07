@@ -44,3 +44,5 @@ failed alterations restore schema versions and all data. No foreign-key or
 legacy-alter compatibility PRAGMA may be weakened to make a rename succeed.
 
 Validation: 319 tests, TypeScript/asset/host-policy lint, and 26 real-SQLite main remote-DOM scenarios pass. The remote-DOM lane uses injected transports and is not native UI evidence. Alpha.24 has been imported/enabled in the full main application; rename native acceptance remains pending.
+
+Alpha.25 adds a synchronous workbench-wide apply lock before calling the adapter, disabling navigation/connection closure until schema refresh finishes. The default source is a non-PK column, primary keys are disabled, and conservative exclusions are described without claiming an actual dependency rewrite. Dedicated responsive fields give the new name adequate width. Deferred-apply remote-DOM regression exercises attempted navigation and successful completion. Native alpha.25 acceptance remains pending.

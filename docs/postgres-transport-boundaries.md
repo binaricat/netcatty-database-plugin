@@ -87,3 +87,5 @@ Separately, native SSH `psql` tests covered table creation/UPSERT, NULL, prepare
 parameters and refusal of non-TLS access. See
 [native SSH PostgreSQL acceptance](native-ssh-postgres-acceptance.md) for evidence
 and the distinction between terminal, independent protocol and plugin lanes.
+
+The 7a318f4 follow-up was re-run in native SSH against the same live server: positive SCRAM/read, exact SQLSTATE `28P01` for invalid password, and untrusted certificate refusal all pass. Incoming startup chunks (including late reads) and authentication byte copies are now cleared best effort. Screenshot: `netcatty-pg-protocol-strict-retest.jpg`.

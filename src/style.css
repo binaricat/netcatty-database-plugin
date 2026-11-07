@@ -454,3 +454,9 @@ pre { padding: 12px; background: hsl(var(--muted)/.4); border: 1px solid hsl(var
 .database-workbench .row-mutation .row-mutation-delete-confirm:disabled {background:hsl(var(--muted));color:hsl(var(--muted-foreground));}
 .row-mutation-status:empty {display:none;}
 @media(max-width:800px) {.database-workbench .row-mutation {margin:12px auto;padding:16px;} .row-mutation-footer {flex-wrap:wrap;} }
+
+.database-workbench .rename-column {max-width:800px;margin:16px auto;}
+.rename-column-fields {display:grid;grid-template-columns:minmax(120px,1fr) minmax(140px,1fr) minmax(180px,1.3fr);gap:14px;align-items:end;}
+@media(max-width:700px) {.rename-column-fields {grid-template-columns:1fr;} }
+.drop-index-fields {display:grid;grid-template-columns:minmax(140px,1fr) minmax(180px,1.4fr);gap:14px;align-items:end;}
+@media(max-width:700px) {.drop-index-fields {grid-template-columns:1fr;} }

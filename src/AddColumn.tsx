@@ -21,7 +21,7 @@ export function addColumnErrorText(code:string,zh:boolean):string {
  };
  return messages[code]?.[zh?1:0]??(zh?'操作失败，请检查连接后重新预览。':'Operation failed. Check the connection and prepare a new preview.');
 }
-export function addColumnController(database:Pick<WorkbenchContext['database'],'previewAddColumn'|'applyAddColumn'>,handleId:string,schema:DatabaseSchemaResult,onApplied:(schema:DatabaseSchemaResult)=>void){
+export function addColumnController(database:Pick<WorkbenchContext['database'],'previewAddColumn'|'applyAddColumn'>,handleId:string,schema:DatabaseSchemaResult,onApplied:(schema:DatabaseSchemaResult)=>void,onApplying?:(busy:boolean)=>void){
  let state:State={draft:{table:schema.tables.find(t=>t.kind==='table')?.name??'',name:'',type:'TEXT'},review:null,busy:'idle',done:false,notice:''};let epoch=0,disposed=false;const listeners=new Set<()=>void>();
  const emit=(patch:Partial<State>)=>{if(disposed)return;state={...state,...patch};listeners.forEach(fn=>fn());};
  return {getSnapshot:()=>state,subscribe(fn:()=>void){listeners.add(fn);return()=>{listeners.delete(fn);};},
@@ -31,17 +31,16 @@ export function addColumnController(database:Pick<WorkbenchContext['database'],'
  const review=await serialPreview(database,handleId,async()=>{if(disposed||op!==epoch)return null;return database.previewAddColumn({handleId,draft});});if(disposed||op!==epoch)return;
  if(!review||review.handleId!==handleId||JSON.stringify(review.draft)!==JSON.stringify(draft))throw new AddColumnError('review');emit({review:{...review,draft:{...review.draft}},notice:'review-ready'});
  }catch(e){if(!disposed&&op===epoch)emit({notice:e instanceof AddColumnError?e.code:'failed'});}finally{emit({busy:'idle'});}},
- async confirm(){if(disposed||state.busy!=='idle'||!state.review||state.done)return;const review=state.review,op=++epoch;emit({review:null,busy:'apply',notice:''});try{
+ async confirm(){if(disposed||state.busy!=='idle'||!state.review||state.done)return;const review=state.review,op=++epoch;onApplying?.(true);emit({review:null,busy:'apply',notice:''});try{
  const result=await database.applyAddColumn({handleId,review});if(disposed||op!==epoch)return;emit({done:true,notice:'done'});try{onApplied(result.schema);}catch{emit({notice:'refresh'});}
- }catch(e){if(!disposed&&op===epoch)emit({notice:e instanceof AddColumnError?e.code:'failed'});}finally{if(op===epoch)emit({busy:'idle'});}},
+ }catch(e){if(!disposed&&op===epoch)emit({notice:e instanceof AddColumnError?e.code:'failed'});}finally{if(op===epoch)emit({busy:'idle'});onApplying?.(false);}},
  dispose(){disposed=true;epoch++;state={...state,review:null};listeners.clear();},
  };
 }
 export function AddColumn({context,handleId,schema,onApplied,onClose,onBusyChange}:{context:WorkbenchContext;handleId:string;schema:DatabaseSchemaResult;onApplied:(schema:DatabaseSchemaResult)=>void;onClose:()=>void;onBusyChange?:(busy:boolean)=>void}){
- const callback=useRef(onApplied);callback.current=onApplied;
- const controller=useMemo(()=>addColumnController(context.database,handleId,schema,s=>callback.current(s)),[context.database,handleId]);
+ const callback=useRef(onApplied);callback.current=onApplied;const busyCallback=useRef(onBusyChange);busyCallback.current=onBusyChange;
+ const controller=useMemo(()=>addColumnController(context.database,handleId,schema,s=>callback.current(s),busy=>busyCallback.current?.(busy)),[context.database,handleId]);
  const state=useSyncExternalStore(controller.subscribe,controller.getSnapshot,controller.getSnapshot);useEffect(()=>()=>controller.dispose(),[controller]);
- useEffect(()=>{onBusyChange?.(state.busy==='apply');return()=>onBusyChange?.(false);},[state.busy,onBusyChange]);
  const zh=context.environment?.locale?.toLowerCase().startsWith('zh'),tr=(en:string,cn:string)=>zh?cn:en;
  const locked=state.busy==='apply'||state.done;
  const notices:Record<string,string>={cancelled:tr('Preview cancelled; no ALTER submitted.','预览已取消，未提交 ALTER。'),'review-ready':tr('Review the exact SQL, then confirm once.','请审阅完整 SQL，再确认一次。'),done:tr('Column added. Schema refreshed and prior query results invalidated.','列已添加，结构已刷新，旧查询结果已失效。'),refresh:tr('Column added, but refresh failed. Reopen the schema browser.','列已添加，但刷新失败。请重新打开结构浏览器。'),failed:tr('Operation failed. Prepare a new preview before retrying.','操作失败，请重新预览后再试。')};

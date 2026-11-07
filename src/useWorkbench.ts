@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { PluginContext } from './databaseClient';
 import type { DatabaseOpenResult, DatabaseFileOpenResult, DatabaseHandleRequest, DatabaseSchemaResult, DatabaseSavedConnection, DatabaseHostList, DatabaseConnectionMeta, DatabaseQueryResult } from './databaseTypes';
 import { parseParameters, ParameterError, DATABASE_FEATURE, defaultQuery, selectObject } from './domain';
@@ -34,6 +34,8 @@ export function useWorkbench(context: PluginContext) {
   const [connectedId, setConnectedId] = useState('');
   const [schema, setSchema] = useState<DatabaseSchemaResult | null>(null);
   const [tabs, setTabs] = useState<QueryTab[]>([]); const [activeTab, updateActiveTab] = useState(1);
+  const schemaApplyingRef=useRef(false);const [schemaApplying,updateSchemaApplying]=useState(false);
+  const setSchemaApplying=useCallback((value:boolean)=>{schemaApplyingRef.current=value;updateSchemaApplying(value);},[]);
   const editorRevision = useRef(0);
   const [draftStorageBusy,setDraftStorageBusy]=useState(false);
   const draftStorageRunning=useRef(false);
@@ -41,7 +43,7 @@ export function useWorkbench(context: PluginContext) {
   const [pendingWrite, setPendingWrite] = useState<ReviewedWrite | null>(null);
   const reviewed = useRef<ReviewedWrite | null>(null);
   const invalidateWrite = () => { reviewed.current = null; setPendingWrite(null); };
-  const setActiveTab = (id: number) => { editorRevision.current++; invalidateWrite(); updateActiveTab(id); };
+  const setActiveTab = (id: number) => {if(schemaApplyingRef.current)return; editorRevision.current++; invalidateWrite(); updateActiveTab(id); };
   const [busy, setBusy] = useState(false);
   const [failure, setFailure] = useState<{ key: Message; diagnostic?: string } | null>(null);
   const [modal, setModal] = useState<'picker' | 'connection' | null>(null);
@@ -76,7 +78,7 @@ export function useWorkbench(context: PluginContext) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [context, persistence]);
   const action = async (work: (rev: number) => Promise<void>) => {
-    if (locked.current) return;
+    if (locked.current || schemaApplyingRef.current) return;
     locked.current = true; setBusy(true); setFailure(null); const rev = epoch.current;
     try { await work(rev); }
     catch (e) { if (rev === epoch.current) setFailure(e instanceof ParameterError ? { key: e.messageKey } : e instanceof Error && e.message === 'Driver not packaged' ? { key: 'Driver not packaged' } : { key: 'Host operation failed', ...(e instanceof Error ? { diagnostic: e.message } : {}) }); }
@@ -89,6 +91,7 @@ export function useWorkbench(context: PluginContext) {
     const s = draft.current; draft.current = null; setDraftSession(null); await close(s);
   };
   const disconnect = async (cancel = false) => {
+    if(schemaApplyingRef.current)return;
     invalidateWrite();
     epoch.current++; locked.current = false; setBusy(false);
     const s = live.current; live.current = null; setSession(null); setSchema(null); setTabs([]); setConnectedId('');
@@ -96,7 +99,7 @@ export function useWorkbench(context: PluginContext) {
   };
   const refresh = () => {
     invalidateWrite();
-    if (locked.current || !walRefreshEnabled || !live.current || !('revision' in live.current)) return;
+    if (locked.current || schemaApplyingRef.current || !walRefreshEnabled || !live.current || !('revision' in live.current)) return;
     editorRevision.current++;
     epoch.current++;
     return action(async (rev) => {
@@ -183,8 +186,8 @@ export function useWorkbench(context: PluginContext) {
   });
   const loadHosts = () => action(async (rev) => { tunnel.reset(); portProbe.reset(); liveSshPg.reset(); const list = await context.database.listHostsForDatabase({}); if (rev === epoch.current) setHosts(list); });
   const tab = tabs.find((item) => item.id === activeTab);
-  const edit = (patch: Partial<QueryTab>) => { editorRevision.current++; invalidateWrite(); setTabs((items) => items.map((item) => item.id === activeTab ? { ...item, ...patch } : item)); };
-  const addTab = (table?: string) => {
+  const edit = (patch: Partial<QueryTab>) => {if(schemaApplyingRef.current)return; editorRevision.current++; invalidateWrite(); setTabs((items) => items.map((item) => item.id === activeTab ? { ...item, ...patch } : item)); };
+  const addTab = (table?: string) => {if(schemaApplyingRef.current)return;
     const existing = table && tabs.find((item) => item.objectName === table);
     if (existing) { setActiveTab(existing.id); return; }
     if (tabs.length >= 8) return;
@@ -192,9 +195,9 @@ export function useWorkbench(context: PluginContext) {
     if (table) { item.objectName = table; item.surface = 'structure'; item.sql = selectObject(table, session?.engine); item.parameters = '[]'; }
     setTabs((items) => [...items, item]); setActiveTab(id);
   };
-  const closeTab = (id: number) => { editorRevision.current++; invalidateWrite(); const remaining = tabs.filter((t) => t.id !== id); setTabs(remaining); if (id === activeTab) setActiveTab(remaining[0]?.id ?? 0); };
+  const closeTab = (id: number) => {if(schemaApplyingRef.current)return; editorRevision.current++; invalidateWrite(); const remaining = tabs.filter((t) => t.id !== id); setTabs(remaining); if (id === activeTab) setActiveTab(remaining[0]?.id ?? 0); };
   const saveCurrentQuery = (name: string) => {
-    if (locked.current || !tab) return;
+    if (locked.current || schemaApplyingRef.current || !tab) return;
     try {
       const next = saveQuery(queryLibrary, { name, sql: tab.sql, parameters: tab.parameters, time: Date.now() });
       setQueryLibrary(next); setFailure(null);
@@ -203,7 +206,7 @@ export function useWorkbench(context: PluginContext) {
   const removeSavedQuery = (id: string) => setQueryLibrary(items => removeLibraryQuery(items, id));
   const clearHistory = () => setQueryLibrary(clearQueryHistory);
   const loadQuery = (entry: Pick<SavedQuery, 'sql' | 'parameters'>) => {
-    if (locked.current || !tab || !live.current) return;
+    if (locked.current || schemaApplyingRef.current || !tab || !live.current) return;
     edit({ sql: entry.sql, parameters: entry.parameters, result: null, resultSql: undefined, objectName: undefined, surface: 'data' });
     setFailure(null);
   };
@@ -235,7 +238,7 @@ export function useWorkbench(context: PluginContext) {
   });
   const canReviewWrite = Boolean(session && 'supportsReviewedWrites' in session && session.supportsReviewedWrites === true && session.readOnly === false);
   const run = (mode: 'read' | 'write') => {
-    if (locked.current || !tab || !live.current) return;
+    if (locked.current || schemaApplyingRef.current || !tab || !live.current) return;
     if (mode === 'read') { invalidateWrite(); return execute('read', {...tab}); }
     if (!canReviewWrite) return;
     try { parseParameters(tab.parameters); }
@@ -245,7 +248,7 @@ export function useWorkbench(context: PluginContext) {
   };
   const confirmWrite = () => {
     const review = reviewed.current;
-    if (locked.current || !canReviewWrite || !review || !matchesReviewedWrite(review, live.current?.handleId, tab)) { invalidateWrite(); return; }
+    if (locked.current || schemaApplyingRef.current || !canReviewWrite || !review || !matchesReviewedWrite(review, live.current?.handleId, tab)) { invalidateWrite(); return; }
     // Consume the exact user-reviewed snapshot once, before any asynchronous work.
     invalidateWrite();
     return execute('write', {...tab!, sql: review.sql, parameters: review.parameters}, review);
@@ -270,9 +273,10 @@ export function useWorkbench(context: PluginContext) {
   const canAddColumn=canReviewWrite && context.database.capabilities.has('database.sqlite-add-column.v1') && typeof context.database.previewAddColumn==='function' && typeof context.database.applyAddColumn==='function';
   const canCreateTable=canReviewWrite && context.database.capabilities.has('database.sqlite-create-table.v1');
   const acceptCreatedSchema=(handleId:string,next:DatabaseSchemaResult)=>{if(live.current?.handleId!==handleId)return;invalidateWrite();editorRevision.current++;setSchema(next);};
-  const canCreateIndex=canReviewWrite && context.database.capabilities.has('database.sqlite-create-index.v1');
+  const canDropIndex=canReviewWrite && context.database.capabilities.has('database.sqlite-drop-index.v1') && typeof context.database.previewDropIndex==='function' && typeof context.database.applyDropIndex==='function';
+  const canCreateIndex=canReviewWrite && context.database.capabilities.has('database.sqlite-create-index.v1') && typeof context.database.previewCreateIndex==='function' && typeof context.database.applyCreateIndex==='function';
   const canMutateGrid=canReviewWrite && context.database.capabilities.has('database.sqlite-grid-mutation.v1');
   const invalidateResults=(handleId:string)=>{if(live.current?.handleId!==handleId)return;invalidateWrite();editorRevision.current++;setTabs(items=>items.map(item=>({...item,result:null,resultSql:undefined})));};
   const canImportCsv=canReviewWrite && context.database.capabilities.has('database.sqlite-csv-import.v1');
-  return { canRenameColumn, canAddColumn, canImportCsv, canMutateGrid, invalidateResults, canCreateIndex, canCreateTable, acceptCreatedSchema, workspaceDrafts, draftStorageBusy, draftStorageNotice, canStoreDrafts:Boolean(draftSnapshot.current), pendingWrite, canReviewWrite, confirmWrite, cancelWrite: invalidateWrite, queryLibrary, saveCurrentQuery, removeSavedQuery, clearHistory, loadQuery, selectedDriver, selectDriver, tcpEnabled, testTcp, connectTcp, invalidateDraft, liveSshPg, portProbe, tunnel, t, locale, tabTitle, saved, session, connectedId, connectionName: session && !connectedId && session.engine === 'sqlite' ? t('Disposable SQLite') : connectionName, schema, tabs, tab, activeTab, setActiveTab, addTab, closeTab, edit, busy, error, modal, setModal: (next: 'picker' | 'connection' | null) => { invalidateWrite(); tunnel.reset(); portProbe.reset(); liveSshPg.reset(); setModal(next); }, draftSession, tested, hosts, theme, enabled, persistence, fileEnabled, walEnabled, walConcurrentEnabled, walCheckpointEnabled, walCaptureEnabled, malformedRejectEnabled, walRefreshEnabled, refresh, dismiss, disconnect, selectSource, test, save, open, openUnsaved, remove, loadHosts, run };
+  return { canDropIndex, schemaApplying,setSchemaApplying, canRenameColumn, canAddColumn, canImportCsv, canMutateGrid, invalidateResults, canCreateIndex, canCreateTable, acceptCreatedSchema, workspaceDrafts, draftStorageBusy, draftStorageNotice, canStoreDrafts:Boolean(draftSnapshot.current), pendingWrite, canReviewWrite, confirmWrite, cancelWrite: invalidateWrite, queryLibrary, saveCurrentQuery, removeSavedQuery, clearHistory, loadQuery, selectedDriver, selectDriver, tcpEnabled, testTcp, connectTcp, invalidateDraft, liveSshPg, portProbe, tunnel, t, locale, tabTitle, saved, session, connectedId, connectionName: session && !connectedId && session.engine === 'sqlite' ? t('Disposable SQLite') : connectionName, schema, tabs, tab, activeTab, setActiveTab, addTab, closeTab, edit, busy:busy||schemaApplying, error, modal, setModal: (next: 'picker' | 'connection' | null) => {if(schemaApplyingRef.current)return; invalidateWrite(); tunnel.reset(); portProbe.reset(); liveSshPg.reset(); setModal(next); }, draftSession, tested, hosts, theme, enabled, persistence, fileEnabled, walEnabled, walConcurrentEnabled, walCheckpointEnabled, walCaptureEnabled, malformedRejectEnabled, walRefreshEnabled, refresh, dismiss, disconnect, selectSource, test, save, open, openUnsaved, remove, loadHosts, run };
 }

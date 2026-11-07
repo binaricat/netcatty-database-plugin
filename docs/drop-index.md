@@ -1,7 +1,7 @@
 # Reviewed SQLite DROP INDEX
 
-This slice implements a plugin-local pure preview model and SQL.js adapter. It
-has **no UI integration or native application acceptance evidence yet**. Tests
+This slice implements a plugin-local preview model, SQL.js adapter and alpha.25
+Indexes panel with Create/Remove modes. **Native application acceptance remains pending.** Tests
 use the actual SQL.js engine and injected plugin storage, not a remote database.
 
 ## Supported scope
@@ -16,8 +16,8 @@ Only explicit indexes with SQLite origin `c`, real named columns and a stored
 CREATE INDEX definition qualify. Partial and expression indexes, reserved
 `sqlite_*` names, primary-key indexes and UNIQUE-constraint autoindexes reject.
 An explicit CREATE UNIQUE INDEX **is** supported: dropping it removes that
-index's uniqueness enforcement. A future confirmation UI must show `unique`
-and explicitly disclose this consequence; it is not just a performance change.
+index's uniqueness enforcement. The confirmation UI shows `unique`
+and explicitly discloses this consequence; it is not just a performance change.
 
 ## Conservative exclusions
 
@@ -50,5 +50,4 @@ become a generic error rather than leaking the rename-specific UI taxonomy.
 Real-engine tests cover preservation of rows and other indexes, quoted names,
 autoindex/partial/expression/FK/hint rejection, TEMP/default/metadata-budget error
 classes, post-DROP size-budget rollback, one-shot and cross-DDL invalidation,
-tampered/cross-session/closed reviews. Native screenshots, user-facing review and
-confirmation behavior remain future work.
+tampered/cross-session/closed reviews. The 29-scene main remote-DOM lane covers ordinary/UNIQUE removal and metadata readback, but uses injected transports and does not replace native screenshots or confirmation acceptance.
