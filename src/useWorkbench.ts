@@ -1,19 +1,24 @@
 import { useEffect, useRef, useState } from 'react';
 import type { PluginContext, DatabaseOpenResult, DatabaseFileOpenResult, DatabaseHandleRequest, DatabaseSchemaResult, DatabaseSavedConnection, DatabaseHostList, DatabaseConnectionMeta, DatabaseQueryResult } from '@netcatty/plugin-sdk';
 import { parseParameters, ParameterError, DATABASE_FEATURE, defaultQuery, selectObject } from './domain';
+import { driverById, type DriverId } from './driverRegistry';
+import type { DatabaseTcpOpenResult, DatabaseTcpOpenRequest } from '@netcatty/plugin-contract';
 import { useHostPortProbe } from './useHostPortProbe';
 import { useHostLiveSshPg } from './useHostLiveSshPg';
 import { useTunnelTest } from './useTunnelTest';
 import { translator, type Message } from './i18n';
 export const SAVED_FEATURE = 'database.saved-connections.v1';
-type Session = DatabaseOpenResult | DatabaseFileOpenResult;
+type Session = DatabaseOpenResult | DatabaseFileOpenResult | DatabaseTcpOpenResult;
 export type QueryTab = { id: number; sql: string; parameters: string; result: DatabaseQueryResult | null; resultSql?: string; objectName?: string; surface?: 'data' | 'structure' };
 const target = (s: Session): DatabaseHandleRequest => ({ handleId: s.handleId, ...('revision' in s ? { revision: s.revision } : {}) });
-const initialTab = (id: number, schema: DatabaseSchemaResult | null): QueryTab => ({ id, ...defaultQuery(schema), result: null });
+const initialTab = (id: number, schema: DatabaseSchemaResult | null, engine = 'sqlite'): QueryTab => ({ id, ...defaultQuery(schema, engine), result: null });
 export function useWorkbench(context: PluginContext) {
   const liveSshPg = useHostLiveSshPg(context);
   const tunnel = useTunnelTest(context);
   const portProbe = useHostPortProbe(context);
+  const [driverId, setDriverId] = useState<DriverId>('sqlite');
+  const selectedDriver = driverById(driverId);
+  const tcpEnabled = context.enabledFeatures.has('database.tcp.v1');
   const [saved, setSaved] = useState<DatabaseSavedConnection[]>([]);
   const [session, setSession] = useState<Session | null>(null);
   const [connectionName, setConnectionName] = useState('');
@@ -32,6 +37,7 @@ export function useWorkbench(context: PluginContext) {
     ? (locale === 'zh-CN' ? `${t(failure.key)}。${t('Host diagnostic: {message}', { message: failure.diagnostic })}` : failure.diagnostic)
     : t(failure.key);
   const tabTitle = (item: QueryTab) => item.objectName ?? t('Query {id}', { id: item.id });
+  const draftEdits = useRef(0);
   const live = useRef<Session | null>(null); const draft = useRef<Session | null>(null);
   const epoch = useRef(0); const locked = useRef(false); const nextTab = useRef(1);
   const enabled = context.enabledFeatures.has(DATABASE_FEATURE);
@@ -56,7 +62,7 @@ export function useWorkbench(context: PluginContext) {
     if (locked.current) return;
     locked.current = true; setBusy(true); setFailure(null); const rev = epoch.current;
     try { await work(rev); }
-    catch (e) { if (rev === epoch.current) setFailure(e instanceof ParameterError ? { key: e.messageKey } : { key: 'Host operation failed', ...(e instanceof Error ? { diagnostic: e.message } : {}) }); }
+    catch (e) { if (rev === epoch.current) setFailure(e instanceof ParameterError ? { key: e.messageKey } : e instanceof Error && e.message === 'Driver not packaged' ? { key: 'Driver not packaged' } : { key: 'Host operation failed', ...(e instanceof Error ? { diagnostic: e.message } : {}) }); }
     finally { if (rev === epoch.current) { locked.current = false; setBusy(false); } }
   };
   const dismiss = async () => {
@@ -111,7 +117,7 @@ export function useWorkbench(context: PluginContext) {
       await close(live.current);
       if (rev !== epoch.current) { await close(s); return; }
       tunnel.reset(); portProbe.reset(); liveSshPg.reset(); live.current = s; setSession(s); setSchema(inspected); setConnectionName(name); setConnectedId(id);
-      nextTab.current = 2; setTabs([initialTab(1, inspected)]); setActiveTab(1); setModal(null);
+      nextTab.current = 2; setTabs([initialTab(1, inspected, s.engine)]); setActiveTab(1); setModal(null);
       if (draft.current === s) { draft.current = null; setDraftSession(null); }
     } catch (e) { await close(s); if (draft.current === s) { draft.current = null; setDraftSession(null); setTested(false); } throw e; }
   };
@@ -125,6 +131,25 @@ export function useWorkbench(context: PluginContext) {
     const s = await context.database.openSavedConnection({ id: connection.id });
     if (rev !== epoch.current) { await close(s); return; }
     await attach(s, connection.name, connection.id, rev);
+  });
+  const invalidateDraft = () => { draftEdits.current++; setTested(false); };
+  const selectDriver = (id: DriverId) => action(async () => {
+    const old = draft.current; draft.current = null; setDraftSession(null); setTested(false); setDriverId(id); await close(old);
+  });
+  const acquireTcp = async (request: DatabaseTcpOpenRequest, rev: number) => {
+    const old = draft.current; draft.current = null; setDraftSession(null); setTested(false); await close(old);
+    const s = await context.database.openTcp(request);
+    if (rev !== epoch.current) { await close(s); return null; }
+    draft.current = s; setDraftSession(s); return s;
+  };
+  const testTcp = (request: DatabaseTcpOpenRequest) => action(async (rev) => {
+    const edits = draftEdits.current;
+    const s = await acquireTcp(request, rev); if (!s) return;
+    try { await context.database.readSchema(target(s)); if (rev === epoch.current && edits === draftEdits.current) setTested(true); }
+    catch (error) { await close(s); if (draft.current === s) { draft.current = null; setDraftSession(null); } throw error; }
+  });
+  const connectTcp = (request: DatabaseTcpOpenRequest, name: string) => action(async (rev) => {
+    const s = await acquireTcp(request, rev); if (s) await attach(s, name, '', rev);
   });
   const openUnsaved = () => action(async (rev) => {
     const s = draft.current ?? await acquire(false, rev); if (s) await attach(s, 'Disposable SQLite', '', rev);
@@ -140,8 +165,8 @@ export function useWorkbench(context: PluginContext) {
     const existing = table && tabs.find((item) => item.objectName === table);
     if (existing) { setActiveTab(existing.id); return; }
     if (tabs.length >= 8) return;
-    const id = nextTab.current++; const item = initialTab(id, schema);
-    if (table) { item.objectName = table; item.surface = 'structure'; item.sql = selectObject(table); item.parameters = '[]'; }
+    const id = nextTab.current++; const item = initialTab(id, schema, session?.engine);
+    if (table) { item.objectName = table; item.surface = 'structure'; item.sql = selectObject(table, session?.engine); item.parameters = '[]'; }
     setTabs((items) => [...items, item]); setActiveTab(id);
   };
   const closeTab = (id: number) => { const remaining = tabs.filter((t) => t.id !== id); setTabs(remaining); if (id === activeTab) setActiveTab(remaining[0]?.id ?? 0); };
@@ -151,5 +176,5 @@ export function useWorkbench(context: PluginContext) {
     const value = await context.database.query({ ...target(live.current), sql: tab.sql, parameters: parseParameters(tab.parameters), mode, maxRows: 100, timeoutMs: 3000 });
     if (rev === epoch.current) setTabs((items) => items.map((item) => item.id === id ? { ...item, result: value, resultSql: tab.sql } : item));
   });
-  return { liveSshPg, portProbe, tunnel, t, locale, tabTitle, saved, session, connectedId, connectionName: session && !connectedId ? t('Disposable SQLite') : connectionName, schema, tabs, tab, activeTab, setActiveTab, addTab, closeTab, edit, busy, error, modal, setModal: (next: 'picker' | 'connection' | null) => { tunnel.reset(); portProbe.reset(); liveSshPg.reset(); setModal(next); }, draftSession, tested, hosts, theme, enabled, persistence, fileEnabled, walEnabled, walConcurrentEnabled, walCheckpointEnabled, walCaptureEnabled, malformedRejectEnabled, walRefreshEnabled, refresh, dismiss, disconnect, selectSource, test, save, open, openUnsaved, remove, loadHosts, run };
+  return { selectedDriver, selectDriver, tcpEnabled, testTcp, connectTcp, invalidateDraft, liveSshPg, portProbe, tunnel, t, locale, tabTitle, saved, session, connectedId, connectionName: session && !connectedId && session.engine === 'sqlite' ? t('Disposable SQLite') : connectionName, schema, tabs, tab, activeTab, setActiveTab, addTab, closeTab, edit, busy, error, modal, setModal: (next: 'picker' | 'connection' | null) => { tunnel.reset(); portProbe.reset(); liveSshPg.reset(); setModal(next); }, draftSession, tested, hosts, theme, enabled, persistence, fileEnabled, walEnabled, walConcurrentEnabled, walCheckpointEnabled, walCaptureEnabled, malformedRejectEnabled, walRefreshEnabled, refresh, dismiss, disconnect, selectSource, test, save, open, openUnsaved, remove, loadHosts, run };
 }

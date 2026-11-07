@@ -4,11 +4,11 @@ import { tasks } from './domain';
 import type { Translate } from './i18n';
 import { useSqlAssistant } from './useSqlAssistant';
 
-export function SqlAssistant({ context, schema, sql, label, disabled, insert, t }: {
-  context: PluginContext; schema: DatabaseSchemaResult | null; sql: string; label: string;
+export function SqlAssistant({ context, schema, sql, label, engine, dialect, disabled, insert, t }: {
+  context: PluginContext; schema: DatabaseSchemaResult | null; sql: string; label: string; engine?: string; dialect?: string;
   disabled: boolean; insert: (draft: string) => void; t: Translate;
 }) {
-  const ai = useSqlAssistant(context, schema, sql, label);
+  const ai = useSqlAssistant(context, schema, sql, label, engine, dialect);
   const status = !ai.enabled || ai.failure ? t('Unavailable') : ai.busy ? t('Generating unexecuted draft...') : ai.stopped ? t('Stopped - draft remains unexecuted.') : t('Host model - checked when you run assistance.');
   return <div className="ai-content">
     <p role="status">{status + (ai.model ? ` ${t('Host model')}: ${ai.model}` : '')}</p>

@@ -7,8 +7,8 @@
     "zh-CN": "Netcatty 数据库"
   },
   "description": {
-    "en": "Experimental SQLite workbench with host-owned saved connections and unexecuted host AI SQL drafts.",
-    "zh-CN": "实验性 SQLite 工作台，支持宿主管理的已保存连接和未执行的宿主 AI SQL 草稿。"
+    "en": "Database catalog with host-owned SQLite, PostgreSQL and MySQL sessions.",
+    "zh-CN": "数据库目录与宿主管理的 SQLite、PostgreSQL 和 MySQL 会话。"
   },
   "version": "0.1.0-alpha.1",
   "publisher": "binaricat",
@@ -38,7 +38,8 @@
       "database.tunnel-test.synthetic.v1",
       "database.host-port-probe.v1",
       "database.host-live-ssh-pg.fixture.v1",
-      "ai.model-invocation"
+      "ai.model-invocation",
+      "database.tcp.v1"
     ]
   },
   "main": {
@@ -60,7 +61,8 @@
           "sqlite:disposable-file",
           "database-tunnel:synthetic-loopback",
           "database-host:common-ports",
-          "database-host:live-ssh-pg-fixture"
+          "database-host:live-ssh-pg-fixture",
+          "database:tcp"
         ],
         "reason": "Read disposable SQLite, probe saved-host TCP ports, or test pinned SSH and SELECT 1 on the loopback PostgreSQL fixture / 读取一次性 SQLite、探测主机 TCP 端口，或测试固定 SSH 密钥与本机 PostgreSQL SELECT 1"
       },

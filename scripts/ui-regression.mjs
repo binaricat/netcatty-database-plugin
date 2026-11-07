@@ -103,7 +103,7 @@ const language = async (locale) => { await act(async () => { context.environment
 
 try {
   await mount(); assert.ok(document.body.textContent.includes('No connections yet')); await snapshot('01-home'); checks.push('home + counters + empty sidebar');
-  await click('New Connection'); assert.ok(button('PostgreSQLRelational databaseDriver not implemented')); assert.ok('disabled' in button('MySQLRelational databaseDriver not implemented').attributes); await snapshot('02-picker'); await click('Next');
+  await click('New Connection'); assert.ok(button('PostgreSQLHost TCP')); assert.ok(!('disabled' in button('MySQLHost TCP').attributes)); await snapshot('02-picker'); await click('Next');
   await change('Connection name', 'Synthetic saved memory'); await click('Advanced'); await click('Load permitted hosts'); await change('Existing host', 'host-2'); await click('Connection');
   await click('Test'); assert.match(document.body.textContent, /Connection successful/); await snapshot('03-tested-modal');
   const checkbox = find((n) => n.element === 'input' && n.attributes.type === 'checkbox'); await event(checkbox, { type: 'click', checked: true });
@@ -245,14 +245,14 @@ try {
   assert.match(document.body.textContent, /快速开始/); assert.match(document.body.textContent, /实验功能/);
   assert.ok(byLabel('筛选连接')); assert.ok(button('历史记录本阶段暂不可用'));
   await snapshot('zh-01-home');
-  await click('新建连接'); assert.ok('disabled' in button('PostgreSQL关系型数据库尚未实现驱动').attributes);
-  assert.ok('disabled' in button('MySQL关系型数据库尚未实现驱动').attributes); await snapshot('zh-02-picker');
+  await click('新建连接'); assert.ok(!('disabled' in button('PostgreSQL宿主 TCP').attributes));
+  assert.ok(!('disabled' in button('MySQL宿主 TCP').attributes)); await snapshot('zh-02-picker');
   await click('下一步'); assert.equal(byLabel('连接名称').attributes.value, '模拟 SQLite');
   await language('en'); assert.equal(byLabel('Connection name').attributes.value, 'Synthetic SQLite');
   await change('Connection name', 'User 名称 {name}'); await language('zh-CN');
   assert.equal(byLabel('连接名称').attributes.value, 'User 名称 {name}'); assert.ok(byLabel('颜色：蓝色'));
   await click('高级'); await click('加载已获授权的主机'); assert.ok(byLabel('筛选主机'));
-  await change('已有主机', 'host-2'); assert.match(document.body.textContent, /不会建立隧道/);
+  await change('已有主机', 'host-2'); assert.match(document.body.textContent, /不会建立数据库隧道/);
   await snapshot('zh-03-advanced'); await click('连接');
   await click('测试'); assert.match(document.body.textContent, /连接成功 - 宿主已验证数据库结构/);
   await snapshot('zh-04-tested-modal'); await click('保存并连接');
@@ -402,9 +402,9 @@ try {
   await change('Existing host', 'host-1'); assert.ok('disabled' in button('Test tunnel (synthetic)').attributes);
   const opensBeforeProbe = opens;
   await change('Existing host', 'synthetic-probe'); assert.equal(probes.length, 0);
-  assert.match(document.body.textContent, /Active connections: 0/); assert.match(document.body.textContent, /No tunnel test has run/);
+  assert.match(document.body.textContent, /No database connected/); assert.match(document.body.textContent, /No tunnel test has run/);
   await click('Test tunnel (synthetic)'); assert.match(document.body.textContent, /Synthetic tunnel test passed. No SSH or PostgreSQL connection was opened/);
-  assert.equal(opens, opensBeforeProbe); assert.match(document.body.textContent, /Active connections: 0/);
+  assert.equal(opens, opensBeforeProbe); assert.match(document.body.textContent, /No database connected/);
   assert.deepEqual(Object.keys(probes[0]).sort(), ['hostId', 'revision', 'testId']);
   assert.doesNotMatch(JSON.stringify(tree), /opaque-synthetic-probe-reference/);
   await snapshot('tunnel-synthetic-passed-not-connected');
@@ -413,7 +413,7 @@ try {
   await change('Existing host', 'synthetic-probe');
   for (const [code, text] of [['AUTH_FAILED', /Synthetic tunnel authentication failed/], ['UNKNOWN_HOST_KEY', /Unknown host key/], ['HOST_KEY_MISMATCH', /Host key mismatch/]]) {
     probeOutcome = code; await click('Test tunnel (synthetic)'); assert.match(document.body.textContent, text);
-    assert.match(document.body.textContent, /Active connections: 0/);
+    assert.match(document.body.textContent, /No database connected/);
     if (code === 'AUTH_FAILED') await snapshot('tunnel-synthetic-wrong-auth');
   }
   probeOutcome = 'pending'; await click('Test tunnel (synthetic)'); await click('Cancel tunnel test');
@@ -431,7 +431,7 @@ try {
   await language('en'); probeOutcome = 'pending'; await click('Test tunnel (synthetic)'); await click('Close');
   assert.equal(cancelledProbes.at(-1), probes.at(-1).testId);
   await act(async () => { probeFinish(probeResult('SYNTHETIC_OK')); await tick(); });
-  assert.match(document.body.textContent, /Active connections: 0/); assert.equal(opens, opensBeforeProbe);
+  assert.match(document.body.textContent, /No database connected/); assert.equal(opens, opensBeforeProbe);
   await click('New Connection'); await click('Next'); await click('Advanced'); await click('Load permitted hosts'); await change('Existing host', 'synthetic-probe');
   await click('Test tunnel (synthetic)'); await unmount(); assert.equal(cancelledProbes.at(-1), probes.at(-1).testId);
   await act(async () => { probeFinish(probeResult('SYNTHETIC_OK')); await tick(); });
@@ -521,9 +521,9 @@ try {
   const openAdvanced = async () => { await mount(); await click('New Connection'); await click('Next'); await click('Advanced'); await click('Load permitted hosts'); };
   await openAdvanced(); await change('Existing host', liveHost.hostId); assert.ok('disabled' in button(liveLabel).attributes); await unmount();
   features.add(liveFeature); await openAdvanced(); await change('Existing host', 'host-1'); assert.ok('disabled' in button(liveLabel).attributes);
-  await change('Existing host', liveHost.hostId); assert.equal(liveCalls.length, 0); assert.match(document.body.textContent, /Active connections: 0/);
+  await change('Existing host', liveHost.hostId); assert.equal(liveCalls.length, 0); assert.match(document.body.textContent, /No database connected/);
   await click(liveLabel); assert.match(document.body.textContent, /Live fixture passed: pinned SSH/); assert.equal(liveCloses.length, 1);
-  assert.deepEqual(Object.keys(liveCalls[0]).sort(), ['hostId', 'openId', 'revision']); assert.match(document.body.textContent, /Active connections: 0/);
+  assert.deepEqual(Object.keys(liveCalls[0]).sort(), ['hostId', 'openId', 'revision']); assert.match(document.body.textContent, /No database connected/);
   assert.doesNotMatch(JSON.stringify(tree), /opaque-live-reference|opaque-pg-reference/);
   for (const code of ['AUTH_FAILED', 'HOST_KEY_MISMATCH', 'STALE_HOST', 'CANCELLED']) { liveOutcome = code; await click(liveLabel); assert.doesNotMatch(document.body.textContent, /Live fixture passed:/); }
   liveOutcome = 'pending'; await click(liveLabel); await click('Cancel live fixture test');
@@ -538,7 +538,7 @@ try {
   context.database.closeHostLiveSshPgSession = async () => { throw new Error('fixture cleanup failed'); };
   await openAdvanced(); await change('Existing host', liveHost.hostId); await click(liveLabel);
   assert.match(document.body.textContent, /Live fixture test or session cleanup failed/); assert.doesNotMatch(document.body.textContent, /Live fixture passed:/);
-  assert.match(document.body.textContent, /Active connections: 0/); context.database.closeHostLiveSshPgSession = closeLive; await unmount();
+  assert.match(document.body.textContent, /No database connected/); context.database.closeHostLiveSshPgSession = closeLive; await unmount();
   checks.push('live fixture feature/host gates, metadata never connected, close-before-success, en/zh-CN, cancel/selection/unmount late success cleanup; mock evidence only');
   if (process.env.NETCATTY_TEST_LIVE_SSH_PG === '1') {
     const { PluginSqliteFixtureService: LiveHostService } = host('./electron/plugins/sqliteFixtureService.cjs');
@@ -568,7 +568,7 @@ try {
       await openAdvanced(); await change('Existing host', liveService.metadata().hostId); assert.equal(liveService.sessions.size, 0);
       await click(liveLabel); assert.equal(proof.code, 'LIVE_OK'); assert.equal(proof.proof.value, 1);
       assert.match(document.body.textContent, /Live fixture passed: pinned SSH/); assert.match(document.body.textContent, /Test session closed/);
-      assert.equal(liveService.sessions.size, 0); assert.equal(liveService.adapter.active, 0); assert.match(document.body.textContent, /Active connections: 0/);
+      assert.equal(liveService.sessions.size, 0); assert.equal(liveService.adapter.active, 0); assert.match(document.body.textContent, /No database connected/);
       await snapshot('live-fixture-en-real-host-api'); await language('zh-CN'); await snapshot('live-fixture-zh-CN-real-host-api'); await language('en');
       await writeFile(`${evidence}/live-host-proof.json`, JSON.stringify({ host_api: true, code: proof.code, fixture: proof.fixture, proof: proof.proof, sessions_after_close: liveService.sessions.size, adapter_active_after_close: liveService.adapter.active, native_safeStorage: false }, null, 2));
       checks.push('REAL host registry -> pinned sshd 2222 -> forwarded PG 5432 -> SELECT 1=1 -> explicit close; en/zh-CN HTML; AES-GCM test SecretStore backend');

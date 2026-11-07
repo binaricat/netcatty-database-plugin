@@ -35,7 +35,7 @@ export function useHostLiveSshPg(context: PluginContext) {
     if (pending.current) return;
     if (!enabled || host?.liveSshPg?.kind !== 'fixture') { setMessage(messages.UNKNOWN_HOST); return; }
     const openId = crypto.randomUUID(); pending.current = openId;
-    setBusy(true); setMessage('Testing pinned SSH and PostgreSQL SELECT 1 (fixture)...');
+    setBusy(true); setMessage('Testing pinned SSH and PostgreSQL read query (fixture)...');
     try {
       const value = await context.database.openHostLiveSshPgFixture({ hostId: host.hostId, revision: host.liveSshPg.revision, openId });
       if (value.code === 'LIVE_OK') {
@@ -44,7 +44,7 @@ export function useHostLiveSshPg(context: PluginContext) {
         await close(value.sessionId);
         if (pending.current !== openId) return;
         setMessage(value.fixture && !value.synthetic && value.connected && value.proof?.query === 'SELECT 1' && value.proof.value === 1 && value.proof.pinnedHostKey
-          ? 'Live fixture passed: pinned SSH + PostgreSQL SELECT 1 = 1. Test session closed.' : messages.UNAVAILABLE);
+          ? 'Live fixture passed: pinned SSH and authenticated PostgreSQL read query. Test session closed.' : messages.UNAVAILABLE);
       } else if (pending.current === openId) setMessage(messages[value.code] ?? messages.UNAVAILABLE);
     } catch { if (pending.current === openId) setMessage('Live fixture test or session cleanup failed. No connected state was saved.'); }
     finally { if (pending.current === openId) { pending.current = null; setBusy(false); } }

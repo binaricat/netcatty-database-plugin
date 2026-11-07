@@ -3,7 +3,7 @@ import type { PluginContext, DatabaseSchemaResult } from '@netcatty/plugin-sdk';
 import { AI_FEATURE, AssistantError, buildPrompt, DraftStream, type Task } from './domain';
 import type { Message } from './i18n';
 
-export function useSqlAssistant(context: PluginContext, schema: DatabaseSchemaResult | null, sql: string, label: string) {
+export function useSqlAssistant(context: PluginContext, schema: DatabaseSchemaResult | null, sql: string, label: string, engine = 'sqlite', dialect = 'SQLite') {
   const enabled = context.enabledFeatures.has(AI_FEATURE);
   const [task, setTask] = useState<Task>('generate');
   const [request, setRequest] = useState('');
@@ -26,7 +26,7 @@ export function useSqlAssistant(context: PluginContext, schema: DatabaseSchemaRe
     const rev = ++generation.current; locked.current = true;
     setBusy(true); setFailure(null); setStopped(false); setDraft(''); setModel('');
     try {
-      const prompt = buildPrompt(task, schema, sql, request, label);
+      const prompt = buildPrompt(task, schema, sql, request, label, engine, dialect);
       let received = false;
       await stream.current!.run(prompt, (text) => {
         if (rev === generation.current) { received = true; setDraft(text); }

@@ -16,3 +16,7 @@ The application does not imply endorsement by database vendors.
 
 T305 static PNG derivatives preserve the existing CC0 source geometry and theme
 fills. See assets/brand-icon-ledger.json for raster and source hashes.
+
+T306/T309 engine marks: Simple Icons CC0 assets retain fixed brand colors, with transparent backgrounds. Brand/trademark rights remain with their owners. See assets/icon-ledger.json and assets/brand-icon-ledger.json.
+Firebird icon: Copyright 2000-2023 JetBrains s.r.o. and contributors. Apache-2.0; explicit DBX SVG header retained. License: licenses/Apache-2.0.txt.
+No GoldenDB, openGauss, GaussDB, Kingbase, HighGo, Vastbase, UXDB, GBase, Dameng or Oracle vendor artwork copied from unlabelled DBX assets. These entries use a host database glyph, not a vendor logo.

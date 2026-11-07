@@ -215,3 +215,11 @@ Linux 宿主可在默认关闭的数据库实验下公布
 和内容指纹，插件仍不提供路径。文件连接仍为只读，WAL 及其附属文件仍被拒绝。
 本阶段不支持实时 WAL 读取、检查点、恢复、任意用户文件；AI 辅助参见上文 Gate D。原生调用内部的
 内容竞争及 SHM 无副作用保证仍待后续验证。
+
+## Database catalog and TCP sessions
+
+The picker uses the reviewed DBX-inspired registry in `src/driverRegistry.ts`, checked against the host contract registry. Search and categories include SQLite, PostgreSQL, MySQL, MariaDB, GoldenDB and domestic profiles. Protocol aliases are distinct from vendor-qualified drivers. Unpackaged engines collect settings but Test/Connect fail closed with “Driver not packaged”.
+
+New hosts can negotiate `database.tcp.v1` for temporary, read-only host-owned PostgreSQL/MySQL TCP sessions. Non-loopback requires verified TLS; passwords are session-only and TCP settings are not persisted. Queries use anonymous `?` bindings. SQLite saved-connection and B–J fixture safeguards are retained. PostgreSQL is tested against a disposable loopback fixture; MySQL's real fixture qualification is explicitly skipped when local server binaries and offline packages are absent. See the host's `docs/plugin-platform/database-tcp.md` for supported authentication, SQL limits and lifecycle.
+
+Engine marks are transparent, bare, brand-colored PNGs decoded through `metadata.brand-icon`. Source and raster hashes, license and transformations are in both asset ledgers. Simple Icons contributions are CC0; Firebird has an explicit Apache-2.0 JetBrains header. Unlabelled vendor assets, including GoldenDB, were not copied and use a host glyph.
