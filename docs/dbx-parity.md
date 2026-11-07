@@ -201,3 +201,12 @@ metadata (three bound reads, raw definition preservation) passed via actual
 Netcatty SSH with strict TLS 1.3. These execute plugin protocol modules using
 independent Node transport, not main plugin database connections. Public broker
 STARTTLS/local-endpoint limits remain; no bypass, merge or release.
+
+## Alpha32 bounded DROP COLUMN native checkpoint
+
+Native Settings import, exact loss review and confirmation, schema refresh and
+manual three-row/two-column readback passed in unchanged main. See
+`native-drop-column-alpha32.md` for the complete real-app video and separate
+screenshots. All 550 tests pass. DROP refuses unsupported dependency/constraint
+layouts and compares bounded retained data exactly; this is not DBX's general
+table-rebuild editor. Remote-plugin transport and near-complete parity remain open.

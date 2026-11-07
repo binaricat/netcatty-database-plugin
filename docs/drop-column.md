@@ -8,8 +8,7 @@ strategy or a general dependency-rewrite engine.
 `createDropColumnAdapter({getDatabase,inspectSchema,reviewTokens,onFatal?})` exposes
 `preview({handleId,draft:{table,column}})`, `apply({handleId,review})`, `cancel(handleId, expectedToken?)`
 and `dispose()`. Review includes exact SQL, schema versions, handle/token,
-`affectedRows`, and `warning:'permanently-deletes-column-values'`. A future UI must
-explicitly disclose that every value of the selected column is permanently lost.
+`affectedRows`, and `warning:'permanently-deletes-column-values'`. The alpha32 UI explicitly discloses that every value of the selected column is permanently lost.
 No row contents enter the public review.
 
 Supported target: ordinary non-strict rowid table, at least two columns, dropping
@@ -54,8 +53,7 @@ serialize calls, resolve only live handles, and remove fatally closed instances.
 
 Twelve real SQL.js tests cover data fidelity, stale data, injected row corruption
 rollback, constraints/dependencies, budgets, rowid shadowing, quoting, review
-invalidation, transaction/protection refusal and closed handles. No UI/public
-facade wiring or native smoke-test claim is included.
+invalidation, transaction/protection refusal and closed handles. Facade and native evidence are recorded below; engine tests are not GUI evidence.
 
 Token cleanup uses parsed exact handle/token equality, never substring matching.
 System-table prefix filtering uses an exact sqlite_ prefix, not SQL LIKE wildcard
@@ -65,7 +63,7 @@ UI late cleanup should pass its review token to cancel; a mismatched token is a
 no-op and cannot remove a newer preview. Central access/close invalidation omits
 the token to clear the current pending drop review.
 
-## Facade and UI integration (alpha32 candidate)
+## Facade and UI integration (alpha32)
 
 The facade now clears this adapter's private snapshot on every unrelated database
 operation, close and disposal. Its own preview/apply resolver preserves the review
@@ -73,7 +71,9 @@ until exact consumption. UI cleanup supplies the exact token; delayed cleanup
 cannot erase a newer preview or another operation's token. The UI discloses the
 permanent loss and exact affected-row count before a red explicit confirmation.
 47 main remote-DOM scenes include DROP preview, commit and retained-data readback;
-549 full tests pass. Native alpha32 installation/acceptance is still pending.
+550 full tests pass. Native alpha32 installation and preview/commit/readback passed;
+see `native-drop-column-alpha32.md`. Snapshot operations also immediately clear
+private DROP review data, not only the shared authority token.
 
 Audit regressions fixed before native use: SQLite TEXT containing NUL/invalid
 UTF-8 is compared as full hex bytes, not SQL.js's truncated text value; system-name
