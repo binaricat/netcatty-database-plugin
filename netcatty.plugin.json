@@ -25,6 +25,7 @@
     "optional": [
       "database.sqlite-fixture.v1",
       "database.sqlite-file-fixture.v1",
+      "database.sqlite-fd-identity.fixture.v1",
       "database.saved-connections.v1",
       "database.tunnel-test.synthetic.v1",
       "database.host-port-probe.v1",

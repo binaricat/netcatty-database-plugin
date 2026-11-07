@@ -161,3 +161,19 @@ NETCATTY_TEST_LIVE_SSH_PG=1 npm run test:react
 That test lane uses an explicitly marked AES-GCM SecretStore backend and injected
 permission decisions, with the actual prepared SSH and PostgreSQL services.
 Native safeStorage and permission dialogs are separate integration checks.
+
+### Gate C fixture file identity
+
+Paired Linux hosts can advertise `database.sqlite-fd-identity.fixture.v1` under
+the existing default-off database experiment. The host holds and verifies file
+descriptors and fingerprints for the same allowlisted disposable M2/M3b files;
+the plugin still supplies no paths. File databases remain read-only and WAL is
+rejected, including WAL/SHM/journal sidecars. This does not add a live WAL reader,
+checkpoint/recovery, general user-file admission or real AI. Native-call content
+races and SHM side-effect exclusion require further host qualification.
+
+Linux 宿主可在默认关闭的数据库实验下公布
+`database.sqlite-fd-identity.fixture.v1`。宿主持有并验证限定测试目录中的文件描述符
+和内容指纹，插件仍不提供路径。文件连接仍为只读，WAL 及其附属文件仍被拒绝。
+本阶段不支持实时 WAL 读取、检查点、恢复、任意用户文件或真实 AI；原生调用内部的
+内容竞争及 SHM 无副作用保证仍待后续验证。
