@@ -58,7 +58,7 @@ advertised driver itself has been independently tested in DBX.
 | 18. Database dumps/backups/scheduling | Missing | No dump drivers, persistent scheduler or background service. |
 | 19. ER/schema diff/plans/lineage | Missing | No metadata/query-plan coverage or visualization yet. |
 | 20. AI generate/explain/optimize/fix | Partial | Existing host-selected model path, bounded unexecuted drafts, explicit insertion and cancellation. Real provider acceptance remains unperformed. |
-| 21. Redis and MongoDB specialist browsers | Missing | Catalog entries only; no protocols or CRUD. |
+| 21. Redis and MongoDB specialist browsers | Missing | Redis TLS AUTH/PING, bounded read-only browser and main UI route are implemented with injected-transport tests. Packaged endpoints remain empty; only native unconfigured gate is qualified, not a usable real-service connection. MongoDB and write CRUD remain absent. See `redis-ui-validation.md`. |
 | 22. Message queues and middleware | Missing | Kafka/RocketMQ/RabbitMQ/Pulsar/MQTT and service-discovery consoles absent. |
 | 23. MCP/CLI/headless Web/Docker delivery | Missing | No plugin-owned external MCP/CLI service. Independent DBX application delivery modes differ from an ordinary Netcatty browser plugin. |
 | 24. Language/theme/accessibility/layout | Partial | Existing English/Chinese labels, inherited allowed theme tokens and responsive layout. Spanish, full keyboard/IME/accessibility and cross-platform native acceptance remain. |

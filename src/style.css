@@ -363,3 +363,26 @@ pre { padding: 12px; background: hsl(var(--muted)/.4); border: 1px solid hsl(var
 .result-export label { display:flex; align-items:center; gap:8px; margin:8px 0; }
 .result-export p { margin:6px 0; }
 .result-export textarea { width:100%; min-height:80px; font-family:monospace; font-size:12px; }
+
+/* Redis is a separate direct-TLS workspace, not an SSH tunnel status. */
+.redis-host-view { gap:16px; }
+.redis-back { align-self:flex-start; padding-left:0; }
+.redis-workbench { display:flex; flex-direction:column; gap:12px; min-width:0; min-height:0; }
+.redis-workbench > .results-heading { padding:0 0 12px; }
+.redis-brand { display:flex; align-items:center; gap:12px; font-size:20px; }
+.redis-brand img { width:32px; height:32px; }
+.redis-connection-status { border-radius:999px; padding:3px 9px; background:hsl(var(--muted)); color:hsl(var(--muted-foreground)); font-size:11px; }
+.redis-connection-status.is-connected { background:rgb(22 163 74 / .12); color:rgb(21 128 61); }
+.redis-workbench h3 { margin:14px 0 0; font-size:17px; }
+.redis-workbench p { font-size:12px; max-width:760px; line-height:1.65; }
+.redis-workbench .hint { font-size:11px; }
+.redis-workbench .results-heading { flex-wrap:wrap; gap:8px; }
+.redis-connection-fields { display:grid; grid-template-columns:minmax(180px,2fr) minmax(120px,1fr) minmax(120px,1fr); gap:12px; align-items:end; }
+.redis-connection-fields label { display:flex; flex-direction:column; gap:6px; font-size:11px; }
+.redis-connection-fields input,.redis-connection-fields select { width:100%; min-width:0; min-height:34px; }
+.redis-connection-fields > button { justify-self:start; }
+.redis-workbench textarea { width:100%; font-family:var(--plugin-font-mono); font-size:12px; min-height:100px; max-height:260px; }
+.redis-browser-grid { display:grid; grid-template-columns:minmax(180px,1fr) minmax(260px,2fr); gap:18px; min-width:0; }
+.redis-browser-grid > div,.redis-browser-grid > section { min-width:0; }
+.redis-browser-grid > div > button { display:block; width:100%; text-align:left; overflow:hidden; text-overflow:ellipsis; border-color:transparent; }
+@container (max-width:850px) { .redis-connection-fields,.redis-browser-grid { grid-template-columns:1fr; } }

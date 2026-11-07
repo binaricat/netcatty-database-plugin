@@ -16,7 +16,7 @@ async function finish(){clearInterval(timer);if(pending)await new Promise(resolv
 electron.app.on('window-all-closed',()=>{});
 electron.app.whenReady().then(async()=>{
  service=createPluginHostService({app:electron.app,electron,appRoot:host,getLocale:()=>process.env.NETCATTY_QA_LOCALE||'en',getTheme:()=>process.env.NETCATTY_QA_THEME||'dark',requestPermissionDecision:async request=>{permissions.push({permission:request.permission,resources:request.resources});if(!['views','storage'].includes(request.permission))return {requestId:request.requestId,decision:'deny'};return {requestId:request.requestId,decision:'allow',scope:'application'};}});
- await service.manager.initialize();await service.manager.install(path.resolve(__dirname,'../../dist/netcatty-database-0.1.0-alpha.10.ncpkg'),{enable:true});
+ await service.manager.initialize();await service.manager.install(path.resolve(__dirname,'../../dist/netcatty-database-0.1.0-alpha.12.ncpkg'),{enable:true});
  owner=new electron.BrowserWindow({title:'Netcatty Database main acceptance',width:1440,height:1000,show:true,webPreferences:{sandbox:true,contextIsolation:true,preload:path.join(host,'electron/plugins/fixtures/hostReactPreload.cjs')}});
  owner.on('closed',()=>{void finish().then(()=>electron.app.quit());});
  registerPluginBridge(electron.ipcMain,{...service,isTrustedSender:event=>event.sender===owner.webContents&&event.senderFrame===owner.webContents.mainFrame});

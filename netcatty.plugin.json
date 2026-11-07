@@ -7,10 +7,10 @@
     "zh-CN": "Netcatty 数据库"
   },
   "description": {
-    "en": "Plugin-owned SQLite memory workbench for Netcatty main. Additional drivers are not yet ported.",
-    "zh-CN": "适用于 Netcatty main 的插件自有 SQLite 内存工作台，其他驱动尚未迁移。"
+    "en": "SQLite workbench and experimental Redis TLS browser. Redis requires an authorized declared endpoint; real-server qualification is pending.",
+    "zh-CN": "SQLite 工作台与实验性 Redis TLS 浏览器。Redis 需配置已授权的声明端点，真实服务器验收尚未完成。"
   },
-  "version": "0.1.0-alpha.10",
+  "version": "0.1.0-alpha.12",
   "publisher": "binaricat",
   "license": "GPL-3.0-or-later",
   "engines": {
@@ -26,6 +26,9 @@
       "ai.agent-sessions",
       "vault.host-actions",
       "host.interactions"
+    ],
+    "optional": [
+      "network.byte-streams"
     ]
   },
   "main": {

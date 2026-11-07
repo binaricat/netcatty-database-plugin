@@ -1,6 +1,9 @@
 // Original plugin-owned copy. English source keys keep the fallback explicit.
 // Only the host environment selects language; never navigator/OS/input locale.
 export const zhCN = {
+  "Redis workbench":"Redis 工作台",
+  "Inspect Redis":"查看 Redis",
+  "Back to host connections":"返回主机连接",
   "Workspace drafts": "工作区草稿",
   "Saving stores SQL and parameters, which may contain sensitive data. Results and connection credential fields are excluded. Only this saved connection is affected.": "保存将存储 SQL 和参数，其中可能含敏感信息；不保存查询结果或连接凭据字段。仅影响当前已保存连接。",
   "Save workspace drafts": "保存工作区草稿",

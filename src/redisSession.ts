@@ -16,11 +16,13 @@ function endpoint(value:string){
 function command(args:Args){
   const word=args[0];if(typeof word!=='string'||word!==word.toUpperCase())throw new RedisSessionError('command');
   const numeric=(v:unknown)=>typeof v==='string'&&/^(0|[1-9][0-9]{0,9})$/.test(v)?Number(v):-1;
+  const cursor=(v:unknown)=>typeof v==='string'&&/^(0|[1-9][0-9]{0,19})$/.test(v)&&(v.length<20||v<='18446744073709551615');
   let allowed=false;
   if(word==='PING')allowed=args.length===1;
   else if(word==='INFO')allowed=args.length===1||args.length===2&&typeof args[1]==='string'&&['server','clients','memory','stats','replication','cpu','keyspace'].includes(args[1]);
   else if(['GET','TYPE','TTL','PTTL','HGETALL','SMEMBERS'].includes(word))allowed=args.length===2;
-  else if(word==='SCAN')allowed=args.length===4&&numeric(args[1])>=0&&args[2]==='COUNT'&&numeric(args[3])>=1&&numeric(args[3])<=100;
+  else if(word==='SCAN')allowed=args.length===4&&cursor(args[1])&&args[2]==='COUNT'&&numeric(args[3])>=1&&numeric(args[3])<=100;
+  else if(['HSCAN','SSCAN','ZSCAN'].includes(word))allowed=args.length===5&&cursor(args[2])&&args[3]==='COUNT'&&numeric(args[4])>=1&&numeric(args[4])<=100;
   else if(word==='LRANGE'||word==='ZRANGE'){const start=numeric(args[2]),end=numeric(args[3]);allowed=(args.length===4||word==='ZRANGE'&&args.length===5&&args[4]==='WITHSCORES')&&start>=0&&end>=start&&end-start<100;}
   if(!allowed)throw new RedisSessionError('command');
 }

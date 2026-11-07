@@ -86,3 +86,10 @@ test('oversized command fails without a wire write, and bounded queue closes cle
   const queued=Array.from({length:16},(_,i)=>session.request(['GET',String(i)]));const assertions=queued.map(p=>assert.rejects(p,code('closed')));
   await assert.rejects(session.request(['GET','overflow']),code('limit'));await session.close();await Promise.all(assertions);assert.equal(f.closes,1);
 });
+test('collection scans accept only fixed COUNT shape and lossless uint64 cursors',async()=>{
+  const f=transport((args,push)=>push(bytes(args[0]==='PING'?'+PONG\r\n':'*2\r\n$1\r\n0\r\n*0\r\n')));const session=await connectRedis(f.network,{endpoint:'tls://redis.example:6380'});
+  for(const name of ['HSCAN','SSCAN','ZSCAN'])await session.request([name,'key','18446744073709551615','COUNT','100']);
+  await session.request(['SCAN','18446744073709551615','COUNT','1']);
+  for(const args of [['SCAN','18446744073709551616','COUNT','1'],['HSCAN','key','18446744073709551616','COUNT','1'],['SSCAN','key','0','COUNT','101'],['ZSCAN','key','0','MATCH','*'],['HSCAN','key','0']])await assert.rejects(session.request(args),code('command'));
+  assert.equal(f.commands.length,5);await session.close();
+});

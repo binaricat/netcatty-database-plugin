@@ -1,0 +1,16 @@
+const zh:Record<string,string>={
+ 'Redis workbench':'Redis 工作台','Not connected':'未连接','Connected · TLS / read only':'已连接 · TLS / 只读','Connecting…':'连接中…','Connection closed':'连接已关闭','Cancel connection':'取消连接','Disconnect':'断开连接',
+ 'Configure a Redis TLS endpoint':'配置 Redis TLS 端点','No Redis TLS endpoint is declared in this package. An authorized exact endpoint must be included before connecting.':'当前插件包未声明 Redis TLS 端点。连接前需加入已获授权的精确端点。',
+ 'No database connection or discovery has been performed. A Netcatty host selection does not grant network permission or create a tunnel.':'尚未连接或探测数据库。选择 Netcatty 主机不代表已获得网络权限，也不会创建隧道。',
+ 'This host has not enabled the network.byte-streams feature required for Redis TLS. No connection was attempted.':'当前宿主未启用 Redis TLS 所需的 network.byte-streams 能力，未尝试连接。',
+ 'Direct TLS database connection. A selected Netcatty host is context only, not a tunnel or database discovery.':'直接通过 TLS 连接数据库。所选 Netcatty 主机仅作为上下文，不代表隧道或数据库探测结果。',
+ 'Host context:':'主机上下文：','Declared TLS endpoint':'已声明的 TLS 端点','Redis declared endpoint':'Redis 已声明端点','Select endpoint':'选择端点','ACL username (optional)':'ACL 用户名（可选）','Redis ACL username':'Redis ACL 用户名','Password (optional)':'密码（可选）','Redis password':'Redis 密码','Connect Redis':'连接 Redis',
+ 'Credentials are used for this connection only and are not saved. No endpoint is contacted until Connect Redis is clicked.':'凭据仅用于本次连接，不会保存。点击“连接 Redis”前不会访问任何端点。',
+ 'The server returned an oversized scan page. The last successful page and cursor are unchanged; no keys were silently skipped.':'服务器返回的扫描页过大。保留上次成功页与游标，不会静默跳过键。',
+ 'Redis operation: {code}. No automatic retry.':'Redis 操作：{code}。不会自动重试。','Server info':'服务器信息','Scan keys':'扫描键','Next key page':'下一扫描页','{count} keys · cursor {cursor}':'{count} 个键 · 游标 {cursor}',
+ 'Server information':'服务器信息','Request server info after connecting.':'连接后可读取服务器信息。','Redis server information fragment':'Redis 服务器信息片段','Previous fragment':'上一片段','Next fragment':'下一片段','Fragment {page} / {pages}':'片段 {page} / {pages}',
+ 'Key labels show the first 100 characters; selection retains exact bytes. SCAN is not a snapshot: keys may repeat or disappear. COUNT is a hint; oversized pages are rejected without advancing. Host streams expire after at most 120 seconds; reconnect explicitly.':'键标签显示前 100 字符，选择时保留完整字节。SCAN 不是快照，键可能重复或消失。COUNT 仅是提示；过大页会被拒绝且不推进。宿主连接最长 120 秒，到期需手动重连。',
+ 'Redis keys':'Redis 键','(empty key)':'（空键）','Previous keys':'上一组键','More keys in this page':'本页更多键','Redis value':'Redis 值','Select a key':'选择一个键','Next value page':'下一值页','Previous entries':'上一组条目','More entries in this page':'本页更多条目','Entries {start}–{end} / {count}':'条目 {start}–{end} / {count}',
+ 'Binary data uses hex; NUL is displayed as \\0. Display fragments are not complete exports. TTL -1 means no expiry; -2 means missing.':'二进制使用十六进制显示，NUL 显示为 \\0。显示片段不是完整导出。TTL 为 -1 表示不过期，-2 表示不存在。','Redis value fragment':'Redis 值片段','Key no longer exists.':'键已不存在。','Key disappeared during read.':'读取时键已消失。'
+};
+export function redisTranslator(locale:string){return (message:string,values:Record<string,string|number>={})=>{let text=locale.toLowerCase().startsWith('zh')?(zh[message]??message):message;for(const [key,value] of Object.entries(values))text=text.replaceAll(`{${key}}`,String(value));return text;};}
