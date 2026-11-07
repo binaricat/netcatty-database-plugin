@@ -20,8 +20,9 @@ Separate screenshots in
 - create-view-committed-alpha33.jpg
 - create-view-readback-alpha33.jpg
 
-Continuous video `full-app-create-view-alpha33.mp4` is being finalized; do not
-claim complete/decodable until the result is appended below.
+Continuous video `full-app-create-view-alpha33.mp4`: 300 seconds, 2,046,290 bytes.
+Full ffmpeg decode passes; the inspected frame at 290 seconds shows the completed
+three-row/two-column manual readback. No unrelated protocol tests are claimed.
 
 586 tests, lint/package validation, actual main PackageStore install and 50 injected
 main remote-DOM snapshots pass. Deferred busy-owner races are tested using
