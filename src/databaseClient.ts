@@ -55,5 +55,5 @@ export interface PluginDatabaseClient {
   close(params: DatabaseHandleRequest): Promise<null>;
 }
 
-export interface WorkbenchContext extends HostPluginContext { readonly database: PluginDatabaseClient & { readonly capabilities: ReadonlySet<string> }; }
+export interface WorkbenchContext extends HostPluginContext { readonly queryLibraryStore?: ReturnType<typeof import('./queryLibraryStorage').createQueryLibraryStorage>; readonly database: PluginDatabaseClient & { readonly capabilities: ReadonlySet<string> }; }
 export type { WorkbenchContext as PluginContext };

@@ -1,3 +1,4 @@
+import {createQueryLibraryStorage,QueryLibraryStorageError} from './queryLibraryStorage';
 import {createSnapshotStorage} from './snapshotStorage';
 import {SqliteSnapshotError,exportProtectedSnapshot,validateSnapshotDatabase} from './sqliteSnapshot';
 import type {SnapshotRestoreReview} from './databaseTypes';
@@ -247,6 +248,7 @@ export function createWorkbenchContext(context: PluginContext): WorkbenchContext
   const savedIds=new Map<string,string>(),snapshotLocks=new Set<string>(),snapshotSavedLocks=new Set<string>();
   const restoreReviews=new Map<string,{review:SnapshotRestoreReview;candidate:Database}>();
   const snapshots=createSnapshotStorage(context.storage);
+  const storedQueries=createQueryLibraryStorage(context.storage);
   const discardRestore=(handleId:string)=>{const old=restoreReviews.get(handleId);restoreReviews.delete(handleId);old?.candidate.close();};
   let disposed = false;
   const assertLive = () => { if (disposed) throw new Error("Database runtime is closed."); };
@@ -563,6 +565,17 @@ export function createWorkbenchContext(context: PluginContext): WorkbenchContext
     }finally{if(!installed)pending.candidate.close();}
   });
   const deleteSnapshot=(request:DatabaseHandleRequest)=>withSnapshot(request,async(db,id)=>{discardRestore(request.handleId);await snapshots.delete(id);return null;});
+  async function withQueryLibrary<T>(id:string,work:()=>Promise<T>):Promise<T>{
+    assertLive();if(snapshotSavedLocks.has(id))throw new QueryLibraryStorageError('stale');
+    snapshotSavedLocks.add(id);
+    try{if(!(await list()).some(c=>c.id===id&&c.engine==='sqlite'))throw new QueryLibraryStorageError('missing');assertLive();return await work();}
+    finally{snapshotSavedLocks.delete(id);}
+  }
+  const queryLibraryStore:ReturnType<typeof createQueryLibraryStorage>={
+    load:id=>withQueryLibrary(id,()=>storedQueries.load(id)),
+    save:(id,input,revision)=>{const snapshot={...input};return withQueryLibrary(id,()=>storedQueries.save(id,snapshot,revision));},
+    remove:(id,entryId,revision)=>withQueryLibrary(id,()=>storedQueries.remove(id,entryId,revision))
+  };
   const database: PluginDatabaseClient & {capabilities: ReadonlySet<string>} = {
     capabilities: new Set(['database.sqlite-snapshot.v1','database.sqlite-fixture.v1','database.saved-connections.v1','database.sqlite-reviewed-writes.v1','database.sqlite-create-table.v1','database.sqlite-create-index.v1','database.sqlite-grid-mutation.v1','database.sqlite-csv-import.v1','database.sqlite-rename-column.v1','database.sqlite-row-insert.v1','database.sqlite-drop-index.v1','database.sqlite-add-column.v1']),
     snapshotInfo,saveSnapshot,previewRestoreSnapshot,applyRestoreSnapshot,deleteSnapshot,
@@ -581,7 +594,7 @@ export function createWorkbenchContext(context: PluginContext): WorkbenchContext
     openSavedConnection: async ({id}) => { if(snapshotSavedLocks.has(id))throw new SqliteSnapshotError('busy');snapshotSavedLocks.add(id);try{if (!(await list()).some(c => c.id===id)) throw new Error('Saved connection not found.');const result=await open();savedIds.set(result.handleId,id);return result;}finally{snapshotSavedLocks.delete(id);} },
     deleteConnection: ({id}) => mutate(async () => {
       if(snapshotSavedLocks.has(id))throw new SqliteSnapshotError('busy');snapshotSavedLocks.add(id);
-      try{const snapshot=await snapshots.get(id);if(snapshot){snapshot.bytes.fill(0);throw new Error('Clear this connection’s local database snapshot explicitly before deleting the connection.');}
+      try{const library=await storedQueries.load(id);if(library.saved.length)throw new Error('Permanently remove this connection’s saved SQL entries explicitly before deleting the connection.');const snapshot=await snapshots.get(id);if(snapshot){snapshot.bytes.fill(0);throw new Error('Clear this connection’s local database snapshot explicitly before deleting the connection.');}
         await context.storage.set(STORE_KEY,(await list()).filter(c=>c.id!==id));for(const [handle,saved] of savedIds)if(saved===id){discardRestore(handle);savedIds.delete(handle);}return null;
       }finally{snapshotSavedLocks.delete(id);}
     }),
@@ -591,5 +604,5 @@ export function createWorkbenchContext(context: PluginContext): WorkbenchContext
     openHostLiveSshPgFixture: unavailable, cancelHostLiveSshPgFixture: unavailable, closeHostLiveSshPgSession: unavailable,
   };
   context.subscriptions.add({dispose() { disposed = true; for(const h of restoreReviews.keys())discardRestore(h);savedIds.clear();for (const db of sessions.values()) db.close(); sessions.clear(); tableReviews.clear(); }});
-  return Object.assign(Object.create(context), {database}) as WorkbenchContext;
+  return Object.assign(Object.create(context), {database,queryLibraryStore}) as WorkbenchContext;
 }

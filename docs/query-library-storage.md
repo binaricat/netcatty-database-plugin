@@ -30,20 +30,32 @@ and returned records do not alias stored objects.
 
 Deleting the final entry retains an empty revisioned record. This prevents an old
 revision-0 request from being accepted after deletion/recreation (ABA). Such empty
-records still count toward the eight-library budget. Future connection deletion
-integration must explicitly coordinate lifecycle locking and tombstone cleanup;
+records still count toward the eight-library budget. Connection deletion
+integration now coordinates lifecycle locking but does not reclaim tombstones;
 this module does not silently delete whole libraries. The host does not provide
 cross-runtime CAS, so these guarantees require one owner/shared storage object,
 not independently running plugin runtimes.
 
-## Integration still required
+## Integrated candidate, native acceptance pending
 
-No UI, adapter or connection-deletion lifecycle has changed in this slice.
-Integration must bind IDs to actual saved connections, disclose plaintext storage,
-make same-name overwrite and permanent deletion clear, and reject late UI results
-after connection/handle/generation changes. Reading a named entry into the editor
-must clear previous results and pending write reviews without running its SQL.
-Saving must use a captured editor snapshot, never overwrite later edits on return.
+PersistentQueryLibrary explicitly loads storage before mutation, captures SQL and
+parameters at the save click, confirms same-name replacement and permanent removal,
+and ignores late UI results after disposal/connection changes. Loading into the
+editor clears results and pending write reviews without execution. Six entries per
+page, compact rows and bounded highlighted replacement previews limit remote DOM.
+The parent presents persistent named SQL first; session-only favorites/history and
+workspace drafts remain in secondary disclosure sections.
+
+The local SQLite adapter exposes queryLibraryStore bound to actual saved SQLite
+connections. All load/save/remove operations share the saved-ID lock with snapshot,
+open and connection-delete operations. Nonempty or corrupt SQL libraries prevent
+connection deletion. Empty revision tombstones remain and count toward the budget.
+Real SQL.js adapter tests cover save/delete races in both directions, snapshot-lock
+conflicts and refusal to create orphan libraries after deletion.
+
+The main SDK remote-DOM regression covers save, remount/read, editor-only load,
+replace review/cancel and delete review/cancel. These remain injected view/storage
+transport evidence, not actual native app restart durability acceptance.
 
 This implements named SQL persistence, not DBX snippet prefix expansion, template
 placeholders, cloud synchronization or external SQL file management. Tests use

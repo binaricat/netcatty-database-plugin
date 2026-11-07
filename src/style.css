@@ -483,3 +483,13 @@ pre { padding: 12px; background: hsl(var(--muted)/.4); border: 1px solid hsl(var
 .sql-format-review { margin-top: 6px; }
 .sql-format-review > p { margin: 4px 0; color: hsl(var(--muted-foreground)); }
 .sql-format-review .sql-preview { max-height: 150px; overflow: auto; }
+/* Named SQL stays the primary surface; ephemeral history and drafts are secondary. */
+.persistent-query-library { padding:0; flex:0 0 auto; overflow:visible; gap:10px; }
+.persistent-query-library h3 { font-size:15px; margin:0; }
+.persistent-query-library p { margin:0; line-height:1.55; }
+.persistent-query-library .library-toolbar { flex-wrap:wrap; margin-bottom:4px; }
+.persistent-query-library .library-toolbar input { flex:1 1 160px; min-width:120px; max-width:300px; }
+.persistent-query-library pre { max-height:170px; overflow:auto; }
+.library-secondary { margin-top:20px; padding-top:14px; border-top:1px solid hsl(var(--border)); }
+.library-secondary > summary { cursor:pointer; font-weight:500; padding:4px 0 12px; color:hsl(var(--muted-foreground)); }
+.library-secondary .library-toolbar { flex-wrap:wrap; }
