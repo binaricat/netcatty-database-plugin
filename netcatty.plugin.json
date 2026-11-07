@@ -20,7 +20,9 @@
   "features": {
     "required": [
       "views.host-drawn",
-      "views.vault-pages"
+      "views.vault-pages",
+      "views.modals",
+      "metadata.brand-icon"
     ],
     "optional": [
       "database.sqlite-fixture.v1",
@@ -43,7 +45,8 @@
     "browser": "browser.js"
   },
   "activationEvents": [
-    "onView:com.binaricat.netcatty-database.workbench"
+    "onView:com.binaricat.netcatty-database.workbench",
+    "onView:com.binaricat.netcatty-database.new-connection"
   ],
   "permissions": {
     "required": [
@@ -89,7 +92,21 @@
           "zh-CN": "数据库"
         },
         "location": "vault-page"
+      },
+      {
+        "id": "com.binaricat.netcatty-database.new-connection",
+        "title": {
+          "en": "New Connection",
+          "zh-CN": "新建连接"
+        },
+        "location": "modal",
+        "when": "netcatty.surface == 'modal'"
       }
     ]
+  },
+  "icon": {
+    "kind": "package",
+    "light": "assets/icons/sqlite-light.png",
+    "dark": "assets/icons/sqlite-dark.png"
   }
 }

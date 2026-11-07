@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import { createConnectionModalChannel } from './connectionModalChannel';
+import React, { useState, useEffect, useRef, useSyncExternalStore } from 'react';
 import { definePlugin, type PluginContext, type DatabaseConnectionMeta } from '@netcatty/plugin-sdk';
-import { registerHostReactView } from '@netcatty/plugin-sdk/host-react';
+import { registerHostReactView, type HostViewController } from '@netcatty/plugin-sdk/host-react';
 import { useWorkbench } from './useWorkbench';
 import { selectObject } from './domain';
 import { SqlAssistant } from './SqlAssistant';
@@ -11,22 +12,34 @@ import { SqlEditor } from './SqlEditor';
 import { clampEditorSplit, DEFAULT_EDITOR_SPLIT, MIN_EDITOR_SPLIT, MAX_EDITOR_SPLIT } from './sqlDisplay';
 type Model = ReturnType<typeof useWorkbench>;
 const CONNECTION_PAGE_SIZE = 10;
+const MODAL_VIEW = 'com.binaricat.netcatty-database.new-connection';
+type ModalChannel = ReturnType<typeof createConnectionModalChannel<Model>>;
+function EngineIcon({ engine, theme }: { engine: 'sqlite' | 'postgresql' | 'mysql'; theme: string }) {
+  return <img className="engine-icon" src={`brand:assets/icons/${engine}-${theme === 'dark' ? 'dark' : 'light'}.png`} alt="" width={32} height={32} />;
+}
+function ConnectionModal({ channel, controller }: { channel: ModalChannel; controller: HostViewController }) {
+  const vm = useSyncExternalStore(channel.subscribe, channel.getSnapshot);
+  useEffect(() => { if (!vm?.modal) controller.close(); }, [vm?.modal, controller]);
+  useEffect(() => () => { const current = channel.getSnapshot(); if (current?.modal) void current.dismiss(); }, [channel]);
+  return vm?.modal ? <main className="database-workbench connection-surface"><ConnectionDialog vm={vm} /></main> : null;
+}
 const colors: DatabaseConnectionMeta['color'][] = ['default', 'blue', 'green', 'purple', 'orange'];
 function ConnectionDialog({ vm }: { vm: Model }) {
   const { t } = vm;
+  const [category, setCategory] = useState<'all' | 'lightweight' | 'relational'>('all');
   const [page, setPage] = useState<'connection' | 'advanced'>('connection');
   const [nameDraft, setName] = useState<string | null>(null);
   const name = nameDraft ?? t("Synthetic SQLite"); const [color, setColor] = useState<DatabaseConnectionMeta['color']>('default');
   const [source, setSource] = useState<'memory' | 'file'>('memory');
   const [hostId, setHostId] = useState(''); const [hostFilter, setHostFilter] = useState(''); const [savePassword, setSavePassword] = useState(false); const [password, setPassword] = useState('');
   const ready = source === 'memory' || Boolean(vm.draftSession && 'readOnly' in vm.draftSession);
-  return <div className="modal-shade"><section className="modal" role="dialog" aria-modal="true" aria-label={t("New Connection")} onKeyDown={(event) => { if (event.key === 'Escape' && !vm.busy) void vm.dismiss(); }}>
-    <header className="modal-heading"><div><span className="eyebrow">{t(vm.modal === "picker" ? "Step 1 of 2 · Database type" : "Step 2 of 2 · Connection details")}</span><h2>{t("New Connection")}</h2></div><button className="icon-button secondary" aria-label={t("Close")} disabled={vm.busy} onClick={() => void vm.dismiss()}><Icon name="x" /></button></header>
-    {vm.modal === 'picker' ? <><div className="type-picker"><nav aria-label={t("Database categories")}><strong>{t("Database Types")}</strong><p>{t("Relational")}</p><p className="selected-category">{t("Lightweight")}</p></nav><div className="type-list"><h3>{t("Lightweight")}</h3><button className="type-option selected" onClick={() => vm.setModal('connection')}><Icon name="database" /><strong>SQLite</strong><small>{t("Embedded / disposable fixtures")}</small></button><h3>{t("Relational")}</h3>{['PostgreSQL', 'MySQL'].map((engine) => <button key={engine} className="type-option" disabled><Icon name="database" /><strong>{engine}</strong><small>{t("Driver not implemented")}</small></button>)}</div></div><footer className="modal-footer"><span>{t("Selected: SQLite")}</span><button onClick={() => vm.setModal('connection')}>{t("Next")}</button><button className="secondary" onClick={() => void vm.dismiss()}>{t("Close")}</button></footer></> : <>
+  return <section className="connection-dialog">
+    <div className="flow-heading"><span className="step-number">{vm.modal === 'picker' ? '1' : '2'}</span><div><h2>{t(vm.modal === 'picker' ? "Choose a database" : "Connection details")}</h2><p>{t(vm.modal === 'picker' ? "Select an engine to create your connection." : "Configure your local SQLite connection.")}</p></div><span className="step-count">{t(vm.modal === 'picker' ? "Step 1 of 2" : "Step 2 of 2")}</span></div>
+    {vm.modal === 'picker' ? <><div className="type-picker"><nav aria-label={t("Database categories")}><strong>{t("Database Types")}</strong>{([['all', 'All databases', '3'], ['lightweight', 'Lightweight', '1'], ['relational', 'Relational', '2']] as const).map(([id, label, count]) => <button key={id} aria-pressed={category === id} className={category === id ? 'selected-category' : ''} onClick={() => setCategory(id)}>{t(label)}<span>{count}</span></button>)}</nav><div className="type-list"><div className="engine-list-heading"><h3>{t(category === 'all' ? "All databases" : category === 'lightweight' ? "Lightweight" : "Relational")}</h3><span>{t(category === 'relational' ? "No drivers available" : "1 available")}</span></div><div className="engine-grid">{category !== 'relational' && <button className="type-option selected" aria-pressed="true" onClick={() => vm.setModal('connection')}><span className="engine-mark"><EngineIcon engine="sqlite" theme={vm.theme} /></span><strong>SQLite</strong><small>{t("Local file or in-memory")}</small><span className="engine-status"><Icon name="check" />{t("Available")}</span></button>}{category !== 'lightweight' && (['postgresql', 'mysql'] as const).map((engine) => <button key={engine} className="type-option" disabled><span className="engine-mark"><EngineIcon engine={engine} theme={vm.theme} /></span><strong>{engine === 'postgresql' ? 'PostgreSQL' : 'MySQL'}</strong><small>{t("Relational database")}</small><span className="engine-status">{t("Driver not implemented")}</span></button>)}</div><p className="engine-disclosure"><Icon name="shield" />{t("SQLite fixtures only in this experimental release.")}</p></div></div><footer className="modal-footer"><span className="selected-engine"><EngineIcon engine="sqlite" theme={vm.theme} />{t("Selected: SQLite")}</span><button className="secondary" onClick={() => void vm.dismiss()}>{t("Cancel")}</button><button onClick={() => vm.setModal('connection')}>{t("Next")}<Icon name="arrow-right" /></button></footer></> : <>
       <nav className="modal-tabs" aria-label={t("Connection settings")}><button className={page === 'connection' ? 'active' : ''} onClick={() => setPage('connection')}>{t("Connection")}</button><button className={page === 'advanced' ? 'active' : ''} onClick={() => setPage('advanced')}>{t("Advanced")}</button></nav>
       <div className="modal-content">{page === 'connection' ? <>
         <label>{t("Name")}<input aria-label={t("Connection name")} value={name} maxLength={128} disabled={vm.busy} onChange={(e) => setName(e.currentTarget.value)} /></label>
-        <div className="connection-engine"><Icon name="database" /><strong>SQLite</strong><span>{t("SQLite / disposable fixtures")}</span></div><div className="color-field"><span className="field-label">{t("Color")}</span><div className="swatches">{colors.map((c) => <button key={c} aria-label={t("Color {color}", { color: t(c) })} aria-pressed={color === c} className={`swatch color-${c} ${color === c ? 'chosen' : ''}`} onClick={() => setColor(c)} />)}</div></div>
+        <div className="engine-field"><span className="field-label">{t("Type")}</span><button className="connection-engine secondary" disabled={vm.busy} onClick={() => vm.setModal('picker')} title={t("Choose a database")}><EngineIcon engine="sqlite" theme={vm.theme} /><strong>SQLite</strong><span>{t("Change")}</span></button></div><div className="color-field"><span className="field-label">{t("Color")}</span><div className="swatches">{colors.map((c) => <button key={c} aria-label={t("Color {color}", { color: t(c) })} aria-pressed={color === c} className={`swatch color-${c} ${color === c ? 'chosen' : ''}`} onClick={() => setColor(c)} />)}</div></div>
         <label>{t("File Path")}<select aria-label={t("SQLite source")} value={source} disabled={vm.busy} onChange={(e) => { const file = e.currentTarget.value === 'file'; setSource(file ? 'file' : 'memory'); void vm.selectSource(file); }}><option value="memory">{t(":memory: - disposable synthetic notes")}</option><option value="file" disabled={!vm.fileEnabled}>{t("Host-selected SQLite file (read-only)")}</option></select></label>
         {source === 'file' && <div className="file-choice"><span>{ready ? t("Disposable SQLite file (read-only)") : t("No file selected")}</span><button className="secondary" disabled={!vm.fileEnabled || vm.busy} onClick={() => void vm.selectSource(true)}>{t("Choose file...")}</button></div>}
         <p className="hint">{t("Choose an allowlisted disposable fixture. File paths stay with the host; memory data resets on open.")}</p>
@@ -56,11 +69,11 @@ function ConnectionDialog({ vm }: { vm: Model }) {
         <p className="hint">{t("Synthetic adapter only. This test opens no SSH or PostgreSQL connection; selecting a host never connects.")}</p>
         <p role="status">{vm.tunnel.message ? t(vm.tunnel.message) : t("No tunnel test has run.")}</p></div>
         <h3>{t("Connection limits")}</h3><p>{t("100 rows / 96 KiB / 3 seconds / 8 KiB SQL")}</p><h3>{t("Transport and encryption")}</h3><p>{t("Production SSH tunnels, TLS, SQLite encryption and extensions are unavailable. The separate loopback live test is fixture-only.")}</p><h3>{t("Advanced settings")}</h3><p>{t("No additional settings are implemented.")}</p></div>}
-      <p role="status" className={vm.tested ? "test-status success" : "test-status"}><Icon name={vm.tested ? "check" : "shield"} />{vm.tested ? t("Connection successful - host schema validated") : t("Test the selected fixture before connecting.")}</p>
+      </div><div className="connection-feedback"><p role="status" className={vm.tested ? "test-status success" : "test-status"}><Icon name={vm.tested ? "check" : "shield"} />{vm.tested ? t("Connection successful - host schema validated") : t("Test the selected fixture before connecting.")}</p>
       {vm.error && <p className="error" role="alert"><Icon name="alert-circle" />{vm.error}</p>}</div>
-      <footer className="modal-footer"><button className="secondary" disabled={!ready || vm.busy || vm.portProbe.busy || vm.liveSshPg.busy || vm.tunnel.busy} onClick={() => void vm.test()}>{t("Test")}</button><button disabled={!ready || vm.busy || vm.portProbe.busy || vm.liveSshPg.busy || vm.tunnel.busy || !name.trim() || (savePassword && !password)} onClick={() => { const secret = savePassword ? password : undefined; setPassword(''); if (vm.persistence) void vm.save({ name: name.trim(), color, ...(hostId ? { hostId } : {}) }, secret); else void vm.openUnsaved(); }}>{vm.persistence ? t("Save & Connect") : t("Connect without saving")}</button><button className="secondary" disabled={vm.busy} onClick={() => void vm.dismiss()}>{t("Close")}</button></footer>
+      <footer className="modal-footer"><button className="secondary back-button" disabled={vm.busy} onClick={() => { setPage('connection'); vm.setModal('picker'); }}>{t("Back")}</button><button className="secondary" disabled={!ready || vm.busy || vm.portProbe.busy || vm.liveSshPg.busy || vm.tunnel.busy} onClick={() => void vm.test()}>{t("Test")}</button><button disabled={!ready || vm.busy || vm.portProbe.busy || vm.liveSshPg.busy || vm.tunnel.busy || !name.trim() || (savePassword && !password)} onClick={() => { const secret = savePassword ? password : undefined; setPassword(''); if (vm.persistence) void vm.save({ name: name.trim(), color, ...(hostId ? { hostId } : {}) }, secret); else void vm.openUnsaved(); }}>{vm.persistence ? t("Save & Connect") : t("Connect without saving")}</button><button className="secondary" disabled={vm.busy} onClick={() => void vm.dismiss()}>{t("Close")}</button></footer>
     </>}
-  </section></div>;
+  </section>;
 }
 function SchemaTree({ vm }: { vm: Model }) {
   const { t } = vm;
@@ -99,8 +112,16 @@ function Structure({ vm }: { vm: Model }) {
     <div className="result-status">{object.kind === 'view' ? t("View nullability is not inferred.") : t("Column metadata from the connected SQLite schema.")} {t("Schema editing is unavailable.")}</div>
   </section>;
 }
-function Workbench({ context }: { context: PluginContext }) {
-  const vm = useWorkbench(context); const { t } = vm; const [connectionFilter, setConnectionFilter] = useState(''); const [connectionPage, setConnectionPage] = useState(0);
+function Workbench({ context, controller, channel }: { context: PluginContext; controller: HostViewController; channel: ModalChannel }) {
+  const vm = useWorkbench(context);
+  const owner = useRef(Symbol('workbench'));
+  const requested = useRef(false);
+  useEffect(() => {
+    if (!channel.publish(owner.current, vm, vm.modal !== null)) return;
+    if (vm.modal && !requested.current) { requested.current = true; controller.openModal(MODAL_VIEW); }
+    if (!vm.modal) { requested.current = false; channel.release(owner.current); }
+  });
+  useEffect(() => { const key = owner.current; return () => channel.release(key); }, [channel]); const { t } = vm; const [connectionFilter, setConnectionFilter] = useState(''); const [connectionPage, setConnectionPage] = useState(0);
   const matches = vm.saved.filter((c) => c.name.toLowerCase().includes(connectionFilter.toLowerCase()));
   const page = Math.min(connectionPage, Math.max(0, Math.ceil(matches.length / CONNECTION_PAGE_SIZE) - 1)); const [showAI, setShowAI] = useState(false);
   const [editorSplit, setEditorSplit] = useState(DEFAULT_EDITOR_SPLIT);
@@ -137,7 +158,11 @@ function Workbench({ context }: { context: PluginContext }) {
       </>}
       {vm.error && !vm.modal && <p className="error" role="alert"><Icon name="alert-circle" />{vm.error}</p>}
     </section></div><footer className="app-status">{vm.session ? vm.connectionName : t("No database connected")}<span>{t("Netcatty host permissions / SQLite fixture service")}</span></footer>
-    {vm.modal && <ConnectionDialog vm={vm} />}
+
   </main>;
 }
-export default definePlugin({ activate(context) { context.subscriptions.add(registerHostReactView(context.views, 'com.binaricat.netcatty-database.workbench', () => <Workbench context={context} />, css)); } });
+export default definePlugin({ activate(context) {
+  const channel = createConnectionModalChannel<Model>();
+  context.subscriptions.add(registerHostReactView(context.views, 'com.binaricat.netcatty-database.workbench', (controller) => <Workbench context={context} controller={controller} channel={channel} />, css));
+  context.subscriptions.add(registerHostReactView(context.views, MODAL_VIEW, (controller) => <ConnectionModal channel={channel} controller={controller} />, css));
+} });

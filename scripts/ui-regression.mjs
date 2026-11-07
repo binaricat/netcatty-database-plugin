@@ -21,12 +21,17 @@ const { act } = plugin('react');
 const output = `${evidence}/workbench-check-bundle.cjs`;
 await build({ entryPoints: [path.join(pluginRoot, 'src/index.tsx')], outfile: output, bundle: true, format: 'cjs', platform: 'node', loader: { '.css': 'text' }, plugins: [{ name: 'shared-react', setup(b) { b.onResolve({ filter: /^react(?:-dom)?(?:\/.*)?$/ }, (args) => ({ path: plugin.resolve(args.path), external: true })); } }] });
 let realPending = 0;
-let receive; let tree = { children: [] }; let disposables = []; const policyErrors = [];
+const receivers = new Map(); const trees = new Map(); const instanceViews = new Map();
+const WORKBENCH = 'com.binaricat.netcatty-database.workbench';
+const MODAL = 'com.binaricat.netcatty-database.new-connection';
+const receive = (message) => receivers.get(instanceViews.get(message.instanceId) ?? WORKBENCH)?.(message);
+let tree = { children: [] }; let disposables = []; const policyErrors = [];
 let maxNodes = 0; let maxBytes = 0; let batches = 0;
-const allNodes = () => { const nodes = []; const visit = (n) => { nodes.push(n); n.children?.forEach(visit); }; tree.children.forEach(visit); return nodes; };
+const nodesOf = (tree) => { const nodes = []; const visit = (n) => { nodes.push(n); n.children?.forEach(visit); }; tree.children.forEach(visit); return nodes; };
+const allNodes = () => nodesOf(tree);
 const textOf = (n) => n.type === 3 ? n.data : (n.children ?? []).map(textOf).join('');
 const find = (predicate) => allNodes().find(predicate);
-const button = (label) => { const dialog = find((n) => n.attributes?.role === 'dialog'); const nested = []; const visit = (n) => { nested.push(n); n.children?.forEach(visit); }; if (dialog) visit(dialog); return [...nested, ...allNodes()].find((n) => n.element === 'button' && textOf(n) === label); };
+const button = (label) => { const dialog = find((n) => n.attributes?.class === 'connection-dialog'); const nested = []; const visit = (n) => { nested.push(n); n.children?.forEach(visit); }; if (dialog) visit(dialog); return [...nested, ...allNodes()].find((n) => n.element === 'button' && textOf(n) === label); };
 const byLabel = (label) => find((n) => n.attributes?.['aria-label'] === label);
 let saved = []; let chosen = null; let opens = 0; let apiCalls = []; let hostCount = 2; let schemaColumns = 3; let schemaObjects = 1; let bigResult = false; let failSave = false;
 const memory = () => ({ handleId: `memory-${++opens}`, engine: 'sqlite', label: 'Disposable synthetic notes', fixture: true });
@@ -36,17 +41,30 @@ const environmentListeners = new Set();
 const context = { enabledFeatures: features, environment: { locale: 'en', theme: 'dark', onDidChange: (fn) => { environmentListeners.add(fn); return { dispose() { environmentListeners.delete(fn); } }; } },
   subscriptions: { add: (d) => disposables.push(d) },
   ai: new Proxy({}, { get() { throw new Error('Real AI access is forbidden'); } }),
-  views: { onDidReceiveMessage: (_id, listener) => { receive = listener; return { dispose() {} }; }, getState: async () => null, setState: async () => {}, postMessage: (_id, message) => {
+  views: { onDidReceiveMessage: (id, listener) => { receivers.set(id, listener); return { dispose() { receivers.delete(id); } }; }, getState: async () => null, setState: async () => {}, postMessage: (_id, message) => {
+    if (message.kind === 'host-ui.present') {
+      assert.equal(_id, WORKBENCH); assert.equal(message.targetViewId, MODAL);
+      if (!instanceViews.has('modal')) { instanceViews.set('modal', MODAL); receive({ kind: 'host-ui.open', instanceId: 'modal' }); }
+      return;
+    }
+    if (message.kind === 'host-ui.dismiss') {
+      assert.equal(_id, MODAL);
+      queueMicrotask(() => { receive({ kind: 'host-ui.close', instanceId: message.instanceId }); trees.delete(message.instanceId); instanceViews.delete(message.instanceId); tree.children = [...trees.values()].flatMap(t => t.children); });
+      return;
+    }
+    if (message.kind !== 'host-ui.update') return;
     try {
+      const ownTree = trees.get(message.instanceId) ?? { children: [] }; trees.set(message.instanceId, ownTree);
       validatePluginMutationBatch(message.mutations); batches++;
       for (const m of message.mutations) {
-        const node = m[1] === '~' ? tree : allNodes().find((n) => n.id === m[1]); assert.ok(node);
+        const node = m[1] === '~' ? ownTree : nodesOf(ownTree).find((n) => n.id === m[1]); assert.ok(node);
         if (m[0] === 0) node.children.splice(m[3], 0, structuredClone(m[2]));
         else if (m[0] === 1) node.children.splice(m[2], 1);
         else if (m[0] === 2) node.data = m[2];
         else if (m[3] === null) delete node.attributes[m[2]]; else node.attributes[m[2]] = m[3];
       }
-      validatePluginRemoteTree(tree); maxNodes = Math.max(maxNodes, allNodes().length); maxBytes = Math.max(maxBytes, Buffer.byteLength(JSON.stringify(tree)));
+      tree.children = [...trees.values()].flatMap(t => t.children);
+      validatePluginRemoteTree(ownTree); maxNodes = Math.max(maxNodes, nodesOf(ownTree).length); maxBytes = Math.max(maxBytes, Buffer.byteLength(JSON.stringify(ownTree)));
     } catch (e) { policyErrors.push(e.message); }
   } },
   database: {
@@ -64,10 +82,10 @@ const context = { enabledFeatures: features, environment: { locale: 'en', theme:
 };
 const initialMockDatabase = { ...context.database };
 const tick = () => new Promise((r) => setTimeout(r, 25));
-const event = async (node, props) => { assert.ok(node); await act(async () => { receive({ kind: 'host-ui.event', instanceId: 'm3', event: { nodeId: node.id, ...props } }); await tick(); }); for (let i = 0; realPending && i < 200; i++) await act(async () => { await tick(); }); assert.equal(realPending, 0, 'host operation settled'); assert.deepEqual(policyErrors, []); };
+const event = async (node, props) => { assert.ok(node); await act(async () => { receive({ kind: 'host-ui.event', instanceId: [...trees].find(([, t]) => nodesOf(t).includes(node))?.[0] ?? 'm3', event: { nodeId: node.id, ...props } }); await tick(); }); for (let i = 0; realPending && i < 200; i++) await act(async () => { await tick(); }); assert.equal(realPending, 0, 'host operation settled'); assert.deepEqual(policyErrors, []); };
 const click = async (label) => { const n = button(label); assert.ok(n, `missing ${label}`); assert.equal('disabled' in n.attributes, false, `disabled ${label}`); await event(n, { type: 'click' }); };
 const change = async (label, value) => event(byLabel(label), { type: byLabel(label).element === 'select' ? 'change' : 'input', value });
-const mount = async () => { tree = { children: [] }; plugin(output).default.activate(context); await act(async () => { receive({ kind: 'host-ui.open', instanceId: 'm3' }); await tick(); }); assert.deepEqual(policyErrors, []); };
+const mount = async () => { tree = { children: [] }; trees.clear(); instanceViews.clear(); instanceViews.set('m3', WORKBENCH); plugin(output).default.activate(context); await act(async () => { receive({ kind: 'host-ui.open', instanceId: 'm3' }); await tick(); }); assert.deepEqual(policyErrors, []); };
 const unmount = async () => { await act(async () => { receive({ kind: 'host-ui.close', instanceId: 'm3' }); disposables.forEach((d) => d.dispose()); disposables = []; await tick(); }); };
 const snapshot = async (name) => {
   const copy = document.body.cloneNode(true);
@@ -85,7 +103,7 @@ const language = async (locale) => { await act(async () => { context.environment
 
 try {
   await mount(); assert.ok(document.body.textContent.includes('No connections yet')); await snapshot('01-home'); checks.push('home + counters + empty sidebar');
-  await click('New Connection'); assert.ok(button('PostgreSQLDriver not implemented')); assert.ok('disabled' in button('MySQLDriver not implemented').attributes); await snapshot('02-picker'); await click('Next');
+  await click('New Connection'); assert.ok(button('PostgreSQLRelational databaseDriver not implemented')); assert.ok('disabled' in button('MySQLRelational databaseDriver not implemented').attributes); await snapshot('02-picker'); await click('Next');
   await change('Connection name', 'Synthetic saved memory'); await click('Advanced'); await click('Load permitted hosts'); await change('Existing host', 'host-2'); await click('Connection');
   await click('Test'); assert.match(document.body.textContent, /Connection successful/); await snapshot('03-tested-modal');
   const checkbox = find((n) => n.element === 'input' && n.attributes.type === 'checkbox'); await event(checkbox, { type: 'click', checked: true });
@@ -227,8 +245,8 @@ try {
   assert.match(document.body.textContent, /快速开始/); assert.match(document.body.textContent, /实验功能/);
   assert.ok(byLabel('筛选连接')); assert.ok(button('历史记录本阶段暂不可用'));
   await snapshot('zh-01-home');
-  await click('新建连接'); assert.ok('disabled' in button('PostgreSQL尚未实现驱动').attributes);
-  assert.ok('disabled' in button('MySQL尚未实现驱动').attributes); await snapshot('zh-02-picker');
+  await click('新建连接'); assert.ok('disabled' in button('PostgreSQL关系型数据库尚未实现驱动').attributes);
+  assert.ok('disabled' in button('MySQL关系型数据库尚未实现驱动').attributes); await snapshot('zh-02-picker');
   await click('下一步'); assert.equal(byLabel('连接名称').attributes.value, '模拟 SQLite');
   await language('en'); assert.equal(byLabel('Connection name').attributes.value, 'Synthetic SQLite');
   await change('Connection name', 'User 名称 {name}'); await language('zh-CN');

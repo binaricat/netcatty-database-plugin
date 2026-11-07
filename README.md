@@ -25,6 +25,12 @@ explicitly synthetic test launch set `NETCATTY_EXPERIMENTAL_DATABASE=1`.
 A normal host keeps the console visible but its database controls unavailable.
 
 Open the Database Vault page and choose **New Connection > SQLite > Next**.
+The connection flow uses the host's app-wide contributed modal (`views.modals`),
+with a full-window dimmer, Escape/close, focus restoration and retained work on
+backdrop clicks. It requires the paired host supporting this feature. Engine
+marks use bounded static PNGs through `metadata.brand-icon`; PostgreSQL/MySQL
+remain disabled. The modal is opened from its workbench so the existing owner
+retains connection/draft lifecycle; it is hidden from unrelated palette contexts.
 Use the synthetic memory database or **File Path > Host-selected SQLite file**.
 The M2 Linux chooser still accepts only regular rollback-mode `.sqlite`/`.db`
 fixtures with an ordinary `notes` table under

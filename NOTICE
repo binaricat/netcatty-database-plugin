@@ -13,3 +13,6 @@ respective MIT licenses in licenses/. Simple Icons 16.23.0 SVGs are provided
 under CC0; brand rights are not waived. See assets/icon-ledger.json for official
 brand sources, upstream license metadata, hashes and exact modifications.
 The application does not imply endorsement by database vendors.
+
+T305 static PNG derivatives preserve the existing CC0 source geometry and theme
+fills. See assets/brand-icon-ledger.json for raster and source hashes.

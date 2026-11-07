@@ -1,6 +1,23 @@
 // Original plugin-owned copy. English source keys keep the fallback explicit.
 // Only the host environment selects language; never navigator/OS/input locale.
 export const zhCN = {
+  "Change": "更改",
+  "No drivers available": "暂无可用驱动",
+  "Choose a database": "选择数据库",
+  "Connection details": "连接详情",
+  "Select an engine to create your connection.": "选择数据库引擎，创建连接。",
+  "Configure your local SQLite connection.": "配置本地 SQLite 连接。",
+  "Step 1 of 2": "第 1 步，共 2 步",
+  "Step 2 of 2": "第 2 步，共 2 步",
+  "All databases": "全部数据库",
+  "1 available": "1 个可用",
+  "Local file or in-memory": "本地文件或内存数据库",
+  "Available": "可用",
+  "Relational database": "关系型数据库",
+  "SQLite fixtures only in this experimental release.": "此实验版本仅支持 SQLite 测试数据。",
+  "Cancel": "取消",
+  "Back": "上一步",
+
   "Refresh WAL fixture": "刷新 WAL 测试文件",
   "Explicit WAL refresh: pause all writers through refresh and reads. Click Refresh WAL fixture for appended commits in this open session. Checkpoints or replaced files require choosing again. No polling, automatic retry or uninterrupted capture.": "显式 WAL 刷新：刷新及读取期间需暂停所有写入。点击“刷新 WAL 测试文件”可在当前会话获取追加提交；检查点或文件替换后需重新选择。不支持轮询、自动重试或不停写捕获。",
 
