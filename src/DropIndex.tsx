@@ -1,3 +1,4 @@
+import {acquireSchemaBusy,type SchemaBusyCallback} from './schemaBusy';
 import React,{useEffect,useMemo,useRef,useSyncExternalStore} from 'react';
 import {serialPreview} from './schemaPreviewQueue';
 import type {WorkbenchContext} from './databaseClient';
@@ -17,7 +18,7 @@ export function dropIndexErrorText(code:string,zh:boolean):string{
  };
  return messages[code]?.[zh?1:0]??(zh?'操作失败，请检查连接后重新预览。':'Operation failed. Check the connection and prepare a new preview.');
 }
-export function dropIndexController(database:Pick<WorkbenchContext['database'],'previewDropIndex'|'applyDropIndex'>,handleId:string,schema:DatabaseSchemaResult,onApplied:(schema:DatabaseSchemaResult)=>void,onBusyChange?:(busy:boolean)=>void){
+export function dropIndexController(database:Pick<WorkbenchContext['database'],'previewDropIndex'|'applyDropIndex'>,handleId:string,schema:DatabaseSchemaResult,onApplied:(schema:DatabaseSchemaResult)=>void,onBusyChange?:SchemaBusyCallback){
  const table=schema.tables.find(t=>t.kind==='table'&&candidates(schema,t.name).length)?.name??schema.tables.find(t=>t.kind==='table')?.name??'';
  let state:State={draft:{table,name:candidates(schema,table)[0]?.name??''},review:null,busy:'idle',done:false,notice:''};let epoch=0,disposed=false;const listeners=new Set<()=>void>();
  const emit=(patch:Partial<State>)=>{if(disposed)return;state={...state,...patch};listeners.forEach(fn=>fn());};
@@ -30,19 +31,19 @@ export function dropIndexController(database:Pick<WorkbenchContext['database'],'
    emit({review:{...review,draft:{...review.draft}},notice:'review-ready'});
   }catch(error){if(!disposed&&op===epoch)emit({notice:error instanceof DropIndexError?error.code:'failed'});}finally{emit({busy:'idle'});}
  },
- async confirm(){if(disposed||state.busy!=='idle'||!state.review||state.done)return;const review=state.review,op=++epoch;emit({busy:'apply',review:null,notice:''});
-  try{onBusyChange?.(true);const result=await database.applyDropIndex({handleId,review});if(disposed||op!==epoch)return;emit({done:true,notice:'done'});try{onApplied(result.schema);}catch{emit({notice:'refresh'});}
-  }catch(error){if(!disposed&&op===epoch)emit({notice:error instanceof DropIndexError?error.code:'failed'});}finally{if(op===epoch)emit({busy:'idle'});try{onBusyChange?.(false);}catch{/* parent notification must not create an unhandled rejection */}}
+ async confirm(){if(disposed||state.busy!=='idle'||!state.review||state.done)return;const review=state.review,op=++epoch;emit({busy:'apply',review:null,notice:''});let releaseBusy=()=>{};
+  try{releaseBusy=acquireSchemaBusy(onBusyChange);const result=await database.applyDropIndex({handleId,review});if(disposed||op!==epoch)return;emit({done:true,notice:'done'});try{onApplied(result.schema);}catch{emit({notice:'refresh'});}
+  }catch(error){if(!disposed&&op===epoch)emit({notice:error instanceof DropIndexError?error.code:'failed'});}finally{if(op===epoch)emit({busy:'idle'});releaseBusy();}
  },
  dispose(){disposed=true;epoch++;state={...state,review:null};listeners.clear();},
  };
 }
-export function DropIndex({context,handleId,schema,onApplied,onClose,onBusyChange}:{context:WorkbenchContext;handleId:string;schema:DatabaseSchemaResult;onApplied:(schema:DatabaseSchemaResult)=>void;onClose:()=>void;onBusyChange?:(busy:boolean)=>void}){
+export function DropIndex({context,handleId,schema,onApplied,onClose,onBusyChange}:{context:WorkbenchContext;handleId:string;schema:DatabaseSchemaResult;onApplied:(schema:DatabaseSchemaResult)=>void;onClose:()=>void;onBusyChange?:SchemaBusyCallback}){
  const callback=useRef(onApplied);callback.current=onApplied;const busyCallback=useRef(onBusyChange);busyCallback.current=onBusyChange;
  // Keep the opening schema snapshot for this adapter/handle. A successful
  // onApplied publishes a new schema object; it must not recreate and erase done.
  // External schema changes remain protected by the adapter review revision.
- const controller=useMemo(()=>dropIndexController(context.database,handleId,schema,s=>callback.current(s),busy=>busyCallback.current?.(busy)),[context.database,handleId]);
+ const controller=useMemo(()=>dropIndexController(context.database,handleId,schema,s=>callback.current(s),(busy,owner)=>busyCallback.current?.(busy,owner)),[context.database,handleId]);
  const state=useSyncExternalStore(controller.subscribe,controller.getSnapshot,controller.getSnapshot);useEffect(()=>()=>controller.dispose(),[controller]);
  const zh=Boolean(context.environment?.locale?.toLowerCase().startsWith('zh')),tr=(en:string,cn:string)=>zh?cn:en,locked=state.busy==='apply'||state.done;
  const selected=candidates(schema,state.draft.table),unique=state.review?.unique??selected.find(i=>i.name===state.draft.name)?.unique??false;

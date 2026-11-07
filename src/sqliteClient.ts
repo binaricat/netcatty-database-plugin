@@ -1,3 +1,4 @@
+import {createCreateViewAdapter} from './sqliteCreateView';
 import {createDropColumnAdapter} from './sqliteDropColumn';
 import {createRenameTableAdapter} from './sqliteRenameTable';
 import {previewSqliteGridBatch,executeSqliteGridBatch} from './sqliteGridBatch';
@@ -260,6 +261,10 @@ export function createWorkbenchContext(context: PluginContext): WorkbenchContext
   let dropColumnAdapter:ReturnType<typeof createDropColumnAdapter>|undefined;
   const get = ({handleId}: DatabaseHandleRequest,preserveDropReview=false) => { assertLive(); if(!preserveDropReview)dropColumnAdapter?.cancel(handleId); if(snapshotLocks.has(handleId))throw new SqliteSnapshotError('busy');discardRestore(handleId); const db = sessions.get(handleId); if (!db) throw new Error('Database connection is closed.'); return db; };
   const renameTableAdapter=createRenameTableAdapter({getDatabase:handleId=>get({handleId}),inspectSchema:inspectSqliteSchema,reviewTokens:tableReviews,onFatal:handleId=>{tableReviews.delete(handleId);savedIds.delete(handleId);sessions.delete(handleId);discardRestore(handleId);}});
+  const createViewAdapter=createCreateViewAdapter({getDatabase:handleId=>get({handleId}),inspectSchema:inspectSqliteSchema,reviewTokens:tableReviews,onFatal:handleId=>{tableReviews.delete(handleId);savedIds.delete(handleId);sessions.delete(handleId);discardRestore(handleId);}});
+  const previewCreateView:WorkbenchContext['database']['previewCreateView']=async request=>createViewAdapter.preview(request);
+  const applyCreateView:WorkbenchContext['database']['applyCreateView']=async request=>createViewAdapter.apply(request);
+  const cancelCreateView:WorkbenchContext['database']['cancelCreateView']=async request=>{assertLive();createViewAdapter.cancel(request.handleId,request.token);return null;};
   const previewRenameTable:WorkbenchContext['database']['previewRenameTable']=async request=>renameTableAdapter.preview(request);
   const applyRenameTable:WorkbenchContext['database']['applyRenameTable']=async request=>renameTableAdapter.apply(request);
   dropColumnAdapter=createDropColumnAdapter({getDatabase:handleId=>get({handleId},true),inspectSchema:inspectSqliteSchema,reviewTokens:tableReviews,onFatal:handleId=>{tableReviews.delete(handleId);savedIds.delete(handleId);sessions.delete(handleId);discardRestore(handleId);}});
@@ -275,7 +280,7 @@ export function createWorkbenchContext(context: PluginContext): WorkbenchContext
   };
   let mutations: Promise<unknown> = Promise.resolve();
   function mutate<T>(operation: () => Promise<T>): Promise<T> { const next = mutations.then(operation); mutations = next.catch(() => {}); return next; }
-  const close = async (target: DatabaseHandleRequest): Promise<null> => { const db = sessions.get(target.handleId); dropColumnAdapter?.cancel(target.handleId);discardRestore(target.handleId);savedIds.delete(target.handleId);tableReviews.delete(target.handleId); sessions.delete(target.handleId); db?.close(); return null; };
+  const close = async (target: DatabaseHandleRequest): Promise<null> => { const db = sessions.get(target.handleId); dropColumnAdapter?.cancel(target.handleId);createViewAdapter.cancel(target.handleId);discardRestore(target.handleId);savedIds.delete(target.handleId);tableReviews.delete(target.handleId); sessions.delete(target.handleId); db?.close(); return null; };
   const open = async () => {
     assertLive();
     if (sessions.size >= 4) throw new Error('Close an existing connection before opening another.');
@@ -604,9 +609,9 @@ export function createWorkbenchContext(context: PluginContext): WorkbenchContext
     remove:(id,entryId,revision)=>withQueryLibrary(id,()=>storedQueries.remove(id,entryId,revision))
   };
   const database: PluginDatabaseClient & {capabilities: ReadonlySet<string>} = {
-    capabilities: new Set(['database.sqlite-drop-column.v1','database.sqlite-rename-table.v1','database.sqlite-grid-batch.v1','database.sqlite-snapshot.v1','database.sqlite-fixture.v1','database.saved-connections.v1','database.sqlite-reviewed-writes.v1','database.sqlite-create-table.v1','database.sqlite-create-index.v1','database.sqlite-grid-mutation.v1','database.sqlite-csv-import.v1','database.sqlite-rename-column.v1','database.sqlite-row-insert.v1','database.sqlite-drop-index.v1','database.sqlite-add-column.v1']),
+    capabilities: new Set(['database.sqlite-create-view.v1','database.sqlite-drop-column.v1','database.sqlite-rename-table.v1','database.sqlite-grid-batch.v1','database.sqlite-snapshot.v1','database.sqlite-fixture.v1','database.saved-connections.v1','database.sqlite-reviewed-writes.v1','database.sqlite-create-table.v1','database.sqlite-create-index.v1','database.sqlite-grid-mutation.v1','database.sqlite-csv-import.v1','database.sqlite-rename-column.v1','database.sqlite-row-insert.v1','database.sqlite-drop-index.v1','database.sqlite-add-column.v1']),
     snapshotInfo,saveSnapshot,previewRestoreSnapshot,applyRestoreSnapshot,deleteSnapshot,
-    previewDropColumn,applyDropColumn,cancelDropColumnReview,previewRenameTable,applyRenameTable,previewGridBatch,applyGridBatch,previewRowInsert,applyRowInsert,previewDropIndex,applyDropIndex,previewRenameColumn,applyRenameColumn,previewAddColumn,applyAddColumn,previewCsvImport,applyCsvImport,previewCreateTable,applyCreateTable,previewCreateIndex,applyCreateIndex,previewGridMutation:previewGridRow,applyGridMutation,
+    previewCreateView,applyCreateView,cancelCreateView,previewDropColumn,applyDropColumn,cancelDropColumnReview,previewRenameTable,applyRenameTable,previewGridBatch,applyGridBatch,previewRowInsert,applyRowInsert,previewDropIndex,applyDropIndex,previewRenameColumn,applyRenameColumn,previewAddColumn,applyAddColumn,previewCsvImport,applyCsvImport,previewCreateTable,applyCreateTable,previewCreateIndex,applyCreateIndex,previewGridMutation:previewGridRow,applyGridMutation,
     openFixture: open, readSchema, query, close, cancel:close,
     listSavedConnections:list,
     saveConnection: (request: DatabaseSaveConnectionRequest) => mutate(async () => {
@@ -630,6 +635,6 @@ export function createWorkbenchContext(context: PluginContext): WorkbenchContext
     probeHostDatabasePorts: unavailable, cancelHostDatabasePorts: unavailable,
     openHostLiveSshPgFixture: unavailable, cancelHostLiveSshPgFixture: unavailable, closeHostLiveSshPgSession: unavailable,
   };
-  context.subscriptions.add({dispose() { dropColumnAdapter?.dispose();disposed = true; for(const h of restoreReviews.keys())discardRestore(h);savedIds.clear();for (const db of sessions.values()) db.close(); sessions.clear(); tableReviews.clear(); }});
+  context.subscriptions.add({dispose() { createViewAdapter.dispose();dropColumnAdapter?.dispose();disposed = true; for(const h of restoreReviews.keys())discardRestore(h);savedIds.clear();for (const db of sessions.values()) db.close(); sessions.clear(); tableReviews.clear(); }});
   return Object.assign(Object.create(context), {database,queryLibraryStore}) as WorkbenchContext;
 }

@@ -10,6 +10,9 @@ import type {DatabaseCreateIndexRequest,DatabaseCreateIndexApplyRequest,Database
 import type {GridMutationRequest,GridMutationApplyRequest,GridMutationReview,GridMutationResult} from './databaseTypes';
 import type {CsvImportRequest,CsvImportApplyRequest,CsvImportReview,CsvImportResult} from './databaseTypes';
 export interface PluginDatabaseClient {
+  previewCreateView(params:DatabaseHandleRequest & {draft:import('./sqliteCreateView').CreateViewDraft}):Promise<import('./sqliteCreateView').CreateViewReview>;
+  applyCreateView(params:DatabaseHandleRequest & {review:import('./sqliteCreateView').CreateViewReview}):Promise<import('./sqliteCreateView').CreateViewResult>;
+  cancelCreateView(params:DatabaseHandleRequest & {token:string}):Promise<null>;
   previewDropColumn(params:DatabaseHandleRequest & {draft:import('./sqliteDropColumn').DropColumnDraft}):Promise<import('./sqliteDropColumn').DropColumnReview>;
   applyDropColumn(params:DatabaseHandleRequest & {review:import('./sqliteDropColumn').DropColumnReview}):Promise<{schema:DatabaseSchemaResult;sql:string;changes:0}>;
   cancelDropColumnReview(params:DatabaseHandleRequest & {token:string}):Promise<null>;

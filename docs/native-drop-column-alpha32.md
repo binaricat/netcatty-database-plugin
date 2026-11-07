@@ -27,7 +27,9 @@ Safety regressions for embedded-NUL/invalid-UTF8 preservation, literal sqlite_
 name prefix and legacy rename mode shipped before this package was installed.
 All 550 unit/integration tests pass; 47 injected main remote-DOM scenes passed
 before package freeze. Negative dependency/constraint/refusal cases are engine
-regressions, not newly claimed native interactions. Batch checkbox alignment has
-not yet received its alpha32 native visual acceptance. No near-DBX-complete,
+regressions, not newly claimed native interactions. After the continuous recording ended, native screenshots additionally verified
+customers.name refusal due to dependencies/constraints (`drop-column-dependency-refused-alpha32.jpg`)
+and same-line checkbox/row-identity alignment (`batch-selection-alpha32.jpg`).
+These two checks are screenshot-only, not included in the recorded cycle. No near-DBX-complete,
 merge, release, encrypted storage, arbitrary file editing or remote plugin
 connectivity claim is made.

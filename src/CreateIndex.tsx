@@ -1,3 +1,4 @@
+import {acquireSchemaBusy,type SchemaBusyCallback} from './schemaBusy';
 import {serialPreview} from './schemaPreviewQueue';
 import {SqlPreview} from './SqlPreview';
 import {createIndexTranslator,translateCreateIndexNotice} from './createIndexI18n';
@@ -10,7 +11,7 @@ const initialDraft=(schema:DatabaseSchemaResult):DatabaseCreateIndexDraft=>{cons
 const cloneDraft=(draft:DatabaseCreateIndexDraft):DatabaseCreateIndexDraft=>({name:draft.name,table:draft.table,unique:draft.unique,columns:draft.columns.map(column=>({...column}))});
 /** Local explicit-review controller. A cancelled preview cannot apply; disposal
  * cannot undo an already submitted CREATE, so no cancellation claim is made then. */
-export function createIndexController(database:Pick<WorkbenchContext['database'],'previewCreateIndex'|'applyCreateIndex'>,handleId:string,schema:DatabaseSchemaResult,onCreated:(schema:DatabaseSchemaResult)=>void,onApplying?:(busy:boolean)=>void){
+export function createIndexController(database:Pick<WorkbenchContext['database'],'previewCreateIndex'|'applyCreateIndex'>,handleId:string,schema:DatabaseSchemaResult,onCreated:(schema:DatabaseSchemaResult)=>void,onApplying?:SchemaBusyCallback){
  let state:CreateIndexState={draft:initialDraft(schema),review:null,busy:'idle',notice:null,created:false};let revision=0,disposed=false,operation=0;
  const listeners=new Set<()=>void>();const emit=(patch:Partial<CreateIndexState>)=>{if(disposed)return;state={...state,...patch};for(const fn of listeners)fn();};
  const edit=(next:DatabaseCreateIndexDraft)=>{if(disposed||state.busy==='apply'||state.created)return;revision++;emit({draft:cloneDraft(next),review:null,notice:null});};
@@ -27,18 +28,18 @@ export function createIndexController(database:Pick<WorkbenchContext['database']
    catch(error){if(!disposed&&op===operation&&rev===revision)emit({review:null,notice:error instanceof CreateIndexError?`Create index: ${error.code}.`:'Create index preview failed.'});}
    finally{if(!disposed)emit({busy:'idle'});}
   },
-  async confirm(){if(disposed||state.busy!=='idle'||!state.review||state.created)return;const review=state.review,op=++operation;onApplying?.(true);emit({busy:'apply',review:null,notice:'Creating the reviewed index…'});
-   try{const result=await database.applyCreateIndex({handleId,review});if(!disposed&&op===operation){emit({created:true,notice:'Index created. Schema refreshed; no additional SQL was executed.'});try{onCreated(result.schema);}catch{emit({notice:'Index created, but workspace refresh failed. Reopen the schema browser.'});}}}
+  async confirm(){if(disposed||state.busy!=='idle'||!state.review||state.created)return;const review=state.review,op=++operation;let releaseBusy=()=>{};emit({busy:'apply',review:null,notice:'Creating the reviewed index…'});
+   try{releaseBusy=acquireSchemaBusy(onApplying);const result=await database.applyCreateIndex({handleId,review});if(!disposed&&op===operation){emit({created:true,notice:'Index created. Schema refreshed; no additional SQL was executed.'});try{onCreated(result.schema);}catch{emit({notice:'Index created, but workspace refresh failed. Reopen the schema browser.'});}}}
    catch(error){if(!disposed&&op===operation)emit({notice:error instanceof CreateIndexError?`Create index: ${error.code}. Preview again before retrying.`:'Create index failed. Preview again before retrying.'});}
-   finally{if(!disposed&&op===operation)emit({busy:'idle'});onApplying?.(false);}
+   finally{if(!disposed&&op===operation)emit({busy:'idle'});releaseBusy();}
   },
   dispose(){disposed=true;revision++;operation++;state={...state,review:null};listeners.clear();},
  };
 }
-export function CreateIndex({context,handleId,schema,onCreated,onClose,onBusyChange}:{context:WorkbenchContext;handleId:string;schema:DatabaseSchemaResult;onCreated:(schema:DatabaseSchemaResult)=>void;onClose:()=>void;onBusyChange?:(busy:boolean)=>void}){
+export function CreateIndex({context,handleId,schema,onCreated,onClose,onBusyChange}:{context:WorkbenchContext;handleId:string;schema:DatabaseSchemaResult;onCreated:(schema:DatabaseSchemaResult)=>void;onClose:()=>void;onBusyChange?:SchemaBusyCallback}){
  const callback=useRef(onCreated);callback.current=onCreated;const busyCallback=useRef(onBusyChange);busyCallback.current=onBusyChange;
  const initialSchema=useMemo(()=>schema,[context.database,handleId]);
- const controller=useMemo(()=>createIndexController(context.database,handleId,initialSchema,value=>callback.current(value),busy=>busyCallback.current?.(busy)),[context.database,handleId,initialSchema]);
+ const controller=useMemo(()=>createIndexController(context.database,handleId,initialSchema,value=>callback.current(value),(busy,owner)=>busyCallback.current?.(busy,owner)),[context.database,handleId,initialSchema]);
  const state=useSyncExternalStore(controller.subscribe,controller.getSnapshot,controller.getSnapshot);useEffect(()=>()=>controller.dispose(),[controller]);
  const locale=context.environment?.locale??'en',tr=createIndexTranslator(locale),locked=state.busy==='apply'||state.created;
  const tables=initialSchema.tables.filter(table=>table.kind==='table'&&table.columns.length>0&&!/^sqlite_/i.test(table.name));

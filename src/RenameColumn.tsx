@@ -1,3 +1,4 @@
+import {acquireSchemaBusy,type SchemaBusyCallback} from './schemaBusy';
 import {serialPreview} from './schemaPreviewQueue';
 import React,{useEffect,useMemo,useRef,useSyncExternalStore} from 'react';
 import type {WorkbenchContext} from './databaseClient';
@@ -25,7 +26,7 @@ export function renameColumnErrorText(code:string,zh:boolean):string {
  };
  return messages[code]?.[zh?1:0]??(zh?'操作失败，请检查连接后重新预览。':'Operation failed. Check the connection and prepare a new preview.');
 }
-export function renameColumnController(database:Pick<WorkbenchContext['database'],'previewRenameColumn'|'applyRenameColumn'>,handleId:string,schema:DatabaseSchemaResult,onApplied:(schema:DatabaseSchemaResult)=>void,onApplying?:(busy:boolean)=>void){
+export function renameColumnController(database:Pick<WorkbenchContext['database'],'previewRenameColumn'|'applyRenameColumn'>,handleId:string,schema:DatabaseSchemaResult,onApplied:(schema:DatabaseSchemaResult)=>void,onApplying?:SchemaBusyCallback){
  let state:State={draft:{table:schema.tables.find(t=>t.kind==='table')?.name??'',from:schema.tables.find(t=>t.kind==='table')?.columns.find(c=>!c.primaryKey)?.name??'',to:''},review:null,busy:'idle',done:false,notice:''};let epoch=0,disposed=false;const listeners=new Set<()=>void>();
  const emit=(patch:Partial<State>)=>{if(disposed)return;state={...state,...patch};listeners.forEach(fn=>fn());};
  return {getSnapshot:()=>state,subscribe(fn:()=>void){listeners.add(fn);return()=>{listeners.delete(fn);};},
@@ -35,15 +36,15 @@ export function renameColumnController(database:Pick<WorkbenchContext['database'
  const review=await serialPreview(database,handleId,async()=>{if(disposed||op!==epoch)return null;return database.previewRenameColumn({handleId,draft});});if(disposed||op!==epoch)return;
  if(!review||review.handleId!==handleId||JSON.stringify(review.draft)!==JSON.stringify(draft))throw new RenameColumnError('review');emit({review:{...review,draft:{...review.draft}},notice:'review-ready'});
  }catch(e){if(!disposed&&op===epoch)emit({notice:e instanceof RenameColumnError?e.code:'failed'});}finally{emit({busy:'idle'});}},
- async confirm(){if(disposed||state.busy!=='idle'||!state.review||state.done)return;const review=state.review,op=++epoch;onApplying?.(true);emit({review:null,busy:'apply',notice:''});try{
+ async confirm(){if(disposed||state.busy!=='idle'||!state.review||state.done)return;const review=state.review,op=++epoch;let releaseBusy=()=>{};emit({review:null,busy:'apply',notice:''});try{releaseBusy=acquireSchemaBusy(onApplying);
  const result=await database.applyRenameColumn({handleId,review});if(disposed||op!==epoch)return;emit({done:true,notice:'done'});try{onApplied(result.schema);}catch{emit({notice:'refresh'});}
- }catch(e){if(!disposed&&op===epoch)emit({notice:e instanceof RenameColumnError?e.code:'failed'});}finally{if(op===epoch)emit({busy:'idle'});onApplying?.(false);}},
+ }catch(e){if(!disposed&&op===epoch)emit({notice:e instanceof RenameColumnError?e.code:'failed'});}finally{if(op===epoch)emit({busy:'idle'});releaseBusy();}},
  dispose(){disposed=true;epoch++;state={...state,review:null};listeners.clear();},
  };
 }
-export function RenameColumn({context,handleId,schema,onApplied,onClose,onBusyChange}:{context:WorkbenchContext;handleId:string;schema:DatabaseSchemaResult;onApplied:(schema:DatabaseSchemaResult)=>void;onClose:()=>void;onBusyChange?:(busy:boolean)=>void}){
+export function RenameColumn({context,handleId,schema,onApplied,onClose,onBusyChange}:{context:WorkbenchContext;handleId:string;schema:DatabaseSchemaResult;onApplied:(schema:DatabaseSchemaResult)=>void;onClose:()=>void;onBusyChange?:SchemaBusyCallback}){
  const callback=useRef(onApplied);callback.current=onApplied;const busyCallback=useRef(onBusyChange);busyCallback.current=onBusyChange;
- const controller=useMemo(()=>renameColumnController(context.database,handleId,schema,s=>callback.current(s),busy=>busyCallback.current?.(busy)),[context.database,handleId]);
+ const controller=useMemo(()=>renameColumnController(context.database,handleId,schema,s=>callback.current(s),(busy,owner)=>busyCallback.current?.(busy,owner)),[context.database,handleId]);
  const state=useSyncExternalStore(controller.subscribe,controller.getSnapshot,controller.getSnapshot);useEffect(()=>()=>controller.dispose(),[controller]);
  const zh=Boolean(context.environment?.locale?.toLowerCase().startsWith('zh')),tr=(en:string,cn:string)=>zh?cn:en,locked=state.busy==='apply'||state.done;
  const notices:Record<string,string>={cancelled:tr('Preview cancelled; no ALTER submitted.','预览已取消，未提交 ALTER。'),'review-ready':tr('Review the exact SQL before confirming. Dependencies are checked during apply.','请审阅完整 SQL 后再确认；提交时会验证依赖。'),done:tr('Column renamed. Schema refreshed and prior query results invalidated.','列已重命名，结构已刷新，旧查询结果已失效。'),refresh:tr('Column renamed, but refresh failed. Reopen the schema browser.','列已重命名，但刷新失败。请重新打开结构浏览器。')};

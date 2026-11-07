@@ -1,3 +1,4 @@
+import {acquireSchemaBusy,type SchemaBusyCallback} from './schemaBusy';
 import {SqlPreview} from './SqlPreview';
 import {createTableTranslator,translateCreateTableNotice} from './createTableI18n';
 import React,{useEffect,useMemo,useRef,useSyncExternalStore} from 'react';
@@ -9,7 +10,7 @@ const initialDraft=():DatabaseCreateTableDraft=>({name:'',columns:[{name:'id',ty
 const cloneDraft=(draft:DatabaseCreateTableDraft):DatabaseCreateTableDraft=>({name:draft.name,columns:draft.columns.map(column=>({...column}))});
 /** Local explicit-review controller. A cancelled preview cannot apply; disposal
  * cannot undo an already submitted CREATE, so no cancellation claim is made then. */
-export function createTableController(database:Pick<WorkbenchContext['database'],'previewCreateTable'|'applyCreateTable'>,handleId:string,onCreated:(schema:DatabaseSchemaResult)=>void){
+export function createTableController(database:Pick<WorkbenchContext['database'],'previewCreateTable'|'applyCreateTable'>,handleId:string,onCreated:(schema:DatabaseSchemaResult)=>void,onBusyChange?:SchemaBusyCallback){
  let state:CreateTableState={draft:initialDraft(),review:null,busy:'idle',notice:null,created:false};let revision=0,disposed=false,operation=0;
  const listeners=new Set<()=>void>();const emit=(patch:Partial<CreateTableState>)=>{if(disposed)return;state={...state,...patch};for(const fn of listeners)fn();};
  const edit=(next:DatabaseCreateTableDraft)=>{if(disposed||state.busy==='apply'||state.created)return;revision++;emit({draft:cloneDraft(next),review:null,notice:null});};
@@ -19,22 +20,22 @@ export function createTableController(database:Pick<WorkbenchContext['database']
   addColumn(){if(state.draft.columns.length>=32)return;edit({...state.draft,columns:[...state.draft.columns,{name:'',type:'TEXT',nullable:true,primaryKey:false}]});},
   removeColumn(index:number){if(state.draft.columns.length<=1||!state.draft.columns[index])return;edit({...state.draft,columns:state.draft.columns.filter((_,i)=>i!==index)});},
   cancelReview(){if(state.busy==='apply')return false;if(state.created)return true;revision++;operation++;emit({review:null,busy:'idle',notice:'Preview cancelled. No CREATE was submitted.'});return true;},
-  async preview(){if(disposed||state.busy!=='idle'||state.created)return;const rev=revision,op=++operation,draft=cloneDraft(state.draft);emit({busy:'preview',review:null,notice:null});
-   try{const review=await database.previewCreateTable({handleId,draft});if(!disposed&&op===operation&&rev===revision){if(review.handleId!==handleId||JSON.stringify(review.draft)!==JSON.stringify(draft))throw new CreateTableError('review');emit({review:{...review,draft:cloneDraft(review.draft)},notice:'Review the exact CREATE statement before confirming.'});}}
+  async preview(){if(disposed||state.busy!=='idle'||state.created)return;const rev=revision,op=++operation,draft=cloneDraft(state.draft);emit({busy:'preview',review:null,notice:null});let releaseBusy=()=>{};
+   try{releaseBusy=acquireSchemaBusy(onBusyChange);const review=await database.previewCreateTable({handleId,draft});if(!disposed&&op===operation&&rev===revision){if(review.handleId!==handleId||JSON.stringify(review.draft)!==JSON.stringify(draft))throw new CreateTableError('review');emit({review:{...review,draft:cloneDraft(review.draft)},notice:'Review the exact CREATE statement before confirming.'});}}
    catch(error){if(!disposed&&op===operation&&rev===revision)emit({review:null,notice:error instanceof CreateTableError?`Create table: ${error.code}.`:'Create table preview failed.'});}
-   finally{if(!disposed&&op===operation)emit({busy:'idle'});}
+   finally{if(!disposed&&op===operation)emit({busy:'idle'});releaseBusy();}
   },
-  async confirm(){if(disposed||state.busy!=='idle'||!state.review||state.created)return;const review=state.review,op=++operation;emit({busy:'apply',review:null,notice:'Creating the reviewed table…'});
-   try{const result=await database.applyCreateTable({handleId,review});if(!disposed&&op===operation){emit({created:true,notice:'Table created. Schema refreshed; no additional SQL was executed.'});try{onCreated(result.schema);}catch{emit({notice:'Table created, but workspace refresh failed. Reopen the schema browser.'});}}}
+  async confirm(){if(disposed||state.busy!=='idle'||!state.review||state.created)return;const review=state.review,op=++operation;emit({busy:'apply',review:null,notice:'Creating the reviewed table…'});let releaseBusy=()=>{};
+   try{releaseBusy=acquireSchemaBusy(onBusyChange);const result=await database.applyCreateTable({handleId,review});if(!disposed&&op===operation){emit({created:true,notice:'Table created. Schema refreshed; no additional SQL was executed.'});try{onCreated(result.schema);}catch{emit({notice:'Table created, but workspace refresh failed. Reopen the schema browser.'});}}}
    catch(error){if(!disposed&&op===operation)emit({notice:error instanceof CreateTableError?`Create table: ${error.code}. Preview again before retrying.`:'Create table failed. Preview again before retrying.'});}
-   finally{if(!disposed&&op===operation)emit({busy:'idle'});}
+   finally{if(!disposed&&op===operation)emit({busy:'idle'});releaseBusy();}
   },
   dispose(){disposed=true;revision++;operation++;state={...state,review:null};listeners.clear();},
  };
 }
-export function CreateTable({context,handleId,onCreated,onClose}:{context:WorkbenchContext;handleId:string;onCreated:(schema:DatabaseSchemaResult)=>void;onClose:()=>void}){
- const callback=useRef(onCreated);callback.current=onCreated;
- const controller=useMemo(()=>createTableController(context.database,handleId,schema=>callback.current(schema)),[context.database,handleId]);
+export function CreateTable({context,handleId,onCreated,onClose,onBusyChange}:{context:WorkbenchContext;handleId:string;onCreated:(schema:DatabaseSchemaResult)=>void;onClose:()=>void;onBusyChange?:SchemaBusyCallback}){
+ const callback=useRef(onCreated);callback.current=onCreated;const busyCallback=useRef(onBusyChange);busyCallback.current=onBusyChange;
+ const controller=useMemo(()=>createTableController(context.database,handleId,schema=>callback.current(schema),(busy,owner)=>busyCallback.current?.(busy,owner)),[context.database,handleId]);
  const state=useSyncExternalStore(controller.subscribe,controller.getSnapshot,controller.getSnapshot);
  useEffect(()=>()=>controller.dispose(),[controller]);
  const locked=state.busy==='apply'||state.created;

@@ -1,3 +1,4 @@
+import {acquireSchemaBusy,type SchemaBusyCallback} from './schemaBusy';
 import {SqlPreview} from './SqlPreview';
 import React,{useMemo,useEffect,useRef,useState,useSyncExternalStore} from 'react';
 import type {PluginKeyValueStore} from '@netcatty/plugin-sdk';
@@ -5,10 +6,10 @@ import {createQueryLibraryStorage,QueryLibraryStorageError,type StoredQueryLibra
 import type {SavedQuery,SavedQueryInput} from './queryLibrary';
 export type PersistentQueryStore=ReturnType<typeof createQueryLibraryStorage>;
 type State={library:StoredQueryLibrary|null;busy:boolean;notice:string;pendingSave:SavedQueryInput|null;pendingDelete:string|null};
-export function persistentQueryController(store:PersistentQueryStore,id:string,isCurrent:()=>boolean,onLoad:(entry:SavedQuery)=>void,onBusyChange?:(busy:boolean)=>void){
+export function persistentQueryController(store:PersistentQueryStore,id:string,isCurrent:()=>boolean,onLoad:(entry:SavedQuery)=>void,onBusyChange?:SchemaBusyCallback){
  let state:State={library:null,busy:false,notice:'',pendingSave:null,pendingDelete:null},disposed=false;const listeners=new Set<()=>void>();
  const current=()=>!disposed&&isCurrent(),emit=(patch:Partial<State>)=>{if(!current())return;state={...state,...patch};listeners.forEach(fn=>fn());};
- async function run(work:()=>Promise<void>){if(!current()||state.busy)return;emit({busy:true,notice:''});try{onBusyChange?.(true);if(current())await work();}catch(error){emit({pendingSave:null,pendingDelete:null,notice:error instanceof QueryLibraryStorageError?error.code:'failed'});}finally{emit({busy:false});try{onBusyChange?.(false);}catch{}}}
+ async function run(work:()=>Promise<void>){if(!current()||state.busy)return;emit({busy:true,notice:''});let release=()=>{};try{release=acquireSchemaBusy(onBusyChange);if(current())await work();}catch(error){emit({pendingSave:null,pendingDelete:null,notice:error instanceof QueryLibraryStorageError?error.code:'failed'});}finally{emit({busy:false});release();}}
  async function save(input:SavedQueryInput){if(!state.library)return;const revision=state.library.revision;return run(async()=>{emit({pendingSave:null,pendingDelete:null});const library=await store.save(id,input,revision);emit({library,notice:'saved'});});}
  return {getSnapshot:()=>state,subscribe(fn:()=>void){listeners.add(fn);return()=>{listeners.delete(fn);};},
   load(){return run(async()=>{emit({pendingSave:null,pendingDelete:null});const library=await store.load(id);emit({library,notice:'loaded'});});},
@@ -21,9 +22,9 @@ export function persistentQueryController(store:PersistentQueryStore,id:string,i
   dispose(){disposed=true;state={...state,pendingSave:null,pendingDelete:null};listeners.clear();}
  };
 }
-export function PersistentQueryLibrary({storage,store,savedConnectionId,handleId,locale,currentQuery,onLoad,onBusyChange,isCurrent}:{storage:PluginKeyValueStore;store?:PersistentQueryStore;savedConnectionId:string;handleId:string;locale?:string;currentQuery?:{sql:string;parameters:string};onLoad:(entry:SavedQuery)=>void;onBusyChange?:(busy:boolean)=>void;isCurrent:()=>boolean}){
+export function PersistentQueryLibrary({storage,store,savedConnectionId,handleId,locale,currentQuery,onLoad,onBusyChange,isCurrent}:{storage:PluginKeyValueStore;store?:PersistentQueryStore;savedConnectionId:string;handleId:string;locale?:string;currentQuery?:{sql:string;parameters:string};onLoad:(entry:SavedQuery)=>void;onBusyChange?:SchemaBusyCallback;isCurrent:()=>boolean}){
  const callbacks=useRef({onLoad,onBusyChange,isCurrent});callbacks.current={onLoad,onBusyChange,isCurrent};
- const controller=useMemo(()=>persistentQueryController(store??createQueryLibraryStorage(storage),savedConnectionId,()=>callbacks.current.isCurrent(),e=>callbacks.current.onLoad(e),b=>callbacks.current.onBusyChange?.(b)),[storage,store,savedConnectionId,handleId]);
+ const controller=useMemo(()=>persistentQueryController(store??createQueryLibraryStorage(storage),savedConnectionId,()=>callbacks.current.isCurrent(),e=>callbacks.current.onLoad(e),(b,owner)=>callbacks.current.onBusyChange?.(b,owner)),[storage,store,savedConnectionId,handleId]);
  useEffect(()=>()=>controller.dispose(),[controller]);const state=useSyncExternalStore(controller.subscribe,controller.getSnapshot,controller.getSnapshot);const [name,setName]=useState(''),[page,setPage]=useState(0);const pages=Math.max(1,Math.ceil((state.library?.saved.length??0)/6)),currentPage=Math.min(page,pages-1);
  const zh=locale?.toLowerCase().startsWith('zh'),tr=(en:string,cn:string)=>zh?cn:en;
  const messages:Record<string,string>={loaded:tr('Saved SQL loaded; nothing executed.','已读取保存的 SQL，未执行。'),saved:tr('SQL saved for this connection.','SQL 已保存到此连接。'),deleted:tr('Saved SQL permanently deleted.','已永久删除此保存的 SQL。'),stale:tr('Library changed. Reload it before saving or deleting.','SQL 库已变化，请重新读取后保存或删除。'),budget:tr('SQL library size or count limit reached.','SQL 库大小或数量达到限制。'),invalid:tr('Saved library is invalid; it was not overwritten.','保存的 SQL 库无效，未覆盖。'),version:tr('Unsupported saved library version.','不支持此 SQL 库版本。'),input:tr('Check the name, SQL and parameter JSON.','请检查名称、SQL 和参数 JSON。'),missing:tr('This saved entry no longer exists. Reload the library.','此条目已不存在，请重新读取。'),storage:tr('Local storage failed. Check permissions and reload before retrying.','本地存储失败，请检查权限并重新读取后再试。'),failed:tr('Operation failed. No automatic retry was made.','操作失败，未自动重试。')};

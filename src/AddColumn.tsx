@@ -1,3 +1,4 @@
+import {acquireSchemaBusy,type SchemaBusyCallback} from './schemaBusy';
 import {serialPreview} from './schemaPreviewQueue';
 import React,{useEffect,useMemo,useRef,useSyncExternalStore} from 'react';
 import type {WorkbenchContext} from './databaseClient';
@@ -21,7 +22,7 @@ export function addColumnErrorText(code:string,zh:boolean):string {
  };
  return messages[code]?.[zh?1:0]??(zh?'操作失败，请检查连接后重新预览。':'Operation failed. Check the connection and prepare a new preview.');
 }
-export function addColumnController(database:Pick<WorkbenchContext['database'],'previewAddColumn'|'applyAddColumn'>,handleId:string,schema:DatabaseSchemaResult,onApplied:(schema:DatabaseSchemaResult)=>void,onApplying?:(busy:boolean)=>void){
+export function addColumnController(database:Pick<WorkbenchContext['database'],'previewAddColumn'|'applyAddColumn'>,handleId:string,schema:DatabaseSchemaResult,onApplied:(schema:DatabaseSchemaResult)=>void,onApplying?:SchemaBusyCallback){
  let state:State={draft:{table:schema.tables.find(t=>t.kind==='table')?.name??'',name:'',type:'TEXT'},review:null,busy:'idle',done:false,notice:''};let epoch=0,disposed=false;const listeners=new Set<()=>void>();
  const emit=(patch:Partial<State>)=>{if(disposed)return;state={...state,...patch};listeners.forEach(fn=>fn());};
  return {getSnapshot:()=>state,subscribe(fn:()=>void){listeners.add(fn);return()=>{listeners.delete(fn);};},
@@ -31,15 +32,15 @@ export function addColumnController(database:Pick<WorkbenchContext['database'],'
  const review=await serialPreview(database,handleId,async()=>{if(disposed||op!==epoch)return null;return database.previewAddColumn({handleId,draft});});if(disposed||op!==epoch)return;
  if(!review||review.handleId!==handleId||JSON.stringify(review.draft)!==JSON.stringify(draft))throw new AddColumnError('review');emit({review:{...review,draft:{...review.draft}},notice:'review-ready'});
  }catch(e){if(!disposed&&op===epoch)emit({notice:e instanceof AddColumnError?e.code:'failed'});}finally{emit({busy:'idle'});}},
- async confirm(){if(disposed||state.busy!=='idle'||!state.review||state.done)return;const review=state.review,op=++epoch;onApplying?.(true);emit({review:null,busy:'apply',notice:''});try{
+ async confirm(){if(disposed||state.busy!=='idle'||!state.review||state.done)return;const review=state.review,op=++epoch;let releaseBusy=()=>{};emit({review:null,busy:'apply',notice:''});try{releaseBusy=acquireSchemaBusy(onApplying);
  const result=await database.applyAddColumn({handleId,review});if(disposed||op!==epoch)return;emit({done:true,notice:'done'});try{onApplied(result.schema);}catch{emit({notice:'refresh'});}
- }catch(e){if(!disposed&&op===epoch)emit({notice:e instanceof AddColumnError?e.code:'failed'});}finally{if(op===epoch)emit({busy:'idle'});onApplying?.(false);}},
+ }catch(e){if(!disposed&&op===epoch)emit({notice:e instanceof AddColumnError?e.code:'failed'});}finally{if(op===epoch)emit({busy:'idle'});releaseBusy();}},
  dispose(){disposed=true;epoch++;state={...state,review:null};listeners.clear();},
  };
 }
-export function AddColumn({context,handleId,schema,onApplied,onClose,onBusyChange}:{context:WorkbenchContext;handleId:string;schema:DatabaseSchemaResult;onApplied:(schema:DatabaseSchemaResult)=>void;onClose:()=>void;onBusyChange?:(busy:boolean)=>void}){
+export function AddColumn({context,handleId,schema,onApplied,onClose,onBusyChange}:{context:WorkbenchContext;handleId:string;schema:DatabaseSchemaResult;onApplied:(schema:DatabaseSchemaResult)=>void;onClose:()=>void;onBusyChange?:SchemaBusyCallback}){
  const callback=useRef(onApplied);callback.current=onApplied;const busyCallback=useRef(onBusyChange);busyCallback.current=onBusyChange;
- const controller=useMemo(()=>addColumnController(context.database,handleId,schema,s=>callback.current(s),busy=>busyCallback.current?.(busy)),[context.database,handleId]);
+ const controller=useMemo(()=>addColumnController(context.database,handleId,schema,s=>callback.current(s),(busy,owner)=>busyCallback.current?.(busy,owner)),[context.database,handleId]);
  const state=useSyncExternalStore(controller.subscribe,controller.getSnapshot,controller.getSnapshot);useEffect(()=>()=>controller.dispose(),[controller]);
  const zh=context.environment?.locale?.toLowerCase().startsWith('zh'),tr=(en:string,cn:string)=>zh?cn:en;
  const locked=state.busy==='apply'||state.done;
