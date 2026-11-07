@@ -34,3 +34,18 @@ for (const entry of domestic) {
   }
 }
 console.log(`Validated ${domestic.length} domestic marks, local noncommercial use only`);
+
+const uiIcons = JSON.parse(await readFile('assets/ui-icon-ledger.json', 'utf8'));
+for (const entry of uiIcons) {
+  const svg = await readFile(entry.file, 'utf8');
+  if (createHash('sha256').update(svg).digest('hex') !== entry.sha256) throw new Error(`UI icon drift: ${entry.file}`);
+  for (const tag of svg.matchAll(/<[a-zA-Z][^>]*>/g)) {
+    const seen = new Set();
+    for (const attribute of tag[0].matchAll(/([\w:-]+)\s*=\s*"[^"]*"/g)) {
+      if (seen.has(attribute[1])) throw new Error(`Duplicate SVG attribute ${attribute[1]}: ${entry.file}`);
+      seen.add(attribute[1]);
+    }
+  }
+  if (/<(?:script|image|foreignObject|use|style)\b|(?:href|on\w+)\s*=|url\(/i.test(svg)) throw new Error(`Unsafe UI icon: ${entry.file}`);
+}
+console.log(`Validated ${uiIcons.length} static ISC UI icons`);

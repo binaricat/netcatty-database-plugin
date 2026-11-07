@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import type { DatabaseHostMeta, DatabaseHostPortProbeResult, PluginContext } from '@netcatty/plugin-sdk';
+import { PluginContext } from './databaseClient';
+import type { DatabaseHostMeta, DatabaseHostPortProbeResult } from './databaseTypes';
 import type { Message } from './i18n';
 export const PORT_PROBE_FEATURE = 'database.host-port-probe.v1';
 const messages: Record<DatabaseHostPortProbeResult['code'], Message> = {
@@ -11,7 +12,7 @@ const messages: Record<DatabaseHostPortProbeResult['code'], Message> = {
   UNAVAILABLE: 'Port probe unavailable. Check host permissions and network access.',
 };
 export function useHostPortProbe(context: PluginContext) {
-  const enabled = context.enabledFeatures.has('database.sqlite-fixture.v1') && context.enabledFeatures.has(PORT_PROBE_FEATURE);
+  const enabled = context.database.capabilities.has('database.sqlite-fixture.v1') && context.database.capabilities.has(PORT_PROBE_FEATURE);
   const [message, setMessage] = useState<Message | null>(null);
   const [result, setResult] = useState<DatabaseHostPortProbeResult | null>(null);
   const [busy, setBusy] = useState(false);

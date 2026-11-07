@@ -1,3 +1,3 @@
-dc4627938341e425cb0da60cd75b5fd3951f90a84c00a33a0eef88d25fd16db1  netcatty-plugin-cli-0.1.0-internal.1.tgz
-bdae37b10ea21f021f5d7acafedf3904864e8af28c999711a2fd6958a975a75b  netcatty-plugin-contract-0.1.0-internal.1.tgz
-e83b42c77db9fd7f0c4bddd7c5e23c26ff3f0b46120ce377af34e88eb4e603df  netcatty-plugin-sdk-0.1.0-internal.1.tgz
+f6772019cd32d7c8047bf2c62cf7ec37f54e847886ae2e63661dbec1e0afa43f  vendor/netcatty-plugin-cli-0.1.0-internal.1.tgz
+cd44d38230dcd5875c75f11097ff21a9dc5001420697cd33e8c60f29558d30c3  vendor/netcatty-plugin-contract-0.1.0-internal.1.tgz
+4ba7af1df49d41cf330eaca249790be08bee5100d9c23720db328140ebc8aac6  vendor/netcatty-plugin-sdk-0.1.0-internal.1.tgz

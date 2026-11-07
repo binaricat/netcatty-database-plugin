@@ -8,8 +8,9 @@ export const MAX_EDITOR_SPLIT = 70;
 export function clampEditorSplit(value: number): number {
   return Number.isFinite(value) ? Math.min(MAX_EDITOR_SPLIT, Math.max(MIN_EDITOR_SPLIT, Math.round(value))) : DEFAULT_EDITOR_SPLIT;
 }
-const keywords = new Set('SELECT FROM WHERE ORDER BY GROUP HAVING LIMIT OFFSET AS JOIN LEFT RIGHT INNER OUTER CROSS ON AND OR NOT NULL IS IN LIKE BETWEEN DISTINCT UNION ALL WITH RECURSIVE CASE WHEN THEN ELSE END ASC DESC INSERT INTO VALUES UPDATE SET DELETE CREATE TABLE DROP ALTER EXISTS TRUE FALSE PRAGMA RETURNING'.split(' '));
-export function tokenizeSql(sql: string): SqlToken[] {
+const keywords = new Set('SELECT FROM WHERE ORDER BY GROUP HAVING LIMIT OFFSET AS JOIN LEFT RIGHT INNER OUTER CROSS ON AND OR NOT NULL IS IN LIKE BETWEEN DISTINCT UNION ALL WITH RECURSIVE CASE WHEN THEN ELSE END ASC DESC INSERT INTO VALUES UPDATE SET DELETE CREATE TABLE DROP ALTER ADD COLUMN INDEX UNIQUE PRIMARY KEY REFERENCES CONSTRAINT DEFAULT TEXT INTEGER REAL NUMERIC BLOB EXISTS TRUE FALSE PRAGMA RETURNING'.split(' '));
+export function tokenizeSql(sql: string, segmentBudget = MAX_HIGHLIGHT_SEGMENTS): SqlToken[] {
+  const budget = Number.isSafeInteger(segmentBudget) ? Math.min(128, Math.max(1, segmentBudget)) : MAX_HIGHLIGHT_SEGMENTS;
   // Bounded input and bounded output; overflow falls back without losing text.
   if (sql.length > MAX_SQL_LENGTH) return [{ kind: 'plain', text: sql }];
   const pattern = /--[^\r\n]*|\/\*[\s\S]*?(?:\*\/|$)|'(?:''|[^'])*(?:'|$)|"(?:""|[^"])*(?:"|$)|`(?:``|[^`])*(?:`|$)|\[[^\]]*(?:\]|$)|\b(?:0x[\da-f]+|\d+(?:\.\d*)?(?:e[+-]?\d+)?)\b|[a-z_$][\w$]*|[^\w'"`[/-]+|./gi;
@@ -20,7 +21,7 @@ export function tokenizeSql(sql: string): SqlToken[] {
     const last = tokens.at(-1);
     if (last?.kind === kind) last.text += text;
     else tokens.push({ kind, text });
-    if (tokens.length > MAX_HIGHLIGHT_SEGMENTS) return [{ kind: 'plain', text: sql }];
+    if (tokens.length > budget) return [{ kind: 'plain', text: sql }];
   }
   return tokens;
 }

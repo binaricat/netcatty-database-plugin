@@ -1,0 +1,40 @@
+import React,{useEffect,useMemo,useRef,useSyncExternalStore} from 'react';
+import type {DatabaseSchemaResult} from './databaseTypes';
+import {DropViewError,type DropViewDraft,type DropViewReview,type DropViewResult} from './sqliteDropView';
+import {acquireSchemaBusy,type SchemaBusyCallback} from './schemaBusy';
+import {serialPreview} from './schemaPreviewQueue';
+import {SqlPreview} from './SqlPreview';
+export interface DropViewUiClient {
+ previewDropView(request:{handleId:string;draft:DropViewDraft}):Promise<DropViewReview>;
+ applyDropView(request:{handleId:string;review:DropViewReview}):Promise<DropViewResult>;
+ cancelDropView?(request:{handleId:string;token:string}):Promise<null>;
+}
+type State={name:string;review:DropViewReview|null;busy:'idle'|'preview'|'apply';done:boolean;notice:string};
+export function dropViewController(database:DropViewUiClient,handleId:string,schema:DatabaseSchemaResult,onApplied:(schema:DatabaseSchemaResult)=>void,onBusyChange?:SchemaBusyCallback,initialName?:string){
+ const views=structuredClone(schema.tables.filter(t=>t.kind==='view'));
+ let state:State={name:views.find(v=>v.name===initialName)?.name??views[0]?.name??'',review:null,busy:'idle',done:false,notice:''},disposed=false,epoch=0;
+ const listeners=new Set<()=>void>(),emit=(patch:Partial<State>)=>{if(!disposed){state={...state,...patch};listeners.forEach(fn=>fn());}};
+ const cleanup=async(token:string)=>{try{await database.cancelDropView?.({handleId,token});}catch{/* Adapter close remains the cleanup fallback. */}};
+ const discard=()=>{const review=state.review;if(review)void serialPreview(database,handleId,()=>cleanup(review.token));};
+ return {views,getSnapshot:()=>state,subscribe(fn:()=>void){listeners.add(fn);return()=>{listeners.delete(fn);};},
+ select(name:string){if(disposed||state.busy!=='idle'||state.done||!views.some(v=>v.name===name))return;discard();epoch++;emit({name,review:null,notice:''});},
+ cancel(){if(disposed||state.busy==='apply')return false;discard();epoch++;emit({review:null,busy:'idle',notice:''});return true;},
+ async preview(){if(disposed||state.busy!=='idle'||state.done||!state.name)return;discard();const op=++epoch,draft={name:state.name};emit({busy:'preview',review:null,notice:''});let release=()=>{};
+  try{release=acquireSchemaBusy(onBusyChange);const review=await serialPreview(database,handleId,async()=>{if(disposed||op!==epoch)return null;const result=await database.previewDropView({handleId,draft});if(disposed||op!==epoch){if(result.token)await cleanup(result.token);return null;}return result;});if(disposed||op!==epoch)return;
+   if(!review||review.handleId!==handleId||JSON.stringify(review.draft)!==JSON.stringify(draft)||typeof review.token!=='string'||!review.token||typeof review.sql!=='string'||!review.sql||review.sql.length>8192||typeof review.definition!=='string'||!review.definition||review.definition.length>8192||review.warning!=='removes-view-definition-only'){if(review&&typeof review.token==='string'&&review.token)await cleanup(review.token);throw new DropViewError('review');}
+   emit({review:structuredClone(review),notice:'ready'});
+  }catch(error){if(op===epoch)emit({notice:error instanceof DropViewError?error.code:'failed'});}finally{if(op===epoch)emit({busy:'idle'});release();}
+ },
+ async confirm(){if(disposed||state.busy!=='idle'||state.done||!state.review)return;const op=++epoch,review=structuredClone(state.review);emit({busy:'apply',review:null,notice:''});let release=()=>{};
+  try{release=acquireSchemaBusy(onBusyChange);const result=await database.applyDropView({handleId,review});if(disposed||op!==epoch)return;emit({done:true,notice:'done'});try{onApplied(result.schema);}catch{emit({notice:'refresh'});}}
+  catch(error){if(op===epoch)emit({notice:error instanceof DropViewError?error.code:'failed'});}finally{if(op===epoch)emit({busy:'idle'});release();}
+ },
+ dispose(){if(state.busy!=='apply')discard();disposed=true;epoch++;state={...state,review:null};listeners.clear();}
+ };
+}
+export function DropView({database,handleId,schema,locale='en',onApplied,onClose,onBusyChange,initialName}:{database:DropViewUiClient;handleId:string;schema:DatabaseSchemaResult;locale?:string;onApplied:(schema:DatabaseSchemaResult)=>void;onClose:()=>void;onBusyChange?:SchemaBusyCallback;initialName?:string}){
+ const refs=useRef({onApplied,onBusyChange});refs.current={onApplied,onBusyChange};const controller=useMemo(()=>dropViewController(database,handleId,schema,s=>refs.current.onApplied(s),(busy,owner)=>refs.current.onBusyChange?.(busy,owner),initialName),[database,handleId,initialName]);useEffect(()=>()=>controller.dispose(),[controller]);
+ const state=useSyncExternalStore(controller.subscribe,controller.getSnapshot,controller.getSnapshot),locked=state.busy!=='idle',zh=locale.toLowerCase().startsWith('zh'),tr=(en:string,cn:string)=>zh?cn:en;
+ const notices:Record<string,string>={ready:tr('Review the exact statement before confirming. Nothing has been removed.','确认前请审阅准确语句，尚未移除任何对象。'),done:tr('View removed. Source table data retained; schema refreshed without querying data.','视图已移除，源表数据保留；结构已刷新，未自动查询数据。'),refresh:tr('View removed, but the interface could not refresh. Inspect the schema; do not repeat.','视图已移除，但界面刷新失败。请检查结构，不要重复操作。'),draft:tr('Choose an existing view.','请选择已有视图。'),identifier:tr('This view name is not supported.','该视图名称不受支持。'),view:tr('The view is missing or its definition is not supported.','视图不存在或定义不受支持。'),dependency:tr('Dependent objects or unsupported schema prevent removal. No removal was applied.','依赖对象或不支持的结构阻止移除，未执行删除。'),budget:tr('This view exceeds workspace limits.','该视图超出工作区预算。'),review:tr('The review is invalid or already consumed. Preview again.','审阅无效或已使用，请重新预览。'),stale:tr('The connection or schema changed. Reload and preview again.','连接或结构已变化，请重新加载并预览。'),protection:tr('Database protection failed. Check the connection before retrying.','数据库保护失败，重试前请检查连接。'),transaction:tr('The transaction could not complete safely. Inspect the schema before retrying.','事务无法安全完成，重试前请检查结构。'),failed:tr('Cannot confirm the result. Inspect the schema before retrying.','无法确认结果，重试前请检查结构。')};
+ return <section className="create-table" aria-label={tr('Remove view','移除视图')}><header className="create-table-header"><h2>{tr('Remove view','移除视图')}</h2><p className="hint">{tr('Permanently removes only the view definition. Source tables and their data are retained.','永久删除视图定义，源表及其中的数据保留。')}</p></header>{!state.done?<><label>{tr('View','视图')}<select aria-label={tr('View to remove','待移除视图')} value={state.name} disabled={locked||!controller.views.length} onChange={e=>controller.select(e.currentTarget.value)}>{controller.views.map(view=><option key={view.name} value={view.name}>{view.name}</option>)}</select></label>{!controller.views.length?<p className="hint">{tr('No views available.','没有可用视图。')}</p>:null}{state.review?<section className="create-table-review"><p role="alert">{tr(`Permanently remove the definition of “${state.review.draft.name}”? Source table data will not be deleted.`,`是否永久移除“${state.review.draft.name}”的定义？不会删除源表数据。`)}</p><SqlPreview sql={state.review.sql} label={tr('Reviewed DROP VIEW SQL','待确认的 DROP VIEW SQL')}/><details><summary>{tr('Existing view definition','现有视图定义')}</summary><SqlPreview sql={state.review.definition} label={tr('Existing CREATE VIEW SQL','现有 CREATE VIEW SQL')}/></details></section>:null}</>:null}<p role="status">{notices[state.notice]??''}</p><footer className="csv-import-footer"><button className="secondary toolbar-button" disabled={state.busy==='apply'} onClick={()=>{if(controller.cancel())onClose();}}>{tr(state.done?'Close':'Cancel',state.done?'关闭':'取消')}</button>{!state.done?<><button className="secondary toolbar-button" disabled={locked||!state.name} onClick={()=>void controller.preview()}>{tr('Preview DROP VIEW','预览 DROP VIEW')}</button><button className="toolbar-button row-mutation-delete-confirm" disabled={locked||!state.review} onClick={()=>void controller.confirm()}>{tr('Confirm remove view','确认移除视图')}</button></>:null}</footer></section>;
+}

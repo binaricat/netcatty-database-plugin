@@ -7,10 +7,10 @@
     "zh-CN": "Netcatty 数据库"
   },
   "description": {
-    "en": "Database catalog with host-owned SQLite, PostgreSQL and MySQL sessions.",
-    "zh-CN": "数据库目录与宿主管理的 SQLite、PostgreSQL 和 MySQL 会话。"
+    "en": "SQLite workbench and experimental Redis TLS browser. Redis requires an authorized declared endpoint; real-server qualification is pending.",
+    "zh-CN": "SQLite 工作台与实验性 Redis TLS 浏览器。Redis 需配置已授权的声明端点，真实服务器验收尚未完成。"
   },
-  "version": "0.1.0-alpha.1",
+  "version": "0.1.0-alpha.34",
   "publisher": "binaricat",
   "license": "GPL-3.0-or-later",
   "engines": {
@@ -21,25 +21,14 @@
     "required": [
       "views.host-drawn",
       "views.vault-pages",
-      "views.modals",
-      "metadata.brand-icon"
+      "metadata.brand-icon",
+      "ai.model-invocation",
+      "ai.agent-sessions",
+      "vault.host-actions",
+      "host.interactions"
     ],
     "optional": [
-      "database.sqlite-fixture.v1",
-      "database.sqlite-file-fixture.v1",
-      "database.sqlite-fd-identity.fixture.v1",
-      "database.sqlite-wal-readonly.fixture.v1",
-      "database.sqlite-wal-concurrent.fixture.v1",
-      "database.sqlite-wal-checkpoint.fixture.v1",
-      "database.sqlite-wal-capture.fixture.v1",
-      "database.sqlite-malformed-reject.fixture.v1",
-      "database.sqlite-wal-session-refresh.fixture.v1",
-      "database.saved-connections.v1",
-      "database.tunnel-test.synthetic.v1",
-      "database.host-port-probe.v1",
-      "database.host-live-ssh-pg.fixture.v1",
-      "ai.model-invocation",
-      "database.tcp.v1"
+      "network.byte-streams"
     ]
   },
   "main": {
@@ -47,41 +36,48 @@
   },
   "activationEvents": [
     "onView:com.binaricat.netcatty-database.workbench",
-    "onView:com.binaricat.netcatty-database.new-connection"
+    "onView:com.binaricat.netcatty-database.connection"
   ],
   "permissions": {
     "required": [
       "views"
     ],
     "optional": [
-      {
-        "permission": "database.query.read",
-        "resources": [
-          "sqlite:synthetic-notes",
-          "sqlite:disposable-file",
-          "database-tunnel:synthetic-loopback",
-          "database-host:common-ports",
-          "database-host:live-ssh-pg-fixture",
-          "database:tcp"
-        ],
-        "reason": "Read disposable SQLite, probe saved-host TCP ports, or test pinned SSH and SELECT 1 on the loopback PostgreSQL fixture / 读取一次性 SQLite、探测主机 TCP 端口，或测试固定 SSH 密钥与本机 PostgreSQL SELECT 1"
-      },
-      {
-        "permission": "database.query.write",
-        "resources": [
-          "sqlite:synthetic-notes"
-        ],
-        "reason": "Review each write to disposable synthetic SQLite / 逐次审查对一次性模拟 SQLite 数据库的写入"
-      },
       "storage",
-      "vault.metadata",
-      "secrets",
       {
         "permission": "ai.invoke",
-        "reason": "Request unexecuted SQL drafts from the host-selected model using schema metadata, editor SQL and user request / 使用数据库结构、编辑器 SQL 和用户请求，向宿主选择的模型请求未执行的 SQL 草稿",
         "resources": [
           "*"
-        ]
+        ],
+        "reason": "Request unexecuted SQL drafts using schema metadata / 使用数据库结构请求未执行的 SQL 草稿"
+      },
+      {
+        "permission": "ai.agent.use",
+        "resources": [
+          "*"
+        ],
+        "reason": "Optional host Agent conversations; no tool actions / 可选宿主 Agent 对话，不启用工具操作"
+      },
+      {
+        "permission": "vault.metadata",
+        "resources": [
+          "*"
+        ],
+        "reason": "Choose existing hosts using host UI / 通过宿主界面选择已有主机"
+      },
+      {
+        "permission": "ui.interact",
+        "resources": [
+          "*"
+        ],
+        "reason": "Request selected host SSH connection in native host UI / 在宿主界面请求已选主机 SSH 连接"
+      },
+      {
+        "permission": "clipboard.write",
+        "resources": [
+          "*"
+        ],
+        "reason": "Copy explicitly reviewed returned query results using host clipboard controls / 通过宿主剪贴板接口复制已返回的查询结果"
       }
     ]
   },
@@ -96,13 +92,12 @@
         "location": "vault-page"
       },
       {
-        "id": "com.binaricat.netcatty-database.new-connection",
+        "id": "com.binaricat.netcatty-database.connection",
         "title": {
-          "en": "New Connection",
-          "zh-CN": "新建连接"
+          "en": "Database: New connection",
+          "zh-CN": "数据库：新建连接"
         },
-        "location": "modal",
-        "when": "netcatty.surface == 'modal'"
+        "location": "modal"
       }
     ]
   },

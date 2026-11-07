@@ -1,4 +1,4 @@
-import type { DatabaseQueryResult } from '@netcatty/plugin-sdk';
+import type { DatabaseQueryResult } from './databaseTypes';
 export function previewSummary(result: Pick<DatabaseQueryResult, 'columns' | 'rows' | 'truncated'>) {
   return {
     shownRows: Math.min(result.rows.length, 20), totalRows: result.rows.length,

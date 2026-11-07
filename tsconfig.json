@@ -14,5 +14,8 @@
     "src/**/*.ts",
     "src/**/*.tsx",
     "tests/**/*.ts"
+  ],
+  "exclude": [
+    "tests/main-host"
   ]
 }

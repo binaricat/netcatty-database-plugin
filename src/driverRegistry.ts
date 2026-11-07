@@ -1,5 +1,6 @@
-// Generated from the public host contract registry; drift is checked in tests.
-import type { DatabaseDriverProfile } from '@netcatty/plugin-contract';
+// Plugin-owned catalog carried forward from the experimental snapshot.
+// A catalog entry does not imply that a driver is available on Netcatty main.
+import type { DatabaseDriverProfile } from './databaseTypes';
 export type DriverProfile = DatabaseDriverProfile;
 export const drivers = [
   {

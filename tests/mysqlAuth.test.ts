@@ -1,0 +1,62 @@
+import test from 'node:test';import assert from 'node:assert/strict';import {createHash} from 'node:crypto';
+import {MysqlTlsFastAuth,planMysqlSslRequest} from '../src/mysqlAuth';import {encodeMysqlPacket} from '../src/mysqlProtocol';
+const text=(s:string)=>new TextEncoder().encode(s);
+function hello(plugin='caching_sha2_password'){
+ const prefix=Uint8Array.of(10,...text('8.0.36\0'),1,0,0,0,1,2,3,4,5,6,7,8,0,0,0x8a,45,2,0,8,0,21,...new Uint8Array(10),9,10,11,12,13,14,15,16,17,18,19,20,0,...text(plugin+'\0'));
+ return {sequence:0,payload:prefix};
+}
+const make=()=>new MysqlTlsFastAuth(hello(),'fixture','test-only-password',{verifiedTls:true,sslRequest:planMysqlSslRequest(hello()).descriptor});
+const more=encodeMysqlPacket(Uint8Array.of(1,3),3),ok=encodeMysqlPacket(Uint8Array.of(0,0,0,2,0,0,0),4);
+test('challenge proof agrees with independent Node SHA256 construction and never contains raw password',async()=>{
+ const c=make(),wire=await c.start();assert.equal(wire[3],2);const p=wire.subarray(4),view=new DataView(p.buffer,p.byteOffset,p.length);assert.equal(view.getUint32(0,true),0x88a00);assert.equal(p[32+8],32);
+ const hash=(b:Uint8Array|string)=>createHash('sha256').update(b).digest();const a=hash('test-only-password'),b=hash(a),scramble=Uint8Array.from({length:20},(_,i)=>i+1),mask=hash(Buffer.concat([b,scramble]));
+ assert.deepEqual(p.slice(41,73),new Uint8Array(a.map((v,i)=>v^mask[i])));assert.ok(!new TextDecoder().decode(wire).includes('test-only-password'));assert.equal(c.state,'fast');c.close();assert.ok(wire.some(v=>v!==0),'returned buffer belongs to caller');wire.fill(0);
+});
+test('strict fast-auth then OK supports arbitrary byte fragmentation and coalescing',async()=>{
+ for(const fragmented of [false,true]){const c=make();await c.start();const response=new Uint8Array([...more,...ok]);let status='pending';for(const b of fragmented?Array.from(response,v=>Uint8Array.of(v)):[response])status=c.receive(b);assert.equal(status,'authenticated');assert.equal(c.state,'authenticated');}
+});
+test('no verified TLS, old plugins, Unicode credentials, full auth, switch and wrong sequence fail closed',async()=>{
+ assert.throws(()=>new MysqlTlsFastAuth(hello(),'u','p',{verifiedTls:false} as never),/tls-required/);
+ assert.throws(()=>new MysqlTlsFastAuth(hello('mysql_native_password'),'u','p',{verifiedTls:true,sslRequest:planMysqlSslRequest(hello()).descriptor}),/unsupported/);
+ assert.throws(()=>new MysqlTlsFastAuth(hello(),'u','秘密',{verifiedTls:true,sslRequest:planMysqlSslRequest(hello()).descriptor}),/input/);
+ for(const response of [encodeMysqlPacket(Uint8Array.of(1,4),3),encodeMysqlPacket(Uint8Array.of(254,0),3),encodeMysqlPacket(Uint8Array.of(0,0,0,2,0,0,0),3),encodeMysqlPacket(Uint8Array.of(1,3),4)]){const c=make();await c.start();assert.throws(()=>c.receive(response));assert.equal(c.state,'failed');}
+});
+test('server error content never escapes and trailing/oversized/duplicate messages reject',async()=>{
+ for(const response of [encodeMysqlPacket(Uint8Array.of(255,21,4,35,...text('28000private password')),3),new Uint8Array([...more,...ok,1]),new Uint8Array(96*1024+1),new Uint8Array([...more,...encodeMysqlPacket(Uint8Array.of(1,3),4)])]){const c=make();await c.start();assert.throws(()=>c.receive(response),e=>e instanceof Error&&!e.message.includes('private password'));assert.equal(c.state,'failed');}
+});
+test('close during crypto and repeated starts cannot yield a usable authentication result',async()=>{
+ const c=make();const pending=c.start();c.close();await assert.rejects(pending);assert.equal(c.state,'closed');
+ const d=make();const first=d.start();await assert.rejects(d.start());await assert.rejects(first);assert.equal(d.state,'failed');
+});
+
+test('fixed utf8mb4 descriptor makes SSLRequest and response headers identical despite server charset',async()=>{
+ const greeting=hello();const charsetOffset=1+text('8.0.36\0').length+4+8+1+2;greeting.payload[charsetOffset]=0;
+ const plan=planMysqlSslRequest(greeting);assert.equal(plan.descriptor.characterSet,45);assert.equal(plan.packet[3],1);assert.ok(Object.isFrozen(plan.descriptor));
+ const c=new MysqlTlsFastAuth(greeting,'u','p',{verifiedTls:true,sslRequest:plan.descriptor});const response=await c.start();assert.deepEqual(response.slice(4,36),plan.packet.slice(4));assert.equal(response[3],2);c.close();
+ for(const patch of [{characterSet:0},{capabilities:0},{sequence:2},{maxPacketBytes:100},{extra:true}])assert.throws(()=>new MysqlTlsFastAuth(greeting,'u','p',{verifiedTls:true,sslRequest:{...plan.descriptor,...patch} as never}),/input/);
+ assert.throws(()=>new MysqlTlsFastAuth(greeting,'u','p',{verifiedTls:true} as never),/input/);
+});
+test('closed remains terminal after invalid start/receive and repeated close',async()=>{
+ const c=make();c.close();await assert.rejects(c.start());assert.equal(c.state,'closed');assert.throws(()=>c.receive(more));assert.equal(c.state,'closed');c.close();assert.equal(c.state,'closed');
+});
+const fullClient=()=>new MysqlTlsFastAuth(hello(),'fixture','test-only-password',{verifiedTls:true,sslRequest:planMysqlSslRequest(hello()).descriptor,allowFullAuth:true});
+const full=encodeMysqlPacket(Uint8Array.of(1,4),3),fullOk=encodeMysqlPacket(Uint8Array.of(0,0,0,2,0,0,0),5);
+test('opt-in full auth produces exact NUL password only after request and expects server seq5',async()=>{
+ const c=fullClient();await c.start();assert.equal(c.receive(full),'full-auth-required');const wire=c.fullAuthResponse();assert.equal(wire[3],4);assert.deepEqual(wire.slice(4),text('test-only-password\0'));
+ assert.ok((c as unknown as {password:Uint8Array}).password.every(v=>v===0));assert.equal(c.receive(fullOk),'authenticated');wire.fill(0);
+});
+test('full auth prohibits unsolicited/repeated responses, auth switches, wrong seq and trailing frames',async()=>{
+ const early=fullClient();await early.start();assert.throws(()=>early.fullAuthResponse(),/state/);
+ const repeated=fullClient();await repeated.start();repeated.receive(full);const wire=repeated.fullAuthResponse();assert.throws(()=>repeated.fullAuthResponse(),/state/);wire.fill(0);
+ for(const reply of [ok,encodeMysqlPacket(Uint8Array.of(1,4),5),encodeMysqlPacket(Uint8Array.of(254,0),5)]){const c=fullClient();await c.start();c.receive(full);c.fullAuthResponse().fill(0);assert.throws(()=>c.receive(reply));}
+ const tail=fullClient();await tail.start();assert.throws(()=>tail.receive(new Uint8Array([...full,1])));assert.ok((tail as unknown as {password:Uint8Array}).password.every(v=>v===0));
+});
+test('full auth denied password stays failed and server message is redacted',async()=>{
+ const c=fullClient();await c.start();c.receive(full);c.fullAuthResponse().fill(0);
+ assert.throws(()=>c.receive(encodeMysqlPacket(Uint8Array.of(255,21,4,35,...text('28000private-password')),5)),{message:'MySQL auth authentication'});assert.equal(c.state,'failed');
+});
+test('close and fast success wipe retained full-auth secret; full auth still requires TLS',async()=>{
+ const c=fullClient();await c.start();c.receive(full);c.close();assert.ok((c as unknown as {password:Uint8Array}).password.every(v=>v===0));assert.throws(()=>c.fullAuthResponse());assert.equal(c.state,'closed');
+ const fast=fullClient();await fast.start();fast.receive(more);assert.ok((fast as unknown as {password:Uint8Array}).password.every(v=>v===0));assert.equal(fast.receive(ok),'authenticated');
+ assert.throws(()=>new MysqlTlsFastAuth(hello(),'fixture','p',{verifiedTls:false,sslRequest:planMysqlSslRequest(hello()).descriptor,allowFullAuth:true} as never),/tls-required/);
+});

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import type { DatabaseHostMeta, DatabaseTunnelTestResult, PluginContext } from '@netcatty/plugin-sdk';
+import { PluginContext } from './databaseClient';
+import type { DatabaseHostMeta, DatabaseTunnelTestResult } from './databaseTypes';
 import type { Message } from './i18n';
 export const TUNNEL_TEST_FEATURE = 'database.tunnel-test.synthetic.v1';
 const messages: Record<DatabaseTunnelTestResult['code'], Message> = {
@@ -14,7 +15,7 @@ const messages: Record<DatabaseTunnelTestResult['code'], Message> = {
   UNAVAILABLE: 'Tunnel test unavailable. Check host permissions and secure storage.',
 };
 export function useTunnelTest(context: PluginContext) {
-  const enabled = context.enabledFeatures.has('database.sqlite-fixture.v1') && context.enabledFeatures.has(TUNNEL_TEST_FEATURE);
+  const enabled = context.database.capabilities.has('database.sqlite-fixture.v1') && context.database.capabilities.has(TUNNEL_TEST_FEATURE);
   const [message, setMessage] = useState<Message | null>(null);
   const [busy, setBusy] = useState(false);
   const pending = useRef<string | null>(null);
