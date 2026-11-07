@@ -44,7 +44,7 @@ advertised driver itself has been independently tested in DBX.
 | 4. SSH tunnels, proxies and reconnect | Missing | Existing host metadata/port/loopback probes in the old snapshot were not a general tunnel. No production tunnel in this port. |
 | 5. Table/view/column browser | Partial | Actual SQLite introspection, search and read-only structure. No multi-database/schema navigation. |
 | 6. Indexes/FKs/triggers/routines/source browsing | Partial | Bounded SQLite definitions, ordered composite PK, indexes, grouped foreign keys and triggers are implemented and engine-tested. Remote routines and full vendor-specific structure remain absent. |
-| 7. Schema editing and reviewed DDL | Partial | Structured, one-shot reviewed CREATE TABLE for disposable SQLite, schema-version guards and rollback budgets; full Netcatty alpha.13 create/structure/INSERT/readback tested. Reviewed ordinary CREATE INDEX also works in alpha.14, with UNIQUE rollback and real native metadata inspection. No ALTER, index deletion, constraint editing, persistence or remote DDL. See `create-table.md` and `create-index.md`. |
+| 7. Schema editing and reviewed DDL | Partial | Structured, one-shot reviewed CREATE TABLE for disposable SQLite, schema-version guards and rollback budgets; full Netcatty alpha.13 create/structure/INSERT/readback tested. Reviewed ordinary CREATE INDEX also works in alpha.14, with UNIQUE rollback and real native metadata inspection. Reviewed single nullable ADD COLUMN now has engine/controller/remoteDOM coverage in alpha.23, with native confirmation and old-row NULL readback passed. No other ALTER, index deletion, constraint editing, persistence or remote DDL. See `create-table.md` and `create-index.md`. |
 | 8. SQL editing/highlight/tabs | Partial | Bounded syntax overlay, line numbers and up to eight tabs. No CodeMirror-equivalent editing/selection behavior. |
 | 9. Completion, formatting and diagnostics | Missing | No schema-aware completion or formatter/diagnostic engine. |
 | 10. Selection/scripts/manual transactions | Missing | One read or reviewed simple DML statement only; no batch, script execution or manual transaction controls. |
@@ -82,7 +82,7 @@ Current plugin anchors: `src/sqliteClient.ts`, `src/useWorkbench.ts`,
    only with actual fixtures and dialect evidence.
 4. Add metadata coverage and reviewed write/DDL paths before edit/ER/diff/import,
    transfer or backup claims. A SELECT-only permission label is not server read-only enforcement.
-5. Qualify each supported engine and major behavior using Docker fixtures plus
+5. Qualify each supported engine and major behavior using real service fixtures plus
    installed-plugin UI smoke, screenshot/video artifacts and failure/recovery lanes.
    Provider calls, native dialogs and cross-platform qualification remain separate.
 
@@ -119,7 +119,7 @@ Concrete main limitations to report before any other-repository changes:
 | Live AI provider | Not run | No configured model verified |
 | Cross-platform CI/native | Pending CI; native acceptance pending | Three-platform build/unit workflow added; CI cannot replace native GUI evidence |
 
-This task's requested termination condition has **not** been met. New full-app recordings now cover the complete Netcatty shell, native modal and native host metadata picker, plus real disposable SQLite queries. They do not cover a real AI model, Docker SSH host, or any TCP database. See `full-app-validation.md`.
+This task's requested termination condition has **not** been met. New full-app recordings now cover the complete Netcatty shell, native modal and native host metadata picker, plus real disposable SQLite queries. A later real Netcatty recording also covers plugin native host selection, opening an actual SSH terminal, and Redis 7.4.2 operations/readback inside that terminal. The user subsequently allowed a non-Docker real host; official non-root Dropbear provides that lane. This does not qualify plugin-owned Redis connectivity, automatic database discovery, a real AI model, or multiple database engines. See `full-app-validation.md` and `native-ssh-redis-acceptance.md`.
 
 The next tasks
 must remain open until functionality and evidence actually close these gaps.
@@ -136,3 +136,9 @@ must remain open until functionality and evidence actually close these gaps.
 ## Full-app iteration
 
 64 tests, lint, main install and SDK/SQLite UI regression pass locally. Full application alpha.4 was imported through native Settings and exercised on unchanged main. Native modal and host metadata picker are real host UI; no saved hosts exist in the isolated profile. See full-app-validation.md for evidence boundaries. Docker execution remains blocked as detailed in local-docker-acceptance.md. No near-parity completion, merge or release is claimed.
+
+## Current native SSH and structure iteration
+
+- Actual Netcatty SSH host selection and opening now qualified with real key-authenticated Dropbear and Redis 7.4.2. This is a terminal route, not a plugin database tunnel.
+- 289 tests pass; main remoteDOM regression passes 237 batches/24 scenes. New ADD COLUMN preserves existing rows as NULL, rechecks authoritative schema, consumes exact one-shot reviews, rolls back on budget/metadata failures and invalidates stale query results. Native alpha.23 ADD preview, confirmation and old-row NULL readback passed.
+- Latest plugin draft PR CI before alpha.23 changes passed all four lanes (main-host/Linux/macOS/Windows). These do not replace platform GUI or real remote-service tests.

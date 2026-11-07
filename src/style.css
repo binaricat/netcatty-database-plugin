@@ -404,8 +404,17 @@ pre { padding: 12px; background: hsl(var(--muted)/.4); border: 1px solid hsl(var
 .database-workbench .create-index-definition .create-table-constraint {display:flex;flex-direction:row;align-items:center;min-height:34px;white-space:nowrap;}
 .database-workbench .create-index-definition input[type="checkbox"] {width:14px;height:14px;margin:0;}
 .database-workbench .create-index-column {grid-template-columns:minmax(160px,2fr) minmax(160px,1fr) 80px;}
-.csv-import-source { display: flex; flex-direction: column; gap: 8px; }
-.csv-import-source textarea { width: 100%; min-height: 180px; font-family: monospace; }
+/* CSV paste/review stays full-width within a compact workspace panel. */
+.database-workbench .csv-import {width:100%;max-width:800px;box-sizing:border-box;margin:20px auto;align-self:center;gap:16px;}
+.csv-import-header {display:flex;flex-direction:column;gap:8px;}
+.database-workbench .csv-import>.csv-import-source {display:flex;flex-direction:column;gap:8px;width:100%;max-width:none;min-width:0;}
+.csv-import-source textarea {width:100%;min-height:180px;box-sizing:border-box;resize:vertical;font:12px/1.7 var(--plugin-font-mono);}
+.csv-import-review {min-width:0;}
+.csv-import-review .sql-preview {min-height:0;max-height:180px;padding:12px;}
+.csv-import-review .row-mutation-parameters pre {max-height:200px;margin:6px 0 0;}
+.csv-import-footer {display:flex;justify-content:flex-end;align-items:center;gap:8px;flex-wrap:wrap;padding-top:14px;border-top:1px solid hsl(var(--border)/.6);}
+.csv-import-status:empty {display:none;}
+@media(max-width:800px) {.database-workbench .csv-import {margin:12px auto;padding:16px;}}
 /* Read-only review surfaces inherit the same host palette as the SQL editor. */
 .sql-preview { --plugin-sql-keyword: color-mix(in srgb,hsl(var(--foreground)) 35%,hsl(220 85% 58%)); --plugin-sql-string: color-mix(in srgb,hsl(var(--foreground)) 40%,hsl(145 65% 43%)); --plugin-sql-number: color-mix(in srgb,hsl(var(--foreground)) 35%,hsl(28 90% 55%)); --plugin-sql-comment: hsl(var(--muted-foreground)); --plugin-sql-identifier: hsl(var(--foreground)); margin:0; padding:16px; background:hsl(var(--muted)/.45); color:hsl(var(--foreground)); border:0; border-radius:8px; font:12px/1.8 var(--plugin-font-mono); white-space:pre-wrap; overflow-wrap:anywhere; overflow:auto; max-height:300px; min-height:72px; }
 .sql-preview code {font:inherit;}

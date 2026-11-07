@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {previewCsvImport} from '../src/csvImportModel';
 import type {DatabaseSchemaResult} from '../src/databaseTypes';
-const schema=():DatabaseSchemaResult=>({tables:[{name:'Notes',kind:'table',triggers:[],columns:[{name:'id',type:'INTEGER',primaryKey:true,nullable:false},{name:'text',type:'TEXT',primaryKey:false,nullable:true}]}]});
+const schema=():DatabaseSchemaResult=>({tables:[{name:'Notes',kind:'table',definition:'CREATE TABLE Notes (id INTEGER PRIMARY KEY, text TEXT)',triggers:[],columns:[{name:'id',type:'INTEGER',primaryKey:true,nullable:false},{name:'text',type:'TEXT',primaryKey:false,nullable:true}]}]});
 const plan=(csv:string,s=schema())=>previewCsvImport({table:'notes',csv,nullMode:'backslash-N'},s);
 test('RFC4180 quotes, embedded CRLF, Chinese, reordered headers and bound SQL injection text',()=>{
  const result=plan('TEXT,ID\r\n"你好, ""quoted""\r\nline",1\r\n"\'); DROP TABLE Notes;--",2\r\n');

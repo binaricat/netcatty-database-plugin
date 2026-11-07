@@ -1,3 +1,4 @@
+import {sqliteSchemaTokens,schemaTokenSequence} from './sqliteSchemaKeywords';
 import type {DatabaseScalar,DatabaseSchemaResult} from './databaseTypes';
 
 export interface CsvImportDraft {table:string;csv:string;nullMode:'backslash-N'}
@@ -52,9 +53,14 @@ export function previewCsvImport(input:unknown,schema:DatabaseSchemaResult):CsvI
   if(!csv||csv.includes('\0')||csv.charCodeAt(0)===0xfeff)throw new CsvImportError('csv');
   if(!schema||!Array.isArray(schema.tables)||schema.tables.length>32)throw new CsvImportError('table');
   const matches=schema.tables.filter(table=>typeof table?.name==='string'&&fold(table.name)===fold(value.table as string));
-  if(matches.length!==1||matches[0].kind!=='table'||/\bCREATE\s+VIRTUAL\s+TABLE\b/i.test(matches[0].definition??''))throw new CsvImportError('table');
+  if(matches.length!==1||matches[0].kind!=='table')throw new CsvImportError('table');
   const table=matches[0];
-  if(!Array.isArray(table.triggers)||table.triggers.length||(/\b(?:DEFAULT|GENERATED)\b/i.test(table.definition??'')||/\bON\b[\s\S]*\bCONFLICT\b/i.test(table.definition??'')))throw new CsvImportError('table');
+  if(typeof table.definition!=='string'||!table.definition.trim())throw new CsvImportError('table');
+  let schemaTokens:string[];try{schemaTokens=sqliteSchemaTokens(table.definition);}catch{throw new CsvImportError('table');}
+  if(schemaTokens[0]!=='CREATE'||schemaTokens[1]!=='TABLE'||schemaTokens.length<5||!schemaTokens.includes('(')||!schemaTokens.includes(')'))throw new CsvImportError('table');
+  let depth=0;for(const token of schemaTokens){if(token==='(')depth++;else if(token===')'&&--depth<0)throw new CsvImportError('table');}
+  if(depth!==0||schemaTokens[schemaTokens.indexOf('(')+1]===')')throw new CsvImportError('table');
+  if(!Array.isArray(table.triggers)||table.triggers.length||(schemaTokenSequence(schemaTokens,'CREATE','VIRTUAL','TABLE')||schemaTokens.includes('DEFAULT')||schemaTokens.includes('GENERATED')||schemaTokenSequence(schemaTokens,'ON','CONFLICT')))throw new CsvImportError('table');
   if(!validName(table.name)||!Array.isArray(table.columns)||!table.columns.length||table.columns.length>16)throw new CsvImportError('columns');
   const seen=new Set<string>();
   for(const column of table.columns){

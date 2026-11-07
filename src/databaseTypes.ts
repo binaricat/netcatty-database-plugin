@@ -296,3 +296,8 @@ export type CsvImportReview={handleId:DatabaseHandle;draft:import('./csvImportMo
 export type CsvImportRequest={handleId:DatabaseHandle;draft:import('./csvImportModel').CsvImportDraft};
 export type CsvImportApplyRequest={handleId:DatabaseHandle;review:CsvImportReview};
 export type CsvImportResult={changes:number};
+
+export type {AddColumnDraft,AddColumnReview} from './alterTableModel';
+export type AddColumnRequest={handleId:DatabaseHandle;draft:import('./alterTableModel').AddColumnDraft};
+export type AddColumnApplyRequest={handleId:DatabaseHandle;review:import('./alterTableModel').AddColumnReview};
+export type AddColumnResult={changes:0;schema:DatabaseSchemaResult;sql:string};
