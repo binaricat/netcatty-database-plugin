@@ -23,6 +23,6 @@ Alpha.20 follows the [DBX source layout audit](dbx-row-layout-audit.md): a compa
 single-column delete review with full original JSON, highlighted SQL, all bound
 parameters and one footer. Legacy two-column CSS was removed. The shared safe
 SQL preview is also used for CREATE TABLE/INDEX, CSV and manual write reviews.
-Remote-DOM interaction regression passes; native alpha.20 screenshots remain
-pending runtime port-closure isolation. Previous alpha.18 screenshots are not
-presented as this revision.
+Remote-DOM interaction regression passes; native alpha.20 screenshots verify the compact review and subsequent delete
+readback (row-delete-dbx-layout-alpha20.jpg, row-delete-readback-alpha20.jpg).
+Previous alpha.18 screenshots are not presented as this revision.

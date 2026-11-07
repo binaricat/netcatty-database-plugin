@@ -33,6 +33,8 @@ main. SQL is rendered as React text tokens, never HTML. These boundaries matter
 more than cosmetically copying a dialog.
 
 Automated component/controller and remote-DOM tests are separate from actual
-application validation. Native validation of the compact layout is pending
-isolation of a recurrent host runtime message-port closure; screenshots of the
-preceding two-column alpha.18 layout do not qualify this revision.
+application validation. Native alpha.20 validation now confirms the compact highlighted layout,
+explicit one-row delete and subsequent SELECT readback on unchanged main.
+The earlier port-closure investigation remains open; one recovered session is
+not a root-cause fix. Screenshots of the preceding two-column alpha.18 layout
+do not qualify this revision.

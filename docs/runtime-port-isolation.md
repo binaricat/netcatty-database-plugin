@@ -38,9 +38,14 @@ found. A heartbeat is not an acceptable substitute for diagnosis.
 A minimal separately packaged diagnostic plugin displays one paragraph using
 the same host React SDK, with no database, images, network or timers. The
 actual database plugin was disabled, and the probe was enabled in the real
-application at 17:28:29.741. Its result is pending. The diagnostic is not a
+application at 17:28:29.741. It stayed running for 371 seconds with no last error. This weakens a generic fixed-idle failure hypothesis but does not identify the real plugin trigger. The diagnostic is not a
 replacement database build or functional acceptance evidence.
 
 No host main patch has been applied. An independently developed icon-queue
 patch may subsequently be tested on a separate local host branch, with the
 original baseline retained. It is not yet a demonstrated port-closure fix.
+
+The unchanged host was then stopped normally and restarted with Electron logging
+to a file. Alpha.20 remained running through over six minutes of native grid
+delete/readback and CSV import/readback. No icon patch was applied. This single
+recovery does not establish a fix; preserve the earlier reproducible failure.

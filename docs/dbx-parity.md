@@ -31,8 +31,8 @@ behavior exists but scope or qualification is materially narrower than DBX.
 Missing means no usable implementation on main. Historical experimental-host
 results cannot be carried forward as main acceptance.
 
-After the reviewed grid UPDATE/DELETE slice: **0 of 24 capability groups complete; 13 partial;
-11 missing**. This coarse count is not a percentage of engineering effort or a
+After the native pasted CSV import slice: **0 of 24 capability groups complete; 14 partial;
+10 missing**. This coarse count is not a percentage of engineering effort or a
 weighted product completion score. It also does not establish that every DBX
 advertised driver itself has been independently tested in DBX.
 
@@ -53,7 +53,7 @@ advertised driver itself has been independently tested in DBX.
 | 13. Result browsing/search/sort/paging | Partial | Bounded returned-result paging, filtering, sorting and cell inspection. No server-side paging or virtual scrolling. |
 | 14. Grid insert/edit/delete with SQL preview | Partial | Reviewed single-row grid UPDATE/DELETE with original-row conflict checks and actual full-app readback in alpha.15. No grid INSERT, bulk editing, remote or persistent database qualification. See `grid-mutation.md`. |
 | 15. CSV/JSON/Markdown/XLSX/INSERT export | Partial | CSV/JSON/Markdown/SQLite INSERT export of returned rows only, bounded preview and explicit clipboard action (4096 UTF-8 bytes). Upstream truncation is disclosed. No XLSX, disk or full-table export. Full-App alpha.9 previews and explicit copying tested for all four formats, including SQL explicit-target protection; native cancellation/limits remain deterministic-only. Native confirmation depends on host permission mode. See `result-export.md`. |
-| 16. CSV/Excel import | Missing | No importer. |
+| 16. CSV/Excel import | Partial | Reviewed pasted CSV import into bounded disposable SQLite tables; atomic batch and explicit readback. Full-app alpha.20 two-row native acceptance passed. No file/Excel import, persistent/remote service or bulk import qualification. See `csv-import.md`. |
 | 17. Data transfer and data comparison | Missing | No cross-connection engine or reviewed synchronization. |
 | 18. Database dumps/backups/scheduling | Missing | No dump drivers, persistent scheduler or background service. |
 | 19. ER/schema diff/plans/lineage | Missing | No metadata/query-plan coverage or visualization yet. |

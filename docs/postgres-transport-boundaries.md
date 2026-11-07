@@ -17,3 +17,27 @@ The separate SCRAM module now supplies offline vectors, server-signature checks 
 ## Browser WebCrypto source audit
 
 Main `electron/main.cjs:159–166` registers the plugin scheme as standard and secure. `browserPluginRuntime.cjs:137–145` uses a sandboxed, context-isolated browser with Node disabled and web security enabled. `runtime/browserRuntime.mjs:16–35` disables direct network/worker browser capabilities but does not remove `crypto`, `getRandomValues` or `subtle`; `pluginProtocol.cjs:134` CSP does not disable WebCrypto. Thus browser WebCrypto is expected to support the SCRAM module without Node imports or permission weakening. This is a source audit, not an installed-runtime crypto test. Run the offline RFC vector inside the actual installed sandbox before claiming runtime qualification; Node unit success alone does not establish it.
+
+## Startup protocol state machine
+
+`postgresSession.ts` now consumes an injected, already host-verified TLS
+`PluginByteConnection`. It does not open a socket or resolve the STARTTLS/ALPN
+boundary above. Strict progression is SASL mechanisms → server first → verified
+server final → AuthenticationOk → idle ReadyForQuery. Parameters are bounded;
+BackendKeyData is checked for exact length and discarded, not used as a claimed
+CancelRequest capability. Success transfers the original connection back to the
+caller; further asynchronous frames still need decoding by a future query layer.
+
+Thirteen offline session tests cover fragmented bytes, wrong server signatures,
+ordering, PLUS-only refusal, malformed input, abort, timeout, read/frame/metadata
+budgets, coalesced trailing frames and late writes. A review found that empty
+immediate reads could starve timer callbacks. The implementation now rejects
+empty reads, limits reads to 4096, and independently checks a monotonic deadline
+around reads/writes, frame processing and asynchronous SCRAM work. Failure and
+cancellation close the connection and zero the in-flight write buffer even if
+the write remains pending. WebCrypto cancellation is best effort: closing does
+not abort already-issued cryptographic computation, but prevents later success
+or additional writes.
+
+All these tests use fabricated bytes and credentials. No real PostgreSQL server,
+native PostgreSQL connection UI or usable production driver is claimed.
