@@ -13,7 +13,7 @@ and the implementation report, with real Electron evidence under
 | Execution limits | Fixed subprocess; 3 s kill; row/string/payload limits | Hard native-memory/CPU OS constraints and cross-platform kill/reap qualification |
 | SQL semantics | SQLite authorizer allowlist, no scripts/PRAGMA/ATTACH/extensions | Driver-aware typed plans, cross-schema policy and nontransactional outcomes |
 | Result UI | Bounded host DOM table, NULL and blob markers | Virtual paging, column precision/types, accessibility/IME, large-result benchmarks |
-| AI | Local mock-only draft UI; dormant streaming helpers tested with mocks | Real-provider approved synthetic acceptance, usage UI, diagnostics and draft/diff editor |
+| AI | Gate D: optional host AI RPC, schema-only untrusted envelope, four tasks, bounded unexecuted stream, explicit insert, Stop/lifecycle cleanup; en/zh-CN React and deterministic host tests | Real-provider synthetic acceptance SKIPPED_NO_PROVIDER; native installed-plugin/provider dialogs, model output quality, usage UI and draft/diff editor |
 | Themes/assets | Six sanitized SVG variants and source/hash ledger | Visual light/dark/high-contrast on all platforms and trademark/release review |
 | PostgreSQL/MySQL | Honest unavailable cards; no driver claim | Host-owned TLS/secret/tunnel selection, fixtures, cancel/transaction tests |
 | Product parity | Home, saved connections, modal, real table/view tree with search, readonly Structure, query/table tabs and results | Native full-host GUI gate, saved queries/history, broader schema browser, data editing, ER, transfer/import/export/backup/admin |
@@ -40,3 +40,14 @@ string contract); raw host diagnostics, user data and SQL identifiers are not
 translated. Native evidence and exact test counts are recorded separately in
 `/workspace/agent-tools/database/astra-m5-plugin-zh-report.md`. This does not claim
 full product localization, OS IME candidate UI or production/DBX pixel parity.
+
+Gate D replaces the mock-only panel with the host AI path; it adds no database
+feature flag, provider transport, autonomous tools or execution path. Both AI
+feature and permission are optional, so hosts without negotiated AI, configured models or permission show
+an honest unavailable state. Pre-Gate D validators reject optional AI manifests;
+the paired host update is required. Drafts require separate insertion and explicit editor Run /
+Review write. Row samples are not supported. No provider configuration or secret
+objects are passed to the plugin. The gate's real-provider lane is
+`SKIPPED_NO_PROVIDER` and its status is `PASS_WITH_RESIDUALS`; deterministic streams
+are not real-model evidence. Evidence, design, exact test counts and package hash:
+`/workspace/agent-tools/database/gate-d-live-ai/`.

@@ -32,3 +32,11 @@ Final host implementation commit: `e1e25ded99a758cc96f466656b1b04c8559ef7eb`
 on `feat/plugin-database-foundation`. Refresh procedure (maintainer only): build
 that host's plugin packages, run `node scripts/vendor-sdk.mjs /absolute/host`,
 update npm lockfile file-tarball integrity, then rerun lint/tests/pack/validation.
+
+## Gate D optional host AI
+
+The CLI snapshot is refreshed from the paired Gate D host to accept optional
+`ai.model-invocation` alongside optional `ai.invoke`. Permission enforcement and
+wire shapes are unchanged; contract and SDK tarballs retain their prior hashes.
+The exact host/plugin commits and archive digest are recorded in
+`/workspace/agent-tools/database/gate-d-live-ai/final-status.json`.

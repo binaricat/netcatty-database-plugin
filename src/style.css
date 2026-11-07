@@ -109,3 +109,7 @@ tbody tr:focus { outline: 1px solid hsl(var(--primary)); outline-offset: -1px; b
 .query-splitter::-webkit-slider-runnable-track { height: 2px; background: hsl(var(--border)); }
 .query-splitter::-webkit-slider-thumb { appearance: none; -webkit-appearance: none; width: 32px; height: 6px; margin-top: -2px; border-radius: 3px; background: hsl(var(--muted-foreground)); }
 .query-splitter:hover::-webkit-slider-thumb,.query-splitter:focus-visible::-webkit-slider-thumb { background: hsl(var(--primary)); }
+
+.ai-content { max-height: 330px; overflow: auto; }
+.ai-content label { display: block; margin: 6px 0; }
+.ai-content textarea { display: block; width: 100%; min-height: 48px; }

@@ -7,8 +7,8 @@
     "zh-CN": "Netcatty 数据库"
   },
   "description": {
-    "en": "Experimental SQLite workbench with host-owned saved connections and mock-only SQL drafts.",
-    "zh-CN": "实验性 SQLite 工作台，支持宿主管理的已保存连接和仅供模拟的 SQL 草稿。"
+    "en": "Experimental SQLite workbench with host-owned saved connections and unexecuted host AI SQL drafts.",
+    "zh-CN": "实验性 SQLite 工作台，支持宿主管理的已保存连接和未执行的宿主 AI SQL 草稿。"
   },
   "version": "0.1.0-alpha.1",
   "publisher": "binaricat",
@@ -29,7 +29,8 @@
       "database.saved-connections.v1",
       "database.tunnel-test.synthetic.v1",
       "database.host-port-probe.v1",
-      "database.host-live-ssh-pg.fixture.v1"
+      "database.host-live-ssh-pg.fixture.v1",
+      "ai.model-invocation"
     ]
   },
   "main": {
@@ -63,7 +64,14 @@
       },
       "storage",
       "vault.metadata",
-      "secrets"
+      "secrets",
+      {
+        "permission": "ai.invoke",
+        "reason": "Request unexecuted SQL drafts from the host-selected model using schema metadata, editor SQL and user request / 使用数据库结构、编辑器 SQL 和用户请求，向宿主选择的模型请求未执行的 SQL 草稿",
+        "resources": [
+          "*"
+        ]
+      }
     ]
   },
   "contributes": {

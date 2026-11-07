@@ -110,7 +110,7 @@ try {
   assert.match(byLabel('SQL 语句').attributes.value, /paid/);
   await language('en'); await change('SQL statement', initialSql);
   checks.push('SQL overlay/gutter share scroll parent, lexical colors preserve text, range persists across Data and locale changes');
-  await click('AI SQL assistant / mock only'); await click('Create mock draft'); assert.match(document.body.textContent, /SELECT id, title, status FROM notes WHERE status = \?/); checks.push('AI draft is local mock with zero provider calls');
+  await click('AI SQL assistant'); assert.match(document.body.textContent, /Host AI is unavailable/); assert.equal(button('Run assistance'), undefined); assert.equal(button('Create mock draft'), undefined); await snapshot('ai-unavailable-en'); checks.push('AI unavailable without negotiated feature; no provider or mock calls');
   await click('Close connection'); await unmount(); await mount(); await click('Synthetic saved memory'); await click('Run read query'); assert.ok(apiCalls.some((c) => c.operation === 'reopen')); checks.push('saved list restored on fresh React mount, reopen then query');
   await click('Close connection'); await click('New Connection'); await click('Next'); await change('SQLite source', 'file'); assert.ok('disabled' in button('Save & Connect').attributes); assert.match(document.body.textContent, /No file selected/); checks.push('cancelled native chooser never falls back to memory');
   chosen = file; await click('Choose file...'); await change('Connection name', 'Synthetic saved file'); await click('Save & Connect');
@@ -123,10 +123,12 @@ try {
   await change('SQLite source', 'file'); await unmount(); await act(async () => { finish(file); await tick(); }); assert.equal(apiCalls.findLast((c) => c.operation === 'close').revision, 'revision-one'); checks.push('late chooser result after unmount releases session');
   features.delete('database.saved-connections.v1'); features.delete('database.sqlite-file-fixture.v1'); await mount(); await click('New Connection'); await click('Next'); assert.ok(button('Connect without saving')); assert.ok('disabled' in find((n) => n.element === 'option' && n.attributes.value === 'file').attributes); await click('Connect without saving'); await click('Run read query'); checks.push('older host retains memory path; file and persistence gated independently');
   await unmount(); features.add('database.saved-connections.v1'); features.add('database.sqlite-file-fixture.v1');
+  features.add('ai.model-invocation');
   saved = Array.from({ length: 100 }, (_, i) => ({ id: `stress-${i}`, name: `Stress ${i}`, color: 'default', engine: 'sqlite', targetKind: 'memory', readOnly: false }));
   hostCount = 500; schemaColumns = 32; schemaObjects = 32; await mount(); await event(byLabel('Next connections'), { type: 'click' }); assert.ok(button('Stress 20')); await event(byLabel('Previous connections'), { type: 'click' }); await click('Stress 0'); await event(byLabel('Open table notes'), { type: 'click' }); assert.equal(document.querySelectorAll('.structure tbody tr').length, 32); await event(byLabel('Close notes'), { type: 'click' });
   for (let i = 0; i < 7; i++) await click('+ New Query');
-  await click('AI SQL assistant / mock only'); await click('Create mock draft');
+  await click('AI SQL assistant'); await click('Run assistance');
+  assert.match(document.body.textContent, /Connected schema is missing or too large/);
   await event(byLabel('Next connections'), { type: 'click' });
   await change('SQL statement', "SELECT 'a', 1 FROM notes WHERE id = 2 ORDER BY title");
   await click('Run read query'); await click('+ New Connection'); await click('Next'); await click('Advanced'); await click('Load permitted hosts');
@@ -154,6 +156,7 @@ try {
   checks.push('all five port results fit host DOM budget over maximum connections, schema, grid, tabs and SQL editor');
   context.database.listHostsForDatabase = stressListHosts; features.delete('database.host-port-probe.v1');
   await unmount();
+  features.delete('ai.model-invocation');
   // Chinese starts from the host environment, not navigator.language (JSDOM stays English).
   saved = []; bigResult = false; hostCount = 2; schemaObjects = 1; schemaColumns = 3; chosen = null;
   await language('zh-CN'); await mount();
@@ -204,8 +207,8 @@ try {
   assert.match(document.body.textContent, /0 行 \/ 0 列 \/ 3 毫秒 \/ 1 处更改 \/ 已截断/);
   context.database.query = originalQuery;
   checks.push('pending host query localizes waiting state across language changes and displays empty/truncated completion');
-  await click('AI SQL 助手 / 仅模拟'); await click('生成模拟草稿'); assert.ok(byLabel('未执行的 AI 草稿'));
-  checks.push('zh-CN schema/search/structure/data/query/status/mock UI; live locale preserves tabs, SQL, parameters, results and session without new host calls');
+  await click('AI SQL 助手'); assert.ok(byLabel('未执行的 AI 草稿')); assert.match(document.body.textContent, /此宿主不支持 AI 辅助/); await snapshot('ai-unavailable-zh-CN');
+  checks.push('zh-CN schema/search/structure/data/query/status/unavailable AI UI; live locale preserves tabs, SQL, parameters, results and session without new host calls');
   await click('关闭连接'); await click('新建连接'); await click('下一步'); await change('SQLite 数据源', 'file');
   assert.match(document.body.textContent, /尚未选择文件/); chosen = file; await click('选择文件…');
   assert.match(document.body.textContent, /一次性 SQLite 文件（只读）/); failSave = true;
@@ -232,6 +235,73 @@ try {
   await unmount(); context.database.listSavedConnections = originalList;
   checks.push('saved-list permission failure localizes immediately and follows later host language changes');
 
+
+  // AI is a host RPC client only. Fake events exercise the real React + remote DOM.
+  features.add('ai.model-invocation'); saved = []; chosen = null;
+  const aiCalls = []; let aiEvents = []; let aiRead; let aiMode = 'stream'; let aiNext = 0;
+  const aiOk = async (method, params) => { aiCalls.push({ method, ...params }); return { ok: true }; };
+  context.ai = {
+    openChat: async (params) => { aiCalls.push({ method: 'open', ...params }); if (aiMode === 'denied' || aiMode === 'unconfigured') throw Error('PRIVATE_PROVIDER_DIAGNOSTIC'); return { chatHandle: `chat-${++aiNext}`, model: 'Synthetic stream fixture', expiresAt: 1 }; },
+    startTurn: async (params) => { aiCalls.push({ method: 'start', ...params }); return { turnHandle: `turn-${aiNext}`, maxOutputTokens: 2048, reservedTokens: 2048 }; },
+    readTurn: (params) => { aiCalls.push({ method: 'read', ...params }); return aiEvents.length ? Promise.resolve(aiEvents.shift()) : new Promise((resolve) => { aiRead = resolve; }); },
+    stopTurn: (params) => aiOk('stop', params), closeChat: (params) => aiOk('close', params),
+  };
+  const finishAI = async (event) => { assert.ok(aiRead); const resolve = aiRead; aiRead = undefined; await act(async () => { resolve(event); await tick(); }); assert.deepEqual(policyErrors, []); };
+  const queryCalls = () => apiCalls.filter((c) => c.operation === 'query').length;
+  await mount(); await click('New Connection'); await click('Next'); await click('Save & Connect');
+  let beforeAiQueries = queryCalls(); const beforeAiSql = byLabel('SQL statement').attributes.value;
+  await click('AI SQL assistant'); assert.match(document.body.textContent, /checked when you run assistance/); assert.equal(aiCalls.length, 0);
+  await change('Your request', 'Generate a SELECT of note titles.'); await click('Run assistance');
+  assert.ok('disabled' in button('Run assistance').attributes); assert.match(document.body.textContent, /Synthetic stream fixture/);
+  let envelope = JSON.parse(aiCalls.findLast((c) => c.method === 'start').prompt.split('BEGIN_UNTRUSTED_JSON\n')[1].split('\nEND_UNTRUSTED_JSON')[0]);
+  assert.equal(envelope.task, 'generate'); assert.equal(envelope.engine, 'sqlite'); assert.equal(envelope.schema.tables[0].name, 'notes'); assert.equal(envelope.sql, beforeAiSql);
+  assert.deepEqual(Object.keys(envelope).sort(), ['task', 'engine', 'dialect', 'connectionLabel', 'schema', 'sql', 'request'].sort());
+  await finishAI({ kind: 'text', sequence: 1, text: 'SELECT title ' });
+  assert.equal(textOf(byLabel('Unexecuted AI draft')), 'SELECT title '); assert.equal(byLabel('SQL statement').attributes.value, beforeAiSql);
+  assert.ok('disabled' in button('Insert draft into editor').attributes);
+  await language('zh-CN'); assert.ok(button('停止')); assert.ok(byLabel('SQL 辅助任务')); assert.ok(byLabel('你的请求'));
+  await finishAI({ kind: 'text', sequence: 2, text: 'FROM notes;' }); await finishAI({ kind: 'end', sequence: 3 });
+  await snapshot('ai-stream-zh-CN'); assert.equal(queryCalls(), beforeAiQueries); assert.equal(byLabel('SQL 语句').attributes.value, beforeAiSql);
+  assert.deepEqual(aiCalls.slice(-2).map((c) => c.method), ['stop', 'close']);
+  await click('将草稿插入编辑器'); assert.equal(byLabel('SQL 语句').attributes.value, 'SELECT title FROM notes;'); assert.equal(byLabel('SQL 参数').attributes.value, '[]'); assert.equal(queryCalls(), beforeAiQueries);
+  await language('en'); await snapshot('ai-insert-unexecuted-en');
+  await change('SQL statement', 'SELECT id FROM notes'); await click('Run read query');
+  assert.equal(apiCalls.findLast((c) => c.operation === 'query').sql, 'SELECT id FROM notes');
+  assert.equal(queryCalls(), beforeAiQueries + 1); beforeAiQueries = queryCalls();
+  checks.push('explicit Run uses edited SQL, never the separate AI draft');
+  checks.push('negotiated host AI starts only on click, streams schema-grounded text, en/zh-CN, cleans handles; insertion edits without query');
+  for (const task of ['explain', 'optimize', 'fix']) {
+    await change('SQL assistance task', task); aiEvents = [{ kind: 'text', sequence: 1, text: `Unexecuted ${task} fixture` }, { kind: 'end', sequence: 2 }];
+    await click('Run assistance'); assert.match(aiCalls.findLast((c) => c.method === 'start').prompt, new RegExp(`"task":"${task}"`));
+  }
+  assert.equal(queryCalls(), beforeAiQueries); checks.push('all four tasks use bounded JSON envelope and never run SQL');
+  aiEvents = [{ kind: 'text', sequence: 1, text: 'Partial SQL' }]; await click('Run assistance'); await click('Stop');
+  assert.match(document.body.textContent, /Stopped - draft remains unexecuted/); assert.ok('disabled' in button('Insert draft into editor').attributes);
+  await finishAI({ kind: 'text', sequence: 2, text: 'LATE-STOP' }); assert.doesNotMatch(document.body.textContent, /LATE-STOP/);
+  aiEvents = []; await click('Run assistance'); await click('+ New Query'); await finishAI({ kind: 'text', sequence: 1, text: 'LATE-TAB' });
+  assert.doesNotMatch(document.body.textContent, /LATE-TAB|Partial SQL/);
+  await click('Run assistance'); await click('Close connection'); await finishAI({ kind: 'text', sequence: 1, text: 'LATE-DISCONNECT' });
+  assert.doesNotMatch(document.body.textContent, /LATE-DISCONNECT/); await click('Synthetic SQLite');
+  await click('Run assistance'); await click('AI SQL assistant'); await finishAI({ kind: 'text', sequence: 1, text: 'LATE-HIDE' });
+  await click('AI SQL assistant'); assert.doesNotMatch(document.body.textContent, /LATE-HIDE/);
+  checks.push('Stop, tab switch, disconnect and panel hide cancel and close; stale AI output cannot cross generations');
+  for (const mode of ['denied', 'unconfigured']) {
+    aiMode = mode; await click('Run assistance'); assert.match(document.body.textContent, /Unavailable/); assert.match(document.body.textContent, /Check host model configuration and AI permission/);
+    assert.doesNotMatch(document.body.textContent, /PRIVATE_PROVIDER_DIAGNOSTIC/);
+    await language('zh-CN'); assert.match(document.body.textContent, /AI 不可用。请检查宿主模型配置和 AI 权限/); await snapshot(`ai-${mode}-zh-CN`); await language('en');
+  }
+  aiMode = 'stream'; aiEvents = [{ kind: 'tool', sequence: 1, name: 'query', sql: 'DELETE FROM notes' }]; await click('Run assistance');
+  assert.match(document.body.textContent, /AI output was rejected/); assert.equal(queryCalls(), beforeAiQueries);
+  aiEvents = [{ kind: 'text', sequence: 1, text: 'x'.repeat(8193) }]; await click('Run assistance'); assert.match(document.body.textContent, /draft limit exceeded/);
+  aiEvents = [{ kind: 'end', sequence: 1 }]; await click('Run assistance'); assert.match(document.body.textContent, /returned no draft/);
+  checks.push('permission denial, missing model, unsupported tool, oversized and empty output show honest localized errors with no execution');
+  aiEvents = [{ kind: 'text', sequence: 1, text: 'x'.repeat(8192) }, { kind: 'end', sequence: 2 }]; await click('Run assistance');
+  assert.equal(textOf(byLabel('Unexecuted AI draft')).length, 8192); assert.deepEqual(policyErrors, []);
+  await click('Run assistance'); await unmount(); await finishAI({ kind: 'text', sequence: 1, text: 'LATE-UNMOUNT' });
+  assert.equal(aiCalls.filter((c) => c.method === 'stop').length, aiCalls.filter((c) => c.method === 'start').length);
+  assert.equal(aiCalls.filter((c) => c.method === 'close').length, aiCalls.filter((c) => c.method === 'start').length);
+  assert.equal(queryCalls(), beforeAiQueries); features.delete('ai.model-invocation');
+  checks.push('8 KiB draft fits actual remote-DOM policy; unmount cancels, all opened handles closed, zero AI-driven database calls');
 
   // Synthetic tunnel UI regression lane: recorded outcomes only, no SSH sockets.
   await language('en'); saved = []; hostCount = 2;

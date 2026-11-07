@@ -59,9 +59,41 @@ host requires `secrets` permission and an OS-backed keychain; it returns only a
 Connection metadata mutations require `storage` permission. No real credentials
 or user databases are qualified by this release.
 
-The secondary **AI SQL assistant / mock only** panel emits one local unexecuted
-example. The manifest requests no AI feature or permission, and the workbench
-never calls a model. The existing stream helper remains covered by mock tests.
+## AI SQL assistance (unexecuted drafts)
+
+The secondary **AI SQL assistant** uses the existing host-selected model through
+optional `ai.model-invocation` / `ai.invoke`. Hosts without that feature show
+**Unavailable**; permission denial, missing model and provider failures show a
+localized unavailable message. No mock button or fallback provider is shipped.
+Configure/select the model in Netcatty itself; the plugin has no provider settings
+and receives only opaque chat/turn handles, a model display label and text events.
+The paired host must include the Gate D validator update for optional AI features;
+older validators may reject this package. A negotiated feature is not a guarantee that a model is configured: availability
+and permission are checked when you click **Run assistance**.
+
+Choose **generate / explain / optimize / fix**, enter a request, then click
+**Run assistance**. The prompt shares connected SQLite schema metadata (all exposed
+tables/views and columns), the connection display label, up to 4,000 characters of
+current editor SQL and 1,500 characters of your request. It never includes result
+rows, parameters, errors, saved connection objects, secretRefs or credentials.
+Do not put secrets in free-form labels, SQL or requests. The JSON envelope is
+marked untrusted and limited to 12,000 UTF-8 bytes; an oversized schema is rejected.
+
+Text streams into **Unexecuted AI draft**, capped at 8 KiB to fit the host UI.
+**Stop**, closing the panel, changing query tabs, disconnecting and unmounting
+cancel/release the chat and discard late replies. Tool events are rejected.
+**Insert draft into editor** is an explicit replacement of editor text, clears
+parameters and old results, and does not execute SQL. It is disabled for partial
+stopped/failed output. Output may contain explanations or Markdown; review/edit it
+and supply any needed parameters before the existing **Run read query** or
+**Review write** actions. Those actions submit only the current editor SQL.
+File writes remain unavailable. No autonomous tools or SQL execution are added.
+
+Gate D verifies deterministic streaming, cancellation, errors, insertion without
+execution, English/zh-CN labels and real host boundaries. Real inference acceptance
+is `SKIPPED_NO_PROVIDER`: no configured host model was available in the task's
+native profiles. This ships the wired live-or-unavailable path with documented
+residuals, not a claim of successful real-provider or native-provider QA.
 
 PostgreSQL and MySQL are named roadmap targets with icons, not active drivers.
 See docs/architecture.md, docs/qualification.md and docs/provenance.md.
@@ -77,7 +109,7 @@ unchanged. Switching language preserves the active session, tabs and edits.
 The string map in `src/i18n.ts` is original plugin-owned copy.
 
 Host diagnostics are retained verbatim beneath a localized error introduction.
-The manifest's two permission reasons are bilingual because the current contract
+The manifest's permission reasons are bilingual because the current contract
 accepts only plain strings there. Host security dialogs and native file chooser
 text belong to the host. This covers current controls, not full product i18n or
 OS IME candidate windows.
@@ -175,5 +207,5 @@ races and SHM side-effect exclusion require further host qualification.
 Linux 宿主可在默认关闭的数据库实验下公布
 `database.sqlite-fd-identity.fixture.v1`。宿主持有并验证限定测试目录中的文件描述符
 和内容指纹，插件仍不提供路径。文件连接仍为只读，WAL 及其附属文件仍被拒绝。
-本阶段不支持实时 WAL 读取、检查点、恢复、任意用户文件或真实 AI；原生调用内部的
+本阶段不支持实时 WAL 读取、检查点、恢复、任意用户文件；AI 辅助参见上文 Gate D。原生调用内部的
 内容竞争及 SHM 无副作用保证仍待后续验证。

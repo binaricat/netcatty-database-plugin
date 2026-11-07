@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { definePlugin, type PluginContext, type DatabaseConnectionMeta } from '@netcatty/plugin-sdk';
 import { registerHostReactView } from '@netcatty/plugin-sdk/host-react';
 import { useWorkbench } from './useWorkbench';
-import { defaultQuery, selectObject } from './domain';
+import { selectObject } from './domain';
+import { SqlAssistant } from './SqlAssistant';
 import css from './style.css';
 import { SqlEditor } from './SqlEditor';
 import { clampEditorSplit, DEFAULT_EDITOR_SPLIT, MIN_EDITOR_SPLIT, MAX_EDITOR_SPLIT } from './sqlDisplay';
@@ -96,7 +97,7 @@ function Structure({ vm }: { vm: Model }) {
 function Workbench({ context }: { context: PluginContext }) {
   const vm = useWorkbench(context); const { t } = vm; const [connectionFilter, setConnectionFilter] = useState(''); const [connectionPage, setConnectionPage] = useState(0);
   const matches = vm.saved.filter((c) => c.name.toLowerCase().includes(connectionFilter.toLowerCase()));
-  const page = Math.min(connectionPage, Math.max(0, Math.ceil(matches.length / 20) - 1)); const [draft, setDraft] = useState(''); const [showAI, setShowAI] = useState(false);
+  const page = Math.min(connectionPage, Math.max(0, Math.ceil(matches.length / 20) - 1)); const [showAI, setShowAI] = useState(false);
   const [editorSplit, setEditorSplit] = useState(DEFAULT_EDITOR_SPLIT);
   const result = vm.tab?.result;
   // Only the exact generated SELECT has known provenance; edited SQL is not parsed.
@@ -118,7 +119,7 @@ function Workbench({ context }: { context: PluginContext }) {
           const type = resultObject?.columns.find((column) => column.name === col)?.type;
           return <th key={i}>{col}<small className="result-type" title={type ? t("Type") : t("Result type unavailable")}>{type || '—'}</small></th>;
         })}</tr></thead><tbody>{result.rows.slice(0, 20).map((row, i) => <tr key={i} tabIndex={0}><td className="row-index">{i + 1}</td>{row.slice(0, 8).map((cell, j) => <td key={j} className={cell === null ? "null-cell" : typeof cell === "number" ? "number-cell" : undefined}>{cell === null ? 'NULL' : String(cell).length > 256 ? String(cell).slice(0, 256) + '...' : String(cell)}</td>)}</tr>)}</tbody></table></div> : <div className="empty-results">{result ? t("Statement completed. No result rows.") : t("Run a query to view results.")}</div>}<div className="result-status" role="status">{vm.busy ? t("Waiting for host...") : result ? t("{rows} rows / {columns} columns / {ms} ms / {changes} changes", { rows: result.rows.length, columns: result.columns.length, ms: result.elapsedMs, changes: result.changes }) + (result.truncated ? t(" / truncated") : "") : t("Nothing executed")}{result && <span className="result-sql" title={vm.tab.resultSql}>{vm.tab.resultSql}</span>}</div></section></div> : <div className="empty-results">{t("Open a table or create a new query.")}</div>}
-        <section className="ai-secondary"><button className="toolbar-button" aria-expanded={showAI} onClick={() => setShowAI(!showAI)}>{t("AI SQL assistant / mock only")}</button>{showAI && <div><p>{t("No provider is called. This local example is an unexecuted draft.")}</p><button className="secondary" onClick={() => setDraft(defaultQuery(vm.schema).sql)}>{t("Create mock draft")}</button><pre aria-label={t("Unexecuted AI draft")}>{draft || t("No draft generated.")}</pre></div>}</section>
+        <section className="ai-secondary"><button className="toolbar-button" aria-expanded={showAI} onClick={() => setShowAI(!showAI)}>{t("AI SQL assistant")}</button>{showAI && <SqlAssistant key={`${vm.session.handleId}:${vm.activeTab}`} context={context} schema={vm.schema} sql={vm.tab?.sql ?? ''} label={vm.connectionName} disabled={vm.busy || !vm.tab} insert={(sql) => vm.edit({ sql, parameters: '[]', result: null, resultSql: undefined })} t={t} />}</section>
       </>}
       {vm.error && !vm.modal && <p className="error" role="alert">{vm.error}</p>}
     </section></div><footer className="app-status">{vm.session ? vm.connectionName : t("No database connected")}<span>{t("Netcatty host permissions / SQLite fixture service")}</span></footer>

@@ -15,7 +15,7 @@ Saving derives the target from a live handle; no plugin-supplied path is accepte
 `PluginSecretStore` holds ciphertext separately using Electron safeStorage and
 rejects unavailable/basic-text backends. Only opaque references reach results.
 The UI state/lifecycle lives in `useWorkbench`; components render the shell.
-AI features/permissions are absent from this milestone's manifest.
+Gate D adds optional `ai.model-invocation` and `ai.invoke`, independent of database permissions.
 
 The host alone starts a fixed SQLite subprocess with an in-memory fixture or
 an M2 host-chosen disposable file. It
@@ -34,10 +34,22 @@ before broadening the target surface.
 
 ## AI boundary
 
-M3 uses only a local mock draft. No schema, SQL, rows or credentials are sent
-to a provider. Earlier bounded stream/prompt helpers remain as mock-tested
-library code, disconnected from the workbench. Real-provider acceptance is
-outside this milestone.
+Gate D uses `useSqlAssistant` for UI lifecycle and `DraftStream` for host RPC
+orchestration. Components receive no database execution API for AI actions;
+insertion calls only the editor state updater. The mounted panel is keyed by
+connection handle and query tab, so switch/hide/disconnect releases AI handles.
+Generations are reserved before any await and late open/start/read results are
+cleaned or discarded. Each run opens a fresh chat and always releases it.
+
+`buildPrompt` projects connected schema tables/columns plus task, SQLite dialect,
+display label, bounded editor SQL and user request into an untrusted JSON envelope.
+No rows, parameters, errors, host/session/connection objects or secret references
+are serialized. Prompt cap is 12,000 UTF-8 bytes, output cap 8,192 UTF-8 bytes.
+Host model selection, credentials, permissions and network transport remain in
+the existing AI service; tools are disabled and unknown events fail closed.
+Optional feature absence and host invocation failures are localized unavailable
+states, with no simulated fallback. Only explicit editor actions execute SQL.
+Real-provider acceptance remains SKIPPED_NO_PROVIDER in this environment.
 
 ## Extension path
 
