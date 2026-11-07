@@ -44,7 +44,7 @@ advertised driver itself has been independently tested in DBX.
 | 4. SSH tunnels, proxies and reconnect | Missing | Existing host metadata/port/loopback probes in the old snapshot were not a general tunnel. No production tunnel in this port. |
 | 5. Table/view/column browser | Partial | Actual SQLite introspection, search and read-only structure. No multi-database/schema navigation. |
 | 6. Indexes/FKs/triggers/routines/source browsing | Partial | Bounded SQLite definitions, ordered composite PK, indexes, grouped foreign keys and triggers are implemented and engine-tested. Remote routines and full vendor-specific structure remain absent. |
-| 7. Schema editing and reviewed DDL | Partial | Structured, one-shot reviewed CREATE TABLE for disposable SQLite, schema-version guards and rollback budgets; full Netcatty alpha.13 create/structure/INSERT/readback tested. Reviewed ordinary CREATE INDEX also works in alpha.14, with UNIQUE rollback and real native metadata inspection. Reviewed single nullable ADD COLUMN now has engine/controller/remoteDOM coverage in alpha.23, with native confirmation and old-row NULL readback passed. No other ALTER, index deletion, constraint editing, persistence or remote DDL. See `create-table.md` and `create-index.md`. |
+| 7. Schema editing and reviewed DDL | Partial | Structured, one-shot reviewed CREATE TABLE for disposable SQLite, schema-version guards and rollback budgets; full Netcatty alpha.13 create/structure/INSERT/readback tested. Reviewed ordinary CREATE INDEX also works in alpha.14, with UNIQUE rollback and real native metadata inspection. Reviewed single nullable ADD COLUMN now has engine/controller/remoteDOM coverage in alpha.23, with native confirmation and old-row NULL readback passed. Alpha.24 adds guarded RENAME COLUMN with dependency-change rollback and controller/real-engine/remoteDOM coverage; native rename acceptance remains pending. No full ALTER, index deletion, constraint editing, persistence or remote DDL. See `create-table.md` and `create-index.md`. |
 | 8. SQL editing/highlight/tabs | Partial | Bounded syntax overlay, line numbers and up to eight tabs. No CodeMirror-equivalent editing/selection behavior. |
 | 9. Completion, formatting and diagnostics | Missing | No schema-aware completion or formatter/diagnostic engine. |
 | 10. Selection/scripts/manual transactions | Missing | One read or reviewed simple DML statement only; no batch, script execution or manual transaction controls. |
@@ -143,3 +143,10 @@ must remain open until functionality and evidence actually close these gaps.
 - Actual Netcatty SSH host selection and opening now qualified with real key-authenticated Dropbear and Redis 7.4.2. This is a terminal route, not a plugin database tunnel.
 - 289 tests pass; main remoteDOM regression passes 237 batches/24 scenes. New ADD COLUMN preserves existing rows as NULL, rechecks authoritative schema, consumes exact one-shot reviews, rolls back on budget/metadata failures and invalidates stale query results. Native alpha.23 ADD preview, confirmation and old-row NULL readback passed.
 - Latest plugin draft PR CI before alpha.23 changes passed all four lanes (main-host/Linux/macOS/Windows). These do not replace platform GUI or real remote-service tests.
+
+## Alpha.24 qualification checkpoint
+
+- 319 tests and lint pass; main remoteDOM regression passes 257 batches/26 scenes. Actual main PackageStore install and alpha.24 package validation pass.
+- Native Settings imported and enabled alpha.24 without replacing prior evidence; rename UI confirmation/readback remains to be exercised.
+- Independent real PostgreSQL protocol checks and native SSH psql acceptance are recorded separately above; neither is a plugin transport success.
+- Prior b340fb1 CI passed main-host and all three build/unit platforms. e8457c2 CI is pending at this checkpoint. No merge or release.
