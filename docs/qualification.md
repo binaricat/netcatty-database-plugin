@@ -8,7 +8,7 @@ and the implementation report, with real Electron evidence under
 | Area | Current slice | Next production gate |
 | --- | --- | --- |
 | Build/package | Locked npm, vendored source SDK/CLI, validator, reproducible `.ncpkg` | CI on isolated Linux/macOS/Windows, SBOM and provenance attestation |
-| SQLite | Memory + fixed M2/M3b files; C held-fd identity; E verified WAL snapshots; F separate-process writer invalidation and explicit fresh selection after writing pauses | Continuous-writer capture/live refresh, checkpoint/recovery, broader admission, malformed DB corpus and cross-platform locks |
+| SQLite | Memory + fixed M2/M3b files; C held-fd identity; E verified WAL snapshots; F writer invalidation/reselection; G fresh selection after PASSIVE/FULL/RESTART with a complete committed WAL, interrupted/stale-tail rejection | Broader checkpoint/reset availability and actual recovery/tail salvage, continuous-writer capture/live refresh, broader admission, malformed DB corpus and cross-platform locks |
 | Authority | Source/runtime-bound handles; default Ask; per-write exact native review | Broader target revision/plan receipts; lock/policy/source-swap stress and crash recovery |
 | Execution limits | Fixed subprocess; 3 s kill; row/string/payload limits | Hard native-memory/CPU OS constraints and cross-platform kill/reap qualification |
 | SQL semantics | SQLite authorizer allowlist, no scripts/PRAGMA/ATTACH/extensions | Driver-aware typed plans, cross-schema policy and nontransactional outcomes |
@@ -107,3 +107,35 @@ anomalies reject). It performs no source writes. Original E rejection tests plus
 fixture filesystem. Coarse/foreign filesystems, clock rollback and privileged
 metadata manipulation are not qualified. The bounded synchronous wait is outside
 the worker deadline, preserving M1's event-loop/resource limitation.
+
+
+Gate G adds optional `database.sqlite-wal-checkpoint.fixture.v1` only alongside
+E + F and the default-off Linux file experiment. It qualifies fresh explicit
+selection after PASSIVE/FULL/RESTART on the fixed M2 notes corpus while writing
+is paused: the unchanged E parser verifies the complete committed WAL and three
+fresh opens per mode return the exact six rows/schema without changing source
+main/WAL/SHM hashes or leaking fds. Checkpoints still invalidate old handles;
+there is no in-session refresh or checkpoint RPC. en/zh-CN notices require all
+file/E/F/G dependencies, and G alone cannot enable WAL or plugin path input.
+The historical E/F checkpoint non-claims above remain accurate for those gates;
+G adds this narrow successful fresh-admission qualification only.
+
+TRUNCATE's empty WAL rejects. A subsequent complete committed WAL can be freshly
+selected. RESTART followed by a shorter epoch leaves stale physical frames on the
+tested corpus and rejects. Actual SIGKILL after a bounded uncommitted cache spill
+and a variant missing the final 17 bytes also reject without a published session,
+source repair or derived-file/fd leak. Native SQLite recovers disposable copies
+and passes integrity_check (three committed rows for interrupted tails; seven for
+the stale epoch), proving the fixtures are recoverable by SQLite, **not by this
+product**. No product crash recovery, tail salvage or broad malformed support.
+
+Held fds do not coordinate checkpoints. A real second connection's held write
+transaction permits PASSIVE backfill but yields busy=1 for FULL/RESTART/TRUNCATE;
+backfill still invalidates the original snapshot. After rollback checkpoints
+succeed. F writer SQLITE_BUSY and C rollback lock tests remain required, as do
+C/E/F hostile replacement, content rewrite, parser and same-tick ABA tests.
+Continuous writers/live refresh, broader checkpoint/reset/recovery, malformed DB
+corpus, broader file admission and cross-platform locks remain production gates.
+M1, C/E/F non-atomic/native-reopen/cleanup/filesystem and D SKIPPED_NO_PROVIDER
+residuals are unchanged. Evidence, exact counts, commits and package hash:
+`/workspace/agent-tools/database/gate-g-checkpoint-recovery/`.

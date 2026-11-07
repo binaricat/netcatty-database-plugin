@@ -38,6 +38,7 @@ export function useWorkbench(context: PluginContext) {
   const persistence = enabled && context.enabledFeatures.has(SAVED_FEATURE);
   const fileEnabled = enabled && context.enabledFeatures.has('database.sqlite-file-fixture.v1');
   const walEnabled = fileEnabled && context.enabledFeatures.has('database.sqlite-wal-readonly.fixture.v1');
+  const walCheckpointEnabled = walEnabled && context.enabledFeatures.has('database.sqlite-wal-concurrent.fixture.v1') && context.enabledFeatures.has('database.sqlite-wal-checkpoint.fixture.v1');
   const walConcurrentEnabled = walEnabled && context.enabledFeatures.has('database.sqlite-wal-concurrent.fixture.v1');
   const close = async (s: Session | null, cancel = false) => { if (s) await context.database[cancel ? 'cancel' : 'close'](target(s)).catch(() => {}); };
   useEffect(() => {
@@ -127,5 +128,5 @@ export function useWorkbench(context: PluginContext) {
     const value = await context.database.query({ ...target(live.current), sql: tab.sql, parameters: parseParameters(tab.parameters), mode, maxRows: 100, timeoutMs: 3000 });
     if (rev === epoch.current) setTabs((items) => items.map((item) => item.id === id ? { ...item, result: value, resultSql: tab.sql } : item));
   });
-  return { liveSshPg, portProbe, tunnel, t, locale, tabTitle, saved, session, connectedId, connectionName: session && !connectedId ? t('Disposable SQLite') : connectionName, schema, tabs, tab, activeTab, setActiveTab, addTab, closeTab, edit, busy, error, modal, setModal: (next: 'picker' | 'connection' | null) => { tunnel.reset(); portProbe.reset(); liveSshPg.reset(); setModal(next); }, draftSession, tested, hosts, theme, enabled, persistence, fileEnabled, walEnabled, walConcurrentEnabled, dismiss, disconnect, selectSource, test, save, open, openUnsaved, remove, loadHosts, run };
+  return { liveSshPg, portProbe, tunnel, t, locale, tabTitle, saved, session, connectedId, connectionName: session && !connectedId ? t('Disposable SQLite') : connectionName, schema, tabs, tab, activeTab, setActiveTab, addTab, closeTab, edit, busy, error, modal, setModal: (next: 'picker' | 'connection' | null) => { tunnel.reset(); portProbe.reset(); liveSshPg.reset(); setModal(next); }, draftSession, tested, hosts, theme, enabled, persistence, fileEnabled, walEnabled, walConcurrentEnabled, walCheckpointEnabled, dismiss, disconnect, selectSource, test, save, open, openUnsaved, remove, loadHosts, run };
 }

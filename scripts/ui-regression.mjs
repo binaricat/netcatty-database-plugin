@@ -127,6 +127,21 @@ try {
   assert.doesNotMatch(document.body.textContent, /源文件变化会使快照失效/);
   features.add('database.sqlite-wal-readonly.fixture.v1'); await language('en');
   checks.push('Concurrent qualification notice requires E and F; en/zh-CN states invalidation, reselection and non-claims');
+  features.add('database.sqlite-wal-checkpoint.fixture.v1'); await language('zh-CN');
+  assert.match(document.body.textContent, /PASSIVE\/FULL\/RESTART/);
+  assert.match(document.body.textContent, /旧快照会失效/);
+  assert.match(document.body.textContent, /空 WAL、中断或陈旧尾部均拒绝/);
+  await language('en'); assert.match(document.body.textContent, /Old snapshots invalidate/);
+  assert.match(document.body.textContent, /No live refresh or crash recovery/);
+  for (const dependency of ['database.sqlite-wal-readonly.fixture.v1', 'database.sqlite-wal-concurrent.fixture.v1']) {
+    features.delete(dependency); await language('zh-CN');
+    assert.doesNotMatch(document.body.textContent, /PASSIVE\/FULL\/RESTART/);
+    features.add(dependency); await language('en');
+  }
+  features.delete('database.sqlite-wal-checkpoint.fixture.v1'); await language('zh-CN');
+  assert.doesNotMatch(document.body.textContent, /PASSIVE\/FULL\/RESTART/);
+  await language('en');
+  checks.push('Checkpoint qualification requires E/F/G; en/zh-CN describes fresh selection and strict tail rejects, never recovery');
   chosen = file; await click('Choose file...'); await change('Connection name', 'Synthetic saved file'); await click('Save & Connect');
   assert.ok('disabled' in button('Review write...').attributes); await click('Run read query'); assert.equal(apiCalls.findLast((c) => c.operation === 'query').revision, 'revision-one');
   await click('Cancel / close'); assert.equal(apiCalls.findLast((c) => c.operation === 'cancel').revision, 'revision-one'); checks.push('file read-only + query and cancel preserve revision');
