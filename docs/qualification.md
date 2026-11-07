@@ -8,7 +8,7 @@ and the implementation report, with real Electron evidence under
 | Area | Current slice | Next production gate |
 | --- | --- | --- |
 | Build/package | Locked npm, vendored source SDK/CLI, validator, reproducible `.ncpkg` | CI on isolated Linux/macOS/Windows, SBOM and provenance attestation |
-| SQLite | Memory + fixed M2/M3b files; C held-fd identity; E verified WAL snapshots; F writer invalidation/reselection; G fresh selection after PASSIVE/FULL/RESTART with a complete committed WAL, interrupted/stale-tail rejection; H autonomous writer with bounded pause through fresh selection and reads, resume invalidates; I fixed ten-case malformed corpus rejects before session publication | Uninterrupted capture and explicit in-session refresh; broader checkpoint/reset availability and actual recovery/tail salvage, broader admission, expanded malformed/fuzz corpus beyond I and cross-platform locks |
+| SQLite | Memory + fixed M2/M3b files; C held-fd identity; E verified WAL snapshots; F writer invalidation/reselection; G fresh selection after PASSIVE/FULL/RESTART with a complete committed WAL, interrupted/stale-tail rejection; H autonomous writer with bounded pause through fresh selection and reads, resume invalidates; I fixed ten-case malformed corpus rejects before session publication; J explicit quiescent append-only WAL refresh on the same open handle with a new revision and no chooser reselection | Uninterrupted capture; refresh across broader checkpoint/reset/recovery cases; broader checkpoint/reset availability and actual recovery/tail salvage, broader admission, expanded malformed/fuzz corpus beyond I and cross-platform locks |
 | Authority | Source/runtime-bound handles; default Ask; per-write exact native review | Broader target revision/plan receipts; lock/policy/source-swap stress and crash recovery |
 | Execution limits | Fixed subprocess; 3 s kill; row/string/payload limits | Hard native-memory/CPU OS constraints and cross-platform kill/reap qualification |
 | SQL semantics | SQLite authorizer allowlist, no scripts/PRAGMA/ATTACH/extensions | Driver-aware typed plans, cross-schema policy and nontransactional outcomes |
@@ -200,3 +200,33 @@ identity/ABA/hostile-tail/lock/pause-capture guarantees and M1 resource, filesys
 native-reopen/cleanup, native GUI/rebuild and D SKIPPED_NO_PROVIDER residuals stay.
 Evidence/design/mutation inventory/test counts/artifact:
 `/workspace/agent-tools/database/gate-i-malformed-corpus/`.
+
+
+Gate J adds optional `database.sqlite-wal-session-refresh.fixture.v1`, requiring
+file/C/E/F/G/H/I. Pause all writers through manual refresh and reads. The same
+open handle receives a fresh revision only after full source and snapshot
+validation; old revisions reject. Main identity stays unchanged, WAL must keep
+its previous byte prefix, and WAL/SHM must retain their inodes. Checkpoints,
+reset/truncation/replacement or mid-refresh mutation reject and close the session.
+A previously invalidated handle cannot refresh. No allowlist expansion, polling,
+automatic retry, uninterrupted capture or source write capability. Saved file
+fingerprints are not silently updated. Refresh requires a free existing worker
+slot; it does not raise the two-per-runtime/eight-global budget.
+
+The en/zh-CN button clears old rows and schema at refresh start, loads the new
+schema and leaves query execution to an explicit user action. Failed refresh
+disconnects; AI draft UI resets on revision change. Tests prove one chooser,
+same handle, distinct revisions and exact committed IDs over three pauses;
+normal read invalidation after writes resumes remains. Source commits during
+permission/worker/publication, checkpoints, hostile replacements/prefix/tail,
+within-refresh restored-name ABA, close/cancel/abort/revocation and runtime
+cleanup reject without publishing stale results. Node, Electron and React/real
+host evidence is under `gate-j-uninterrupted-capture/`.
+
+J does not prove continuous sidecar provenance between explicit revisions:
+rename-restore combined with valid appends before fresh capture is outside the
+claim. Main identity, ordinary C/F checks and checks within refresh boundaries
+remain strict. All other C-I timestamp/content-ABA/non-atomic/native-reopen,
+I ten-case-only, cross-platform, M1 resource/host-crash, native GUI/release rebuild
+and D SKIPPED_NO_PROVIDER residuals remain. Earlier gate notes are historical;
+only J's explicit quiescent append-only session refresh is newly qualified.

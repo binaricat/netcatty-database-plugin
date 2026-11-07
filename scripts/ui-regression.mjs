@@ -2,7 +2,7 @@
 // then real host service/workers on disposable commerce only. No native dialogs,
 // real vault, user databases or model calls.
 import assert from 'node:assert/strict';
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { mkdir, writeFile } from 'node:fs/promises';
 import { createRequire } from 'node:module';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -53,6 +53,7 @@ const context = { enabledFeatures: features, environment: { locale: 'en', theme:
     listSavedConnections: async () => structuredClone(saved),
     listHostsForDatabase: async () => Array.from({ length: hostCount }, (_, i) => i + 1).map((n) => ({ hostId: `host-${n}`, label: `Synthetic host ${n}`, hostname: `fixture-${n}.invalid`, username: 'test', port: 22, capability: 'metadata-only', tunnelAvailable: false })),
     openFixture: async () => memory(), openSqliteFile: async () => chosen,
+    refreshSqliteFile: async (p) => ({ ...file, handleId: p.handleId, revision: `refresh-${++opens}` }),
     saveConnection: async (p) => { apiCalls.push({ operation: 'save', hasSecret: Boolean(p.secret), hostId: p.meta.hostId }); if (failSave) throw new Error('Synthetic keychain unavailable'); const c = { id: `saved-${saved.length + 1}`, ...p.meta, engine: 'sqlite', targetKind: p.revision ? 'file' : 'memory', readOnly: Boolean(p.revision), ...(p.secret ? { secretRef: 'opaque-synthetic-ref' } : {}) }; saved.push(c); return c; },
     openSavedConnection: async ({ id }) => { apiCalls.push({ operation: 'reopen', id }); return saved.find((c) => c.id === id).targetKind === 'file' ? { ...file, handleId: `file-${++opens}`, revision: `revision-${opens}` } : memory(); },
     deleteConnection: async ({ id }) => { saved = saved.filter((c) => c.id !== id); return null; },
@@ -61,6 +62,7 @@ const context = { enabledFeatures: features, environment: { locale: 'en', theme:
     close: async (p) => { apiCalls.push({ operation: 'close', ...p }); return null; }, cancel: async (p) => { apiCalls.push({ operation: 'cancel', ...p }); return null; },
   },
 };
+const initialMockDatabase = { ...context.database };
 const tick = () => new Promise((r) => setTimeout(r, 25));
 const event = async (node, props) => { assert.ok(node); await act(async () => { receive({ kind: 'host-ui.event', instanceId: 'm3', event: { nodeId: node.id, ...props } }); await tick(); }); for (let i = 0; realPending && i < 200; i++) await act(async () => { await tick(); }); assert.equal(realPending, 0, 'host operation settled'); assert.deepEqual(policyErrors, []); };
 const click = async (label) => { const n = button(label); assert.ok(n, `missing ${label}`); assert.equal('disabled' in n.attributes, false, `disabled ${label}`); await event(n, { type: 'click' }); };
@@ -668,7 +670,78 @@ try {
       checks.push('REAL host rejects checksum-valid corrupt WAL before UI schema/query/rows; localized bounded error, explicit healthy reselection returns 40 rows');
     } finally { corpus.cleanup(); }
 
+
+    // Gate J uses the unchanged separate-process fixture writer, not a product write API.
+    const { fork } = host('node:child_process');
+    const writer = fork(path.join(hostRoot, 'scripts/sqlite-wal-concurrent-fixture.cjs'), [], { execArgv: [], env: { ELECTRON_RUN_AS_NODE: '1', NODE_NO_WARNINGS: '1' }, stdio: ['ignore', 'ignore', 'ignore', 'ipc'] });
+    let requestId = 0;
+    const writerCall = (operation) => new Promise((resolve, reject) => {
+      const id = String(++requestId); const timer = setTimeout(() => { writer.off('message', receive); reject(new Error('Writer deadline')); }, 5000);
+      const receive = (message) => { if (message.id !== id) return; clearTimeout(timer); writer.off('message', receive); message.error ? reject(new Error('Writer failed')) : resolve(message.result); };
+      writer.on('message', receive); writer.send({ id, operation });
+    });
+    let writerFile;
+    try {
+      writerFile = (await writerCall('create')).file; selectedSqliteFile = writerFile;
+      features.add('database.sqlite-wal-session-refresh.fixture.v1'); identity.manifest.features.optional = [...features];
+      await click('New Connection'); await click('Next'); await change('SQLite source', 'file');
+      assert.match(document.body.textContent, /pause all writers through refresh and reads/);
+      await change('Connection name', 'Gate J explicit refresh'); await click('Save & Connect');
+      await change('SQL statement', 'SELECT id FROM notes ORDER BY id'); await change('SQL parameters', '[]'); await click('Run read query');
+      const chooserCount = dbCalls.filter((c) => c.method === 'openSqliteFile').length;
+      const first = [...service.sessions.values()][0]; const handleId = first.handleId; let previousRevision = first.revision;
+      for (let count = 3; count <= 5; count++) {
+        await writerCall('commit'); await click('Refresh WAL fixture');
+        assert.equal(document.querySelectorAll('.results tbody tr').length, 0, 'refresh clears old rows; no automatic query');
+        const fresh = [...service.sessions.values()][0]; assert.equal(fresh.handleId, handleId); assert.notEqual(fresh.revision, previousRevision); previousRevision = fresh.revision;
+        await click('Run read query');
+        assert.deepEqual([...document.querySelectorAll('.results tbody tr')].map((row) => row.lastElementChild.textContent), Array.from({ length: count }, (_, n) => String(n + 1)));
+      }
+      assert.equal(dbCalls.filter((c) => c.method === 'openSqliteFile').length, chooserCount);
+      const refreshCount = dbCalls.filter((c) => c.method === 'refreshSqliteFile').length;
+      await language('zh-CN'); assert.ok(button('刷新 WAL 测试文件')); assert.match(document.body.textContent, /刷新及读取期间需暂停所有写入/);
+      await snapshot('gate-j-refresh-zh-CN'); await language('en'); await tick();
+      assert.equal(dbCalls.filter((c) => c.method === 'refreshSqliteFile').length, refreshCount, 'locale changes do not poll');
+      for (const dependency of ['database.sqlite-fixture.v1', 'database.sqlite-file-fixture.v1', 'database.sqlite-fd-identity.fixture.v1', 'database.sqlite-wal-readonly.fixture.v1', 'database.sqlite-wal-concurrent.fixture.v1', 'database.sqlite-wal-checkpoint.fixture.v1', 'database.sqlite-wal-capture.fixture.v1', 'database.sqlite-malformed-reject.fixture.v1', 'database.sqlite-wal-session-refresh.fixture.v1']) {
+        // Base/persistence changes trigger intentional view cleanup, tested separately by existing suites.
+        if (dependency === 'database.sqlite-fixture.v1') continue;
+        features.delete(dependency); await language('zh-CN'); await language('en'); assert.equal(button('Refresh WAL fixture'), undefined);
+        features.add(dependency); await language('zh-CN'); await language('en'); assert.ok(button('Refresh WAL fixture'));
+      }
+      checks.push('REAL J one chooser + same handle, new revisions, exact 3/4/5 IDs; manual refresh clears rows, no query/polling; en/zh-CN and dependency gates');
+      const authorize = service.authorize.bind(service); let mutate = true;
+      service.authorize = async (...args) => { await authorize(...args); if (mutate) { mutate = false; await writerCall('commit'); } };
+      await click('Refresh WAL fixture');
+      assert.equal(service.sessions.size, 0); assert.equal(service.pendingFiles.size, 0);
+      assert.equal(document.querySelectorAll('.results tbody tr').length, 0); assert.equal(button('Refresh WAL fixture'), undefined);
+      assert.match(document.body.textContent, /SQLite source changed during refresh/);
+      await language('zh-CN'); assert.match(document.body.textContent, /宿主操作失败/); await snapshot('gate-j-refresh-reject-zh-CN'); await language('en');
+      service.authorize = authorize;
+      checks.push('REAL J commit during refresh authorization returns no revision/rows; UI disconnects and localizes error');
+    } finally {
+      const closed = new Promise((resolve) => writer.once('close', resolve)); writer.kill('SIGKILL'); await closed;
+      if (writerFile) for (const suffix of ['', '-wal', '-shm', '-journal']) fs.rmSync(writerFile + suffix, { force: true });
+    }
+
   } finally { await unmount(); service.shutdown(); }
+  // UI epoch test: a late refresh reply after cancel/unmount must close its new revision.
+  context.database = { ...initialMockDatabase }; chosen = file; bigResult = false;
+  for (const action of ['cancel', 'unmount']) {
+    let finishRefresh;
+    context.database.refreshSqliteFile = (params) => new Promise((resolve) => { finishRefresh = () => resolve({ ...file, handleId: params.handleId, revision: `late-j-${action}` }); });
+    await mount(); await click('New Connection'); await click('Next'); await change('SQLite source', 'file');
+    await change('Connection name', `J late ${action}`); await click('Save & Connect'); await click('Run read query');
+    assert.ok(document.querySelectorAll('.results tbody tr').length > 0);
+    await click('Refresh WAL fixture'); assert.ok(finishRefresh);
+    assert.equal(document.querySelectorAll('.results tbody tr').length, 0);
+    assert.ok('disabled' in button('Refresh WAL fixture').attributes);
+    if (action === 'cancel') await click('Cancel / close'); else await unmount();
+    await act(async () => { finishRefresh(); await tick(); });
+    assert.equal(apiCalls.findLast((c) => c.operation === 'close').revision, `late-j-${action}`);
+    assert.equal(document.querySelectorAll('.results tbody tr').length, 0);
+    if (action === 'cancel') { assert.equal(button('Refresh WAL fixture'), undefined); await unmount(); }
+  }
+  checks.push('J pending refresh clears old rows; cancel and unmount close late new revisions without resurrecting session or results (mock UI epoch test)');
   const report = { kind: 'JSDOM React + SDK remote DOM + host policy; English/zh-CN mocked regressions and real host SQLite commerce lane (injected chooser/approval); not native screenshots', passed: checks.length, failed: 0, checks, policyBatches: batches, maxNodes, maxSerializedTreeBytes: maxBytes, aiProviderCalls: 0 };
   await writeFile(`${evidence}/ui-check.json`, JSON.stringify(report, null, 2) + '\n'); console.log(JSON.stringify(report, null, 2));
 } finally { await unmount(); dom.window.close(); }

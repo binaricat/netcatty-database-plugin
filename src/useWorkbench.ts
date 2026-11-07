@@ -41,6 +41,7 @@ export function useWorkbench(context: PluginContext) {
   const walCheckpointEnabled = walEnabled && context.enabledFeatures.has('database.sqlite-wal-concurrent.fixture.v1') && context.enabledFeatures.has('database.sqlite-wal-checkpoint.fixture.v1');
   const walCaptureEnabled = walCheckpointEnabled && context.enabledFeatures.has('database.sqlite-wal-capture.fixture.v1');
   const malformedRejectEnabled = walCaptureEnabled && context.enabledFeatures.has('database.sqlite-fd-identity.fixture.v1') && context.enabledFeatures.has('database.sqlite-malformed-reject.fixture.v1');
+  const walRefreshEnabled = malformedRejectEnabled && context.enabledFeatures.has('database.sqlite-wal-session-refresh.fixture.v1');
   const walConcurrentEnabled = walEnabled && context.enabledFeatures.has('database.sqlite-wal-concurrent.fixture.v1');
   const close = async (s: Session | null, cancel = false) => { if (s) await context.database[cancel ? 'cancel' : 'close'](target(s)).catch(() => {}); };
   useEffect(() => {
@@ -67,6 +68,26 @@ export function useWorkbench(context: PluginContext) {
     epoch.current++; locked.current = false; setBusy(false);
     const s = live.current; live.current = null; setSession(null); setSchema(null); setTabs([]); setConnectedId('');
     await close(s, cancel);
+  };
+  const refresh = () => {
+    if (locked.current || !walRefreshEnabled || !live.current || !('revision' in live.current)) return;
+    epoch.current++;
+    return action(async (rev) => {
+      const old = live.current!; let fresh: DatabaseFileOpenResult | null = null;
+      setSchema(null); setTabs((items) => items.map((item) => ({ ...item, result: null, resultSql: undefined })));
+      try {
+        fresh = await context.database.refreshSqliteFile(target(old));
+        if (rev !== epoch.current) { await close(fresh); return; }
+        live.current = fresh; setSession(fresh);
+        const inspected = await context.database.readSchema(target(fresh));
+        if (rev !== epoch.current) { await close(fresh); return; }
+        setSchema(inspected);
+      } catch (e) {
+        await close(fresh ?? old);
+        if (rev === epoch.current) { live.current = null; setSession(null); setSchema(null); setTabs([]); setConnectedId(''); }
+        throw e;
+      }
+    });
   };
   const acquire = async (file: boolean, rev: number) => {
     const opened = await (file ? context.database.openSqliteFile({}) : context.database.openFixture({}));
@@ -130,5 +151,5 @@ export function useWorkbench(context: PluginContext) {
     const value = await context.database.query({ ...target(live.current), sql: tab.sql, parameters: parseParameters(tab.parameters), mode, maxRows: 100, timeoutMs: 3000 });
     if (rev === epoch.current) setTabs((items) => items.map((item) => item.id === id ? { ...item, result: value, resultSql: tab.sql } : item));
   });
-  return { liveSshPg, portProbe, tunnel, t, locale, tabTitle, saved, session, connectedId, connectionName: session && !connectedId ? t('Disposable SQLite') : connectionName, schema, tabs, tab, activeTab, setActiveTab, addTab, closeTab, edit, busy, error, modal, setModal: (next: 'picker' | 'connection' | null) => { tunnel.reset(); portProbe.reset(); liveSshPg.reset(); setModal(next); }, draftSession, tested, hosts, theme, enabled, persistence, fileEnabled, walEnabled, walConcurrentEnabled, walCheckpointEnabled, walCaptureEnabled, malformedRejectEnabled, dismiss, disconnect, selectSource, test, save, open, openUnsaved, remove, loadHosts, run };
+  return { liveSshPg, portProbe, tunnel, t, locale, tabTitle, saved, session, connectedId, connectionName: session && !connectedId ? t('Disposable SQLite') : connectionName, schema, tabs, tab, activeTab, setActiveTab, addTab, closeTab, edit, busy, error, modal, setModal: (next: 'picker' | 'connection' | null) => { tunnel.reset(); portProbe.reset(); liveSshPg.reset(); setModal(next); }, draftSession, tested, hosts, theme, enabled, persistence, fileEnabled, walEnabled, walConcurrentEnabled, walCheckpointEnabled, walCaptureEnabled, malformedRejectEnabled, walRefreshEnabled, refresh, dismiss, disconnect, selectSource, test, save, open, openUnsaved, remove, loadHosts, run };
 }

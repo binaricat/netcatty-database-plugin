@@ -1,6 +1,9 @@
 // Original plugin-owned copy. English source keys keep the fallback explicit.
 // Only the host environment selects language; never navigator/OS/input locale.
 export const zhCN = {
+  "Refresh WAL fixture": "刷新 WAL 测试文件",
+  "Explicit WAL refresh: pause all writers through refresh and reads. Click Refresh WAL fixture for appended commits in this open session. Checkpoints or replaced files require choosing again. No polling, automatic retry or uninterrupted capture.": "显式 WAL 刷新：刷新及读取期间需暂停所有写入。点击“刷新 WAL 测试文件”可在当前会话获取追加提交；检查点或文件替换后需重新选择。不支持轮询、自动重试或不停写捕获。",
+
   "Linux fixture checks reject the fixed malformed test corpus before opening. Broader corruption handling and recovery are unqualified.": "Linux 测试文件检查会在打开前拒绝固定的损坏测试样本集。尚未验证更广泛的损坏处理或恢复能力。",
   "Test live SSH→PostgreSQL (fixture)": "测试真实 SSH→PostgreSQL（测试环境）",
   "Cancel live fixture test": "取消真实连接测试",

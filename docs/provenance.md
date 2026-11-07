@@ -40,3 +40,10 @@ The CLI snapshot is refreshed from the paired Gate D host to accept optional
 wire shapes are unchanged; contract and SDK tarballs retain their prior hashes.
 The exact host/plugin commits and archive digest are recorded in
 `/workspace/agent-tools/database/gate-d-live-ai/final-status.json`.
+
+## Gate J explicit refresh SDK
+
+Only the SDK tarball changed for the additive typed `refreshSqliteFile` method;
+request/result shapes reuse the canonical contract. Contract/CLI tarballs retain
+their previous hashes. Archive integrity is pinned in package-lock.json and
+vendor/SHA256SUMS. The paired local host commit is recorded in the Gate J report.
