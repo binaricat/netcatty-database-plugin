@@ -14,3 +14,7 @@ Only known regular tables with a complete primary key and full column metadata q
 - Native recording is 180 seconds and covers UPDATE/readback and DELETE preview. The final delete application/readback is evidenced by separate native screenshots, not by that recording.
 
 This is a real SQL.js engine with synthetic disposable data in the full Netcatty app. It is not a remote service or Docker acceptance test. Grid INSERT, bulk edits, persistent databases, wider tables and vendor-specific CRUD remain unfinished.
+
+## Review UI refinement
+
+Alpha.18 replaces large read-only form fields with compact original-value lists in DELETE mode and separates editable fields from the review panel. SQL is rendered as escaped React text tokens, not HTML or editable content. The former 20-token editor budget made generated DELETE statements fall back to plain text; read-only previews now use a bounded 128-segment budget with an exact generated-DELETE regression. Actual full Netcatty screenshots verify keyword highlighting, reduced borders and aligned field layouts. Dark-theme and narrow-window native acceptance remain pending; responsive CSS and inherited host palette alone are not evidence of that acceptance.

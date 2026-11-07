@@ -1,4 +1,6 @@
 const zh:Record<string,string>={
+ 'Original row':'原始行','Edit fields':'编辑字段','{count} columns':'{count} 列','Review change':'审阅修改','1 row':'1 行','Parameters in binding order':'按绑定顺序排列的参数','All values are shown as JSON, in placeholder order.':'按占位符顺序以 JSON 显示全部值。',
+
  'The row change definition is invalid. Check the selected action and fields.':'行修改定义无效，请检查所选操作和字段。',
  'This table is unsupported: triggers, cascading changes, virtual tables or incomplete metadata prevent safe single-row editing.':'此表不支持安全单行编辑：可能存在触发器、级联操作、虚拟表或不完整的元数据。',
  'Editing requires complete column metadata, at most 16 columns and no BLOB columns.':'编辑需要完整列元数据，最多 16 列且不含 BLOB 列。',

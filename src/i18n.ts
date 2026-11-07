@@ -347,6 +347,7 @@ export const zhCN = {
   "Object surface": "对象视图",
   "Structure": "结构",
   "Data": "数据",
+  "Import CSV": "导入 CSV",
   "Run read query": "执行只读查询",
   "Review write...": "审查写入…",
   "Cancel / close": "取消 / 关闭",

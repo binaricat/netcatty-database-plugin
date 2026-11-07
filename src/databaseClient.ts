@@ -4,7 +4,10 @@ export type * from './databaseTypes';
 import type {DatabaseCreateTableRequest,DatabaseCreateTableApplyRequest,DatabaseCreateTableResult,DatabaseCreateTableReview} from './databaseTypes';
 import type {DatabaseCreateIndexRequest,DatabaseCreateIndexApplyRequest,DatabaseCreateIndexResult,DatabaseCreateIndexReview} from './databaseTypes';
 import type {GridMutationRequest,GridMutationApplyRequest,GridMutationReview,GridMutationResult} from './databaseTypes';
+import type {CsvImportRequest,CsvImportApplyRequest,CsvImportReview,CsvImportResult} from './databaseTypes';
 export interface PluginDatabaseClient {
+  previewCsvImport(params:CsvImportRequest):Promise<CsvImportReview>;
+  applyCsvImport(params:CsvImportApplyRequest):Promise<CsvImportResult>;
   previewGridMutation(params:GridMutationRequest):Promise<GridMutationReview>;
   applyGridMutation(params:GridMutationApplyRequest):Promise<GridMutationResult>;
   previewCreateIndex(params:DatabaseCreateIndexRequest):Promise<DatabaseCreateIndexReview>;

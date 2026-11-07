@@ -1,3 +1,5 @@
+import {previewCsvImport as buildCsvImport} from './csvImportModel';
+import type {CsvImportRequest,CsvImportApplyRequest,CsvImportReview,CsvImportResult} from './databaseTypes';
 import {previewGridMutation,GridMutationError} from './gridMutation';
 import type {GridMutationRequest,GridMutationApplyRequest,GridMutationReview,GridMutationResult} from './databaseTypes';
 import {previewCreateIndexSql,CreateIndexError} from './schemaCreateIndex';
@@ -318,9 +320,39 @@ export function createWorkbenchContext(context: PluginContext): WorkbenchContext
       if(sessions.has(request.handleId)){try{db.run('PRAGMA query_only=ON');}catch{tableReviews.delete(request.handleId);sessions.delete(request.handleId);db.close();throw new Error('SQLite read protection could not be restored; session closed.');}}
     }
   };
+  const previewCsvImport=async(request:CsvImportRequest):Promise<CsvImportReview>=>{
+    const db=get(request);tableReviews.delete(request.handleId);
+    const plan=buildCsvImport(request.draft,inspectSqliteSchema(db));
+    const review={handleId:request.handleId,draft:JSON.parse(JSON.stringify(request.draft)) as CsvImportRequest['draft'],plan,schemaRevision:schemaRevision(db)};
+    tableReviews.set(request.handleId,JSON.stringify(review));return review;
+  };
+  const applyCsvImport=async(request:CsvImportApplyRequest):Promise<CsvImportResult>=>{
+    const db=get(request),review=request.review;
+    if(!review||review.handleId!==request.handleId||review.schemaRevision!==schemaRevision(db))throw new Error('Import schema is stale. Prepare a new preview.');
+    if(tableReviews.get(request.handleId)!==JSON.stringify(review))throw new Error('Import review is missing, changed or consumed.');
+    tableReviews.delete(request.handleId);
+    const plan=buildCsvImport(review.draft,inspectSqliteSchema(db));
+    if(JSON.stringify(plan)!==JSON.stringify(review.plan))throw new Error('Import review does not match the current schema.');
+    let transaction=false;
+    try{
+      db.run('PRAGMA query_only=OFF');db.run('SAVEPOINT plugin_csv_import');transaction=true;
+      let changes=0;
+      const statement=db.prepare(plan.sql);
+      try{for(const row of plan.rows){statement.reset();statement.bind(row.map(value=>typeof value==='boolean'?Number(value):value));while(statement.step()){}if(db.getRowsModified()!==1)throw new Error('Import did not insert exactly one row.');changes++;}}finally{statement.free();}
+      if(changes!==plan.rowCount)throw new Error('Import row count mismatch.');
+      const size=Number(db.exec('PRAGMA page_count')[0].values[0][0])*Number(db.exec('PRAGMA page_size')[0].values[0][0]);
+      if(size>1024*1024)throw new Error('Import exceeds database size budget.');
+      inspectSqliteSchema(db);db.run('RELEASE plugin_csv_import');transaction=false;return {changes};
+    }catch(error){
+      if(transaction){try{db.run('ROLLBACK TO plugin_csv_import; RELEASE plugin_csv_import');}catch{tableReviews.delete(request.handleId);sessions.delete(request.handleId);db.close();}}
+      throw error;
+    }finally{
+      if(sessions.has(request.handleId)){try{db.run('PRAGMA query_only=ON');}catch{tableReviews.delete(request.handleId);sessions.delete(request.handleId);db.close();throw new Error('SQLite read protection could not be restored; session closed.');}}
+    }
+  };
   const database: PluginDatabaseClient & {capabilities: ReadonlySet<string>} = {
-    capabilities: new Set(['database.sqlite-fixture.v1','database.saved-connections.v1','database.sqlite-reviewed-writes.v1','database.sqlite-create-table.v1','database.sqlite-create-index.v1','database.sqlite-grid-mutation.v1']),
-    previewCreateTable,applyCreateTable,previewCreateIndex,applyCreateIndex,previewGridMutation:previewGridRow,applyGridMutation,
+    capabilities: new Set(['database.sqlite-fixture.v1','database.saved-connections.v1','database.sqlite-reviewed-writes.v1','database.sqlite-create-table.v1','database.sqlite-create-index.v1','database.sqlite-grid-mutation.v1','database.sqlite-csv-import.v1']),
+    previewCsvImport,applyCsvImport,previewCreateTable,applyCreateTable,previewCreateIndex,applyCreateIndex,previewGridMutation:previewGridRow,applyGridMutation,
     openFixture: open, readSchema, query, close, cancel:close,
     listSavedConnections:list,
     saveConnection: (request: DatabaseSaveConnectionRequest) => mutate(async () => {

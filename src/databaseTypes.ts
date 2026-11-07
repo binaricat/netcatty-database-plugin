@@ -292,3 +292,7 @@ export type GridMutationReview={handleId:DatabaseHandle;draft:import('./gridMuta
 export type GridMutationRequest={handleId:DatabaseHandle;draft:import('./gridMutation').GridMutationDraft};
 export type GridMutationApplyRequest={handleId:DatabaseHandle;review:GridMutationReview};
 export type GridMutationResult={changes:1};
+export type CsvImportReview={handleId:DatabaseHandle;draft:import('./csvImportModel').CsvImportDraft;plan:import('./csvImportModel').CsvImportPlan;schemaRevision:number};
+export type CsvImportRequest={handleId:DatabaseHandle;draft:import('./csvImportModel').CsvImportDraft};
+export type CsvImportApplyRequest={handleId:DatabaseHandle;review:CsvImportReview};
+export type CsvImportResult={changes:number};
