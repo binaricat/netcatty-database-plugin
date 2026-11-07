@@ -62,3 +62,22 @@ Sources: generated `ByteStreamLimits`; SDK `PluginReadableByteStream`/`PluginWri
 5. Only then claim the specific Redis connection and tested read operations. Do not infer other drivers, cluster support, write CRUD, Docker multi-database qualification or DBX parity from one fixture.
 
 An unavailable Docker daemon, missing approved routable endpoint or unconfigured trusted certificate is a **current test-environment prerequisite**, not proof that Redis transport is impossible in the plugin system. Exact static endpoint and stream lifetime restrictions are actual present host API boundaries. Neither category should be hidden by continued improvements to the unrelated SQLite workspace.
+
+## Real codec/browser integration now verified (independent Node lane)
+
+The user-authorized non-Docker host lane now has real Redis 7.4.2 TLS acceptance
+from Netcatty's native SSH terminal. `scripts/redis-local-protocol.ts` passed strict
+CA/IP-verified TLS 1.3, harness AUTH, actual redisProtocol encoding/decoding and
+redisBrowser INFO/SCAN/TYPE/GET/TTL/PTTL. Its `--types` mode verified string, hash,
+list, set and sorted-set contents with real cursor/offset reads: list two pages,
+hash/set/sorted-set one complete page each despite COUNT 1. Wrong-password
+(WRONGPASS) and untrusted-certificate rejection also passed.
+
+This does **not** cover redisSession/connectRedis or main broker/permission/UI
+connectivity. The independent Node harness owns TLS and AUTH, and connects only
+to the explicitly authorized fixture. Production loopback rejection remains
+unchanged; no hostname remapping, endpoint alias or host policy bypass was used.
+It is not a Docker run. See [the scoped acceptance record](redis-live-protocol-acceptance.md)
+for the independently labelled modules, screenshots and validated 120-second
+recording. Installed-plugin Redis acceptance still requires the production
+endpoint/certificate/declaration/permission prerequisites listed above.
