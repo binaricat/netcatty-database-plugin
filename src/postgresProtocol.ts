@@ -51,38 +51,43 @@ export type PgMessage=
  |{type:'complete';kind:'parse'|'bind'|'no-data'|'suspended'};
 class Reader{
  p=0;constructor(readonly b:Uint8Array){}
- take(n:number){if(n<0||this.p+n>this.b.length)fail('malformed');const v=this.b.slice(this.p,this.p+n);this.p+=n;return v;}
- int(n:2|4,signed=true){const b=this.take(n),v=new DataView(b.buffer);return n===2?(signed?v.getInt16(0):v.getUint16(0)):(signed?v.getInt32(0):v.getUint32(0));}
+ take(n:number){if(n<0||this.p+n>this.b.length)fail('malformed');const v=this.b.subarray(this.p,this.p+n);this.p+=n;return v;}
+ int(n:2|4,signed=true){const b=this.take(n),v=new DataView(b.buffer,b.byteOffset,b.byteLength);return n===2?(signed?v.getInt16(0):v.getUint16(0)):(signed?v.getInt32(0):v.getUint32(0));}
  string(){const end=this.b.indexOf(0,this.p);if(end<0)fail('malformed');const s=text(this.take(end-this.p));this.p++;return s;}
  end(){if(this.p!==this.b.length)fail('malformed');}
 }
 function decode(tag:number,body:Uint8Array):PgMessage{
- const r=new Reader(body);let result:PgMessage;
- switch(String.fromCharCode(tag)){
- case 'R':{const method=r.int(4);if(![0,3,5,10,11,12].includes(method))fail('unsupported');const data=r.take(body.length-r.p);if(([0,3].includes(method)&&data.length!==0)||(method===5&&data.length!==4))fail('malformed');if(method===10)pgSaslMechanisms(data);result={type:'authentication',method,data};break;}
+ const r=new Reader(body);let result:PgMessage|undefined;
+ try{switch(String.fromCharCode(tag)){
+ case 'R':{const method=r.int(4);if(![0,3,5,10,11,12].includes(method))fail('unsupported');const data=r.take(body.length-r.p);if(([0,3].includes(method)&&data.length!==0)||(method===5&&data.length!==4))fail('malformed');if(method===10)pgSaslMechanisms(data);result={type:'authentication',method,data:data.slice()};break;}
  case 'S':result={type:'parameter',name:r.string(),value:r.string()};break;
  case 'Z':{const status=String.fromCharCode(r.take(1)[0]);if(!['I','T','E'].includes(status))fail('malformed');result={type:'ready',status:status as 'I'|'T'|'E'};break;}
  case 'T':{const n=r.int(2);if(n<0||n>PG_LIMITS.columns)fail('limit');const columns=[];for(let i=0;i<n;i++){const name=r.string(),tableOid=r.int(4,false),attribute=r.int(2),typeOid=r.int(4,false),size=r.int(2),modifier=r.int(4),format=r.int(2);if(format!==0&&format!==1)fail('malformed');columns.push({name,tableOid,attribute,typeOid,size,modifier,format:format as 0|1});}result={type:'columns',columns};break;}
- case 'D':{const n=r.int(2);if(n<0||n>PG_LIMITS.columns)fail('limit');const values=[];for(let i=0;i<n;i++){const len=r.int(4);if(len< -1)fail('malformed');values.push(len===-1?null:r.take(len));}result={type:'row',values};break;}
+ case 'D':{const n=r.int(2);if(n<0||n>PG_LIMITS.columns)fail('limit');const values:(Uint8Array|null)[]=[];try{for(let i=0;i<n;i++){const len=r.int(4);if(len< -1)fail('malformed');values.push(len===-1?null:r.take(len).slice());}}catch(error){for(const cell of values)cell?.fill(0);throw error;}result={type:'row',values};break;}
  case 'E':{let sqlState:string|null=null;let ended=false;while(r.p<body.length){const code=r.take(1)[0];if(!code){ended=true;break;}const value=r.string();if(code===67){if(!/^[0-9A-Z]{5}$/.test(value))fail('malformed');sqlState=value;}}if(!ended)fail('malformed');result={type:'error',sqlState};break;}
  case '1':case '2':case 'n':case 's':result={type:'complete',kind:tag===49?'parse':tag===50?'bind':tag===110?'no-data':'suspended'};break;
  default:return fail('unsupported');
- }r.end();return result;
+ }r.end();return result!;
+ }catch(error){clearMessageBytes(result);throw error;}
 }
+function clearMessageBytes(message:PgMessage|undefined){if(message?.type==='row')for(const cell of message.values)cell?.fill(0);else if(message?.type==='authentication')message.data.fill(0);}
 /** One bounded protocol exchange. Instantiate a fresh decoder for a later exchange.
  * Bytes in data rows are raw (text or binary per RowDescription); callers must use
  * pgTextValue for text columns and implement OID-aware typed conversion separately.
+ * Decoder-owned byte buffers are cleared when consumed or rejected; returned
+ * byte cells belong to the caller. Immutable JS strings cannot be securely wiped.
  */
 export const pgTextValue=text;
 export class PostgresDecoder{
  private buffer=new Uint8Array(0);private frames=0;private bytes=0;private failed=false;
  feed(chunk:Uint8Array):PgMessage[]{
   if(this.failed)fail('closed');
+  const output:PgMessage[]=[];
   try{
-   if(!(chunk instanceof Uint8Array))fail('malformed');if(this.buffer.length+chunk.length>PG_LIMITS.frameBytes)fail('limit');this.buffer=join([this.buffer,chunk]);const output:PgMessage[]=[];let p=0;
-   while(this.buffer.length-p>=5){const n=new DataView(this.buffer.buffer,this.buffer.byteOffset+p+1,4).getInt32(0);if(n<4)fail('malformed');if(n+1>PG_LIMITS.frameBytes)fail('limit');if(this.buffer.length-p<n+1)break;if(++this.frames>PG_LIMITS.frames||(this.bytes+=n+1)>PG_LIMITS.resultBytes)fail('limit');output.push(decode(this.buffer[p],this.buffer.slice(p+5,p+n+1)));p+=n+1;}
-   this.buffer=this.buffer.slice(p);return output;
-  }catch(e){this.failed=true;this.buffer.fill(0);this.buffer=new Uint8Array(0);throw e instanceof PostgresProtocolError?e:new PostgresProtocolError('malformed');}
+   if(!(chunk instanceof Uint8Array))fail('malformed');if(this.buffer.length+chunk.length>PG_LIMITS.frameBytes)fail('limit');const merged=join([this.buffer,chunk]);this.buffer.fill(0);this.buffer=merged;let p=0;
+   while(this.buffer.length-p>=5){const n=new DataView(this.buffer.buffer,this.buffer.byteOffset+p+1,4).getInt32(0);if(n<4)fail('malformed');if(n+1>PG_LIMITS.frameBytes)fail('limit');if(this.buffer.length-p<n+1)break;if(++this.frames>PG_LIMITS.frames||(this.bytes+=n+1)>PG_LIMITS.resultBytes)fail('limit');output.push(decode(this.buffer[p],this.buffer.subarray(p+5,p+n+1)));p+=n+1;}
+   const remaining=this.buffer.slice(p);this.buffer.fill(0);this.buffer=remaining;return output;
+  }catch(e){for(const message of output)clearMessageBytes(message);this.failed=true;this.buffer.fill(0);this.buffer=new Uint8Array(0);throw e instanceof PostgresProtocolError?e:new PostgresProtocolError('malformed');}
  }
  finish(){if(this.failed)fail('closed');if(this.buffer.length){this.failed=true;this.buffer.fill(0);fail('truncated');}}
 }

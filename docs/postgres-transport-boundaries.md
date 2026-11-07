@@ -41,3 +41,24 @@ or additional writes.
 
 All these tests use fabricated bytes and credentials. No real PostgreSQL server,
 native PostgreSQL connection UI or usable production driver is claimed.
+
+## Bounded authenticated table reads (offline qualification)
+
+`postgresQuery.ts` executes a generated, fixed Simple Query sequence on an
+exclusively owned authenticated TLS stream: BEGIN READ ONLY, bounded local
+statement timeout, quoted SELECT of explicit columns and LIMIT, then ROLLBACK.
+It accepts no arbitrary SQL. Strict response order, known text-format OIDs,
+100-row/16-column/96-KiB limits, monotonic timeout and abort protections apply.
+int8 and numeric remain exact strings. Unexpected, binary or extension types are
+rejected, even when all values are NULL. Failure closes the stream; if PostgreSQL
+skips later statements after an error, no claim that ROLLBACK executed is made.
+Read-only transactions do not eliminate side effects of untrusted views or
+extensions; a trusted schema and least-privilege account remain required.
+
+Owned read/write/frame/cell buffers are cleared on consumption and failure,
+including late reads after cancellation. Decoder output cell buffers are copies
+owned by the receiver. JavaScript strings, engine internals and cryptographic
+implementation copies cannot be guaranteed erasable. Eleven fabricated-stream
+query tests cover successful fragmented reads, strict command sequencing,
+conversion, error-message redaction, cancellation, budgets and byte cleanup.
+These are not real server, plugin connection or production driver evidence.
