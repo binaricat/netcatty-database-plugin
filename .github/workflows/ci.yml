@@ -1,5 +1,8 @@
 name: Plugin checks
-on: [push, pull_request]
+on:
+  push:
+    branches: [main]
+  pull_request:
 permissions:
   contents: read
 jobs:
@@ -37,6 +40,8 @@ jobs:
           repository: binaricat/netcatty
           ref: 4a55492c17c3c792fbda4afc08d993f4165ca930
           path: host
+      - name: Verify remote Docker availability
+        run: docker version && docker info --format '{{json .ServerVersion}}'
       - uses: actions/setup-node@v4
         with:
           node-version: '24.22.1'
