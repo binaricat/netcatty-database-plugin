@@ -1,18 +1,20 @@
 /** MANUAL independent Node protocol integration, not plugin transport.
  * Node supplies SSLRequest -> TLS upgrade absent from current main public API.
  * Warm caching_sha2 cache using the separately authorized VERIFY_IDENTITY CLI.
- * node --import tsx scripts/mysql-local-protocol.ts [--reject-cert|--bad-password|--fast-only|--full-auth-required|--read]
+ * node --import tsx scripts/mysql-local-protocol.ts [--reject-cert|--bad-password|--fast-only|--full-auth-required|--read|--prepared-read]
  * Full-auth password is sent only inside this same verified TLS connection.
  * --read uses bounded production read module; no arbitrary SQL or policy change.
  */
 import type {PluginByteConnection} from '@netcatty/plugin-sdk';
 import {executeMysqlRead,MysqlReadError} from '../src/mysqlRead';
+import {executeMysqlPreparedRead,MysqlPreparedReadError} from '../src/mysqlPreparedRead';
+import type {MysqlPreparedSelect} from '../src/mysqlPreparedProtocol';
 import net from 'node:net';import tls from 'node:tls';import {readFile} from 'node:fs/promises';import {fileURLToPath} from 'node:url';
 import {MysqlPacketDecoder,parseMysqlHandshake,parseMysqlError,type MysqlPacket} from '../src/mysqlProtocol';
 import {planMysqlSslRequest,MysqlTlsFastAuth} from '../src/mysqlAuth';
 const base=fileURLToPath(new URL('../../local-db-host/mysql-test/',import.meta.url));
 const host='127.0.0.1',port=15479,mode=process.argv[2]??'auth';
-if(!['auth','--reject-cert','--bad-password','--fast-only','--full-auth-required','--read'].includes(mode)||process.argv.length>3){console.error('Unsupported test mode.');process.exit(2);}
+if(!['auth','--reject-cert','--bad-password','--fast-only','--full-auth-required','--read','--prepared-read'].includes(mode)||process.argv.length>3){console.error('Unsupported test mode.');process.exit(2);}
 class FixtureError extends Error{constructor(readonly code:'transport'|'timeout'|'protocol'|'certificate'|'fixture'|'full-auth-required'|'server-auth-denied'|'auth-flow'){super(`MySQL fixture ${code}`);}}
 let raw:net.Socket|undefined,secure:tls.TLSSocket|undefined,auth:MysqlTlsFastAuth|undefined,stage='fixture-files';
 function greeting():Promise<MysqlPacket>{return new Promise((resolve,reject)=>{
@@ -71,7 +73,7 @@ function readConnection(socket:tls.TLSSocket):PluginByteConnection{
  return {readable:{read:async()=>{if(queue.length){const b=queue.shift()!;queued-=b.length;return b;}if(closed)return null;if(pending)throw new FixtureError('protocol');return new Promise<Uint8Array|null>(resolve=>pending=resolve);},cancel:close},
  writable:{write:async(value:Uint8Array|ArrayBuffer)=>{if(closed)throw new FixtureError('transport');const b=Buffer.from(value instanceof Uint8Array?value:new Uint8Array(value));wires.add(b);try{await new Promise<void>((resolve,reject)=>socket.write(b,error=>error?reject(new FixtureError('transport')):resolve()));}finally{b.fill(0);wires.delete(b);}},cancel:close},close:async()=>{close();}} as unknown as PluginByteConnection;
 }
-const report=(status:string,check:string,extra:Record<string,unknown>={})=>console.log(JSON.stringify({status,lane:'independent-node-mysql-fast-auth',check,nativePluginConnected:false,queryCovered:false,...extra}));
+const report=(status:string,check:string,extra:Record<string,unknown>={})=>console.log(JSON.stringify({status,lane:'independent-node-mysql-fast-auth',check,nativePluginConnected:false,queryCovered:false,preparedQueryCovered:false,...extra}));
 try{
  const ca=await readFile(base+'server.crt');stage='server-greeting';const packet=await greeting();
  let hello;try{hello=parseMysqlHandshake(packet.payload);}catch{throw new FixtureError('protocol');}
@@ -85,6 +87,17 @@ try{
   }finally{secret?.fill(0);password='';}
   if(mode==='--bad-password')throw new FixtureError('fixture');
   if(mode==='--full-auth-required'&&!usedFullAuth){report('NOT_COVERED','full-auth-not-observed',{authenticated:true,authFlow:'fast'});process.exitCode=2;}
+  else if(mode==='--prepared-read'){
+   stage='prepared-read';const connection=readConnection(secure!);try{
+    const options:MysqlPreparedSelect={schema:'netcatty_test',table:'netcatty_smoke',columns:['id','label','optional_value'],limit:10,where:[{column:'id',value:{kind:'int64',value:'1'}},{column:'label',value:{kind:'text',value:'real-tls-mysql'}},{column:'optional_value',value:{kind:'null'}}]};
+    const verify=(result:Awaited<ReturnType<typeof executeMysqlPreparedRead>>,expected:(string|null)[][])=>{if(result.rowCount!==expected.length||JSON.stringify(result.columns)!==JSON.stringify(options.columns)||JSON.stringify(result.rows)!==JSON.stringify(expected))throw new FixtureError('fixture');};
+    verify(await executeMysqlPreparedRead(connection,options),[['1','real-tls-mysql',null]]);
+    const adversarial:MysqlPreparedSelect={...options,where:options.where.map((item,i)=>i===1?{column:'label',value:{kind:'text',value:"' OR 1=1; DROP TABLE netcatty_smoke; --"}}:item)};
+    verify(await executeMysqlPreparedRead(connection,adversarial),[]);
+    verify(await executeMysqlPreparedRead(connection,options),[['1','real-tls-mysql',null]]);
+    report('PASS','prepared-bound-read-three-exchanges',{preparedQueryCovered:true,queryCovered:true,queryCount:3,connectionReused:true,statementCleanupAndRollbackVerified:true,int64BoundVerified:true,textBoundVerified:true,nullBoundVerified:true,sqlLookingTextReturnedZeroRows:true,authFlow:usedFullAuth?'full':'fast',tlsVerified:true,tlsVersion:secure!.getProtocol(),serverVersion});
+   }finally{await connection.close();}
+  }
   else if(mode==='--read'){
    stage='bounded-read';const connection=readConnection(secure!);try{
     const options={schema:'netcatty_test',table:'netcatty_smoke',columns:['id','label','optional_value'],limit:10};
@@ -95,8 +108,8 @@ try{
   else report('PASS',usedFullAuth?'verified-tls-full-auth':'cached-fast-auth',{authFlow:usedFullAuth?'full':'fast',tlsVerified:true,tlsVersion:secure!.getProtocol(),serverVersion,sslRequestDescriptorMatched:true});
  }
 }catch(error){
- const code=error instanceof FixtureError?error.code:error instanceof MysqlReadError?`mysql-read-${error.code}`:'fixture';
+ const code=error instanceof FixtureError?error.code:error instanceof MysqlReadError?`mysql-read-${error.code}`:error instanceof MysqlPreparedReadError?`mysql-prepared-read-${error.code}`:'fixture';
  if(code==='full-auth-required'){report('UNSUPPORTED','full-auth-required',{authenticated:false,passwordRejectedByServer:false});process.exitCode=2;}
  else if(mode==='--bad-password'&&code==='server-auth-denied')report('PASS','explicit-server-auth-denied',{errorCode:1045,sqlState:'28000'});
- else{console.error(JSON.stringify({status:'FAIL',lane:'independent-node-mysql-fast-auth',stage,reason:code,...(error instanceof MysqlReadError?{diagnostic:error.diagnostic}:{}),nativePluginConnected:false,queryCovered:false}));process.exitCode=1;}
+ else{console.error(JSON.stringify({status:'FAIL',lane:'independent-node-mysql-fast-auth',stage,reason:code,...(error instanceof MysqlReadError||error instanceof MysqlPreparedReadError?{diagnostic:error.diagnostic}:{}),nativePluginConnected:false,queryCovered:false,preparedQueryCovered:false}));process.exitCode=1;}
 }finally{auth?.close();secure?.destroy();raw?.destroy();}
