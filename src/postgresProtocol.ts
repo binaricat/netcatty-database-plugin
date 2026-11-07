@@ -18,6 +18,28 @@ export function pgBind(parameters:readonly (string|null)[],portal='',statement='
 }
 export function pgDescribe(portal=''){return packet('D',[te.encode('P'),str(portal)]);}
 export function pgExecute(portal='',maxRows=100){if(!Number.isInteger(maxRows)||maxRows<1||maxRows>100)fail('limit');return packet('E',[str(portal),i32(maxRows)]);}
+/** SCRAM response payloads only; these encode bytes and do not authenticate. */
+function saslPayload(value:string){if(typeof value!=='string'||value.length>8192||!/^[\x20-\x7e]*$/.test(value))fail('malformed');return te.encode(value);}
+export function pgSaslInitialResponse(mechanism:'SCRAM-SHA-256',response:string|null){
+ if(mechanism!=='SCRAM-SHA-256')fail('unsupported');
+ const body=response===null?null:saslPayload(response);
+ return packet('p',[str(mechanism),body===null?new Uint8Array([255,255,255,255]):i32(body.length),...(body===null?[]:[body])]);
+}
+export function pgSaslResponse(response:string){return packet('p',[saslPayload(response)]);}
+/** AuthenticationSASL data (excluding the int32 authentication code 10).
+ * No mechanism selection or PLUS-to-non-PLUS downgrade is performed here.
+ */
+export function pgSaslMechanisms(data:Uint8Array):string[]{
+ if(!(data instanceof Uint8Array))fail('malformed');if(data.length>1024)fail('limit');
+ const mechanisms:string[]=[];let start=0;
+ for(let i=0;i<data.length;i++)if(data[i]===0){
+   if(i===start){if(i!==data.length-1||!mechanisms.length)fail('malformed');return mechanisms;}
+   const mechanism=text(data.slice(start,i));
+   if(!/^[A-Z0-9_-]{1,20}$/.test(mechanism)||mechanisms.includes(mechanism))fail('malformed');
+   mechanisms.push(mechanism);if(mechanisms.length>16)fail('limit');start=i+1;
+ }
+ return fail('malformed');
+}
 export function pgSync(){return packet('S',[]);}
 export type PgMessage=
  |{type:'authentication';method:number;data:Uint8Array}
@@ -37,7 +59,7 @@ class Reader{
 function decode(tag:number,body:Uint8Array):PgMessage{
  const r=new Reader(body);let result:PgMessage;
  switch(String.fromCharCode(tag)){
- case 'R':{const method=r.int(4);if(![0,3,5,10,11,12].includes(method))fail('unsupported');const data=r.take(body.length-r.p);if(([0,3].includes(method)&&data.length!==0)||(method===5&&data.length!==4))fail('malformed');if(method===10){const m=new Reader(data);let count=0;while(m.p<data.length){const s=m.string();if(!s){m.end();break;}if(++count>16)fail('limit');}if(!data.length||data[data.length-1]!==0||data.length<2||data[data.length-2]!==0)fail('malformed');}result={type:'authentication',method,data};break;}
+ case 'R':{const method=r.int(4);if(![0,3,5,10,11,12].includes(method))fail('unsupported');const data=r.take(body.length-r.p);if(([0,3].includes(method)&&data.length!==0)||(method===5&&data.length!==4))fail('malformed');if(method===10)pgSaslMechanisms(data);result={type:'authentication',method,data};break;}
  case 'S':result={type:'parameter',name:r.string(),value:r.string()};break;
  case 'Z':{const status=String.fromCharCode(r.take(1)[0]);if(!['I','T','E'].includes(status))fail('malformed');result={type:'ready',status:status as 'I'|'T'|'E'};break;}
  case 'T':{const n=r.int(2);if(n<0||n>PG_LIMITS.columns)fail('limit');const columns=[];for(let i=0;i<n;i++){const name=r.string(),tableOid=r.int(4,false),attribute=r.int(2),typeOid=r.int(4,false),size=r.int(2),modifier=r.int(4),format=r.int(2);if(format!==0&&format!==1)fail('malformed');columns.push({name,tableOid,attribute,typeOid,size,modifier,format:format as 0|1});}result={type:'columns',columns};break;}
