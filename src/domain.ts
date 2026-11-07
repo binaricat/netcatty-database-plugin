@@ -1,4 +1,5 @@
-import type { DatabaseScalar, DatabaseSchemaResult, PluginAIClient } from '@netcatty/plugin-sdk';
+import { PluginAIClient } from '@netcatty/plugin-sdk';
+import type { DatabaseScalar, DatabaseSchemaResult } from './databaseTypes';
 export const DATABASE_FEATURE = 'database.sqlite-fixture.v1';
 export const selectObject = (name: string, engine = 'sqlite'): string => engine === 'mysql'
   ? `SELECT * FROM \`${name.replaceAll('`', '``')}\``

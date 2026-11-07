@@ -1,0 +1,12 @@
+import {createRequire} from 'node:module';
+import {mkdir,writeFile,readFile,readdir,copyFile} from 'node:fs/promises';
+import path from 'node:path';
+const host=process.env.NETCATTY_HOST_ROOT;
+if(!host||!path.isAbsolute(host))throw new Error('NETCATTY_HOST_ROOT must identify main.');
+const require=createRequire(path.join(host,'package.json'));const {build}=require('esbuild');
+const out=path.resolve('dist/main-host-fixture');await mkdir(out,{recursive:true});
+await build({entryPoints:['tests/main-host/fixture.tsx'],outfile:path.join(out,'fixture.js'),bundle:true,platform:'browser',format:'esm',jsx:'automatic',alias:{'@host-page':path.join(host,'components/plugins/PluginHostDrawnPage.tsx'),'@host-i18n':path.join(host,'application/i18n/I18nProvider.tsx'),'react':path.join(host,'node_modules/react'),'react-dom':path.join(host,'node_modules/react-dom')},define:{'process.env.NODE_ENV':'"production"'}});
+const css=(await readdir(path.join(host,'dist/assets'))).find(name=>/^index.*\.css$/.test(name));if(!css)throw new Error('Build the unmodified main renderer first.');
+await copyFile(path.join(host,'dist/assets',css),path.join(out,'host.css'));
+await writeFile(path.join(out,'index.html'),'<!doctype html><html><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="default-src &apos;self&apos; data:; script-src &apos;self&apos;; style-src &apos;self&apos; &apos;unsafe-inline&apos;; img-src &apos;self&apos; data:; connect-src &apos;none&apos;; object-src &apos;none&apos;"><title>Netcatty Database main acceptance</title><link rel="stylesheet" href="host.css"></head><body><div id="root"></div><script type="module" src="fixture.js"></script></body></html>');
+console.log(out);

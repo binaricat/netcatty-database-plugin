@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import type { PluginContext, DatabaseSchemaResult } from '@netcatty/plugin-sdk';
+import { PluginContext } from '@netcatty/plugin-sdk';
+import type { DatabaseSchemaResult } from './databaseTypes';
 import { AI_FEATURE, AssistantError, buildPrompt, DraftStream, type Task } from './domain';
 import type { Message } from './i18n';
 

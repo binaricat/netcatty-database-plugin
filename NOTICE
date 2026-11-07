@@ -37,3 +37,11 @@ original/intermediate sources and history, retaining their notices and restricti
 That publication decision does not establish additional third-party permissions.
 NOT_CLEARED_FOR_GENERAL_DISTRIBUTION: no unrestricted brand redistribution claim.
 UXDB, Dameng, Oracle continue using a host glyph.
+
+SQL.js 1.14.1 (MIT): https://github.com/sql-js/sql.js
+SQLite engine: public domain. See licenses/sql.js-MIT.txt.
+Main SDK snapshot: binaricat/netcatty@4a55492c17c3c792fbda4afc08d993f4165ca930 (GPL-3.0-or-later).
+
+UI icon resources generated from lucide-react 0.560.0 (ISC), with fixed gray strokes.
+Source: https://github.com/lucide-icons/lucide/tree/0.560.0
+See licenses/lucide-ISC.txt and assets/ui-icon-ledger.json.

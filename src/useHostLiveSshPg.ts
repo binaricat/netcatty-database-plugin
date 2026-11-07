@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import type { DatabaseHostMeta, DatabaseHostLiveSshPgOpenResult, PluginContext } from '@netcatty/plugin-sdk';
+import { PluginContext } from './databaseClient';
+import type { DatabaseHostMeta, DatabaseHostLiveSshPgOpenResult } from './databaseTypes';
 import type { Message } from './i18n';
 export const LIVE_SSH_PG_FEATURE = 'database.host-live-ssh-pg.fixture.v1';
 const messages: Record<Exclude<DatabaseHostLiveSshPgOpenResult['code'], 'LIVE_OK'>, Message> = {
@@ -13,7 +14,7 @@ const messages: Record<Exclude<DatabaseHostLiveSshPgOpenResult['code'], 'LIVE_OK
   UNAVAILABLE: 'Live fixture unavailable. Check host permissions, secure storage and fixture services.',
 };
 export function useHostLiveSshPg(context: PluginContext) {
-  const enabled = context.enabledFeatures.has('database.sqlite-fixture.v1') && context.enabledFeatures.has(LIVE_SSH_PG_FEATURE);
+  const enabled = context.database.capabilities.has('database.sqlite-fixture.v1') && context.database.capabilities.has(LIVE_SSH_PG_FEATURE);
   const [message, setMessage] = useState<Message | null>(null);
   const [busy, setBusy] = useState(false);
   const pending = useRef<string | null>(null);

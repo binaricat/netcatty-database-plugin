@@ -1,0 +1,140 @@
+[
+  {
+    "file": "assets/ui/database.svg",
+    "sha256": "7987ac19e16e232ab8b2f1ac9549829e01db3cdb3a38b066a1ec84dffdae24e2",
+    "source": "lucide-react@0.560.0/database",
+    "license": "ISC"
+  },
+  {
+    "file": "assets/ui/plus.svg",
+    "sha256": "ae54e558196d7a83d39faaf5bd0a54fe7fabdbb71d9ab407c2fd46fd07034ca9",
+    "source": "lucide-react@0.560.0/plus",
+    "license": "ISC"
+  },
+  {
+    "file": "assets/ui/file-code.svg",
+    "sha256": "75f8801cdc6b7130f55c38f84ffb2d24f6799948b11d2e0a40848d51a7b739f5",
+    "source": "lucide-react@0.560.0/file-code",
+    "license": "ISC"
+  },
+  {
+    "file": "assets/ui/play.svg",
+    "sha256": "84e82f878fd99c4da155c302ddcb91347135acd2c0a075125327b0c2560d0ede",
+    "source": "lucide-react@0.560.0/play",
+    "license": "ISC"
+  },
+  {
+    "file": "assets/ui/square.svg",
+    "sha256": "5ca35a30b01d442e21ff453986bdd7610eff81cbeaae1262a0dfb042b3fb6f87",
+    "source": "lucide-react@0.560.0/square",
+    "license": "ISC"
+  },
+  {
+    "file": "assets/ui/x.svg",
+    "sha256": "e0a1673a80cd8bbbf00a95172701798158f64715e404285d60e17b914eb246ce",
+    "source": "lucide-react@0.560.0/x",
+    "license": "ISC"
+  },
+  {
+    "file": "assets/ui/chevron-right.svg",
+    "sha256": "efeaabbf8a7821f20e7435a8ed74ad17bccd5046e55bdcfe3b02c84564e48090",
+    "source": "lucide-react@0.560.0/chevron-right",
+    "license": "ISC"
+  },
+  {
+    "file": "assets/ui/chevron-down.svg",
+    "sha256": "70935174da8c45cd4782b5d957b7e05996e15dbb33d32f0c95ad1d1942083df9",
+    "source": "lucide-react@0.560.0/chevron-down",
+    "license": "ISC"
+  },
+  {
+    "file": "assets/ui/table.svg",
+    "sha256": "5086da9eb209a840339d5923edccd5816537f63a6cb3532d920b24526898683a",
+    "source": "lucide-react@0.560.0/table",
+    "license": "ISC"
+  },
+  {
+    "file": "assets/ui/eye.svg",
+    "sha256": "de2d3f79693872d8e484ceca3feb032bf03da6a8c1ea0965ec7309e4ced9b2aa",
+    "source": "lucide-react@0.560.0/eye",
+    "license": "ISC"
+  },
+  {
+    "file": "assets/ui/search.svg",
+    "sha256": "b53d2b4888021dd1d768b87c18af6a2ba2031d4449012d9e1006ae59c9823f3f",
+    "source": "lucide-react@0.560.0/search",
+    "license": "ISC"
+  },
+  {
+    "file": "assets/ui/refresh.svg",
+    "sha256": "27df8df86cbce4e998fac00307f4a2844a6856475fbd285f294d88340cae897c",
+    "source": "lucide-react@0.560.0/refresh-cw",
+    "license": "ISC"
+  },
+  {
+    "file": "assets/ui/sparkles.svg",
+    "sha256": "6d3257e7e751c51e792ac92dd0b9f8697a364fdf2a13211c1b716031cc808736",
+    "source": "lucide-react@0.560.0/sparkles",
+    "license": "ISC"
+  },
+  {
+    "file": "assets/ui/unplug.svg",
+    "sha256": "19062bca37c15df79cbc3e7d2ae3d48eba3903649c5c4ef6a6d52ac55f0fe48a",
+    "source": "lucide-react@0.560.0/unplug",
+    "license": "ISC"
+  },
+  {
+    "file": "assets/ui/folder.svg",
+    "sha256": "50423b1826e5e98b01c9a46c9021abe9b6d9693c77317f17459be4e599532bdf",
+    "source": "lucide-react@0.560.0/folder",
+    "license": "ISC"
+  },
+  {
+    "file": "assets/ui/key.svg",
+    "sha256": "ffdc77687a2694d6d3484c760149310e3b0f582bfbedeedc503e37e564cd8e13",
+    "source": "lucide-react@0.560.0/key",
+    "license": "ISC"
+  },
+  {
+    "file": "assets/ui/check.svg",
+    "sha256": "0394dcad173069de7d6a312ee4f891fe67598ccc3d32d6d24e2a4c609fe40d3e",
+    "source": "lucide-react@0.560.0/check",
+    "license": "ISC"
+  },
+  {
+    "file": "assets/ui/alert-circle.svg",
+    "sha256": "aea23b91974c7a290505629edeafc5edba9e57b9e8cb41f4b4579b277e40637e",
+    "source": "lucide-react@0.560.0/alert-circle",
+    "license": "ISC"
+  },
+  {
+    "file": "assets/ui/loader.svg",
+    "sha256": "e1d58e979e69f2342d089b9ecf29f96d43544a5a6e5057a9b61a6ad2c82d6190",
+    "source": "lucide-react@0.560.0/loader",
+    "license": "ISC"
+  },
+  {
+    "file": "assets/ui/arrow-right.svg",
+    "sha256": "70c23db18044b9032db036088788c46ecc8be12159f17f2a54fbe7d8aee7248c",
+    "source": "lucide-react@0.560.0/arrow-right",
+    "license": "ISC"
+  },
+  {
+    "file": "assets/ui/panel-left.svg",
+    "sha256": "ff44798b406241c3fcd84e922105a3bfa24c614a115eeaa475e28ccfef9e3b42",
+    "source": "lucide-react@0.560.0/panel-left",
+    "license": "ISC"
+  },
+  {
+    "file": "assets/ui/shield.svg",
+    "sha256": "e7a20b886e4dff5dde310ca9436a5daa6965e24e06c8ab0117fefa875d287e32",
+    "source": "lucide-react@0.560.0/shield",
+    "license": "ISC"
+  },
+  {
+    "file": "assets/ui/settings.svg",
+    "sha256": "525a7ba5296ed000d0759134d993e65d4c20192c780273a1d7e0da10eb75c685",
+    "source": "lucide-react@0.560.0/settings",
+    "license": "ISC"
+  }
+]

@@ -1,5 +1,6 @@
 import React from 'react';
-import type { PluginContext, DatabaseSchemaResult } from '@netcatty/plugin-sdk';
+import { PluginContext } from '@netcatty/plugin-sdk';
+import type { DatabaseSchemaResult } from './databaseTypes';
 import { tasks } from './domain';
 import type { Translate } from './i18n';
 import { useSqlAssistant } from './useSqlAssistant';

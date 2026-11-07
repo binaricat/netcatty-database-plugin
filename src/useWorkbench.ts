@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
-import type { PluginContext, DatabaseOpenResult, DatabaseFileOpenResult, DatabaseHandleRequest, DatabaseSchemaResult, DatabaseSavedConnection, DatabaseHostList, DatabaseConnectionMeta, DatabaseQueryResult } from '@netcatty/plugin-sdk';
+import { PluginContext } from './databaseClient';
+import type { DatabaseOpenResult, DatabaseFileOpenResult, DatabaseHandleRequest, DatabaseSchemaResult, DatabaseSavedConnection, DatabaseHostList, DatabaseConnectionMeta, DatabaseQueryResult } from './databaseTypes';
 import { parseParameters, ParameterError, DATABASE_FEATURE, defaultQuery, selectObject } from './domain';
 import { driverById, type DriverId } from './driverRegistry';
-import type { DatabaseTcpOpenResult, DatabaseTcpOpenRequest } from '@netcatty/plugin-contract';
+import type { DatabaseTcpOpenResult, DatabaseTcpOpenRequest } from './databaseTypes';
 import { useHostPortProbe } from './useHostPortProbe';
 import { useHostLiveSshPg } from './useHostLiveSshPg';
 import { useTunnelTest } from './useTunnelTest';
@@ -18,7 +19,7 @@ export function useWorkbench(context: PluginContext) {
   const portProbe = useHostPortProbe(context);
   const [driverId, setDriverId] = useState<DriverId>('sqlite');
   const selectedDriver = driverById(driverId);
-  const tcpEnabled = context.enabledFeatures.has('database.tcp.v1');
+  const tcpEnabled = context.database.capabilities.has('database.tcp.v1');
   const [saved, setSaved] = useState<DatabaseSavedConnection[]>([]);
   const [session, setSession] = useState<Session | null>(null);
   const [connectionName, setConnectionName] = useState('');
@@ -40,15 +41,15 @@ export function useWorkbench(context: PluginContext) {
   const draftEdits = useRef(0);
   const live = useRef<Session | null>(null); const draft = useRef<Session | null>(null);
   const epoch = useRef(0); const locked = useRef(false); const nextTab = useRef(1);
-  const enabled = context.enabledFeatures.has(DATABASE_FEATURE);
-  const persistence = enabled && context.enabledFeatures.has(SAVED_FEATURE);
-  const fileEnabled = enabled && context.enabledFeatures.has('database.sqlite-file-fixture.v1');
-  const walEnabled = fileEnabled && context.enabledFeatures.has('database.sqlite-wal-readonly.fixture.v1');
-  const walCheckpointEnabled = walEnabled && context.enabledFeatures.has('database.sqlite-wal-concurrent.fixture.v1') && context.enabledFeatures.has('database.sqlite-wal-checkpoint.fixture.v1');
-  const walCaptureEnabled = walCheckpointEnabled && context.enabledFeatures.has('database.sqlite-wal-capture.fixture.v1');
-  const malformedRejectEnabled = walCaptureEnabled && context.enabledFeatures.has('database.sqlite-fd-identity.fixture.v1') && context.enabledFeatures.has('database.sqlite-malformed-reject.fixture.v1');
-  const walRefreshEnabled = malformedRejectEnabled && context.enabledFeatures.has('database.sqlite-wal-session-refresh.fixture.v1');
-  const walConcurrentEnabled = walEnabled && context.enabledFeatures.has('database.sqlite-wal-concurrent.fixture.v1');
+  const enabled = context.database.capabilities.has(DATABASE_FEATURE);
+  const persistence = enabled && context.database.capabilities.has(SAVED_FEATURE);
+  const fileEnabled = enabled && context.database.capabilities.has('database.sqlite-file-fixture.v1');
+  const walEnabled = fileEnabled && context.database.capabilities.has('database.sqlite-wal-readonly.fixture.v1');
+  const walCheckpointEnabled = walEnabled && context.database.capabilities.has('database.sqlite-wal-concurrent.fixture.v1') && context.database.capabilities.has('database.sqlite-wal-checkpoint.fixture.v1');
+  const walCaptureEnabled = walCheckpointEnabled && context.database.capabilities.has('database.sqlite-wal-capture.fixture.v1');
+  const malformedRejectEnabled = walCaptureEnabled && context.database.capabilities.has('database.sqlite-fd-identity.fixture.v1') && context.database.capabilities.has('database.sqlite-malformed-reject.fixture.v1');
+  const walRefreshEnabled = malformedRejectEnabled && context.database.capabilities.has('database.sqlite-wal-session-refresh.fixture.v1');
+  const walConcurrentEnabled = walEnabled && context.database.capabilities.has('database.sqlite-wal-concurrent.fixture.v1');
   const close = async (s: Session | null, cancel = false) => { if (s) await context.database[cancel ? 'cancel' : 'close'](target(s)).catch(() => {}); };
   useEffect(() => {
     let mounted = true;

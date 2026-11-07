@@ -7,8 +7,8 @@
     "zh-CN": "Netcatty 数据库"
   },
   "description": {
-    "en": "Database catalog with host-owned SQLite, PostgreSQL and MySQL sessions.",
-    "zh-CN": "数据库目录与宿主管理的 SQLite、PostgreSQL 和 MySQL 会话。"
+    "en": "Plugin-owned SQLite memory workbench for Netcatty main. Additional drivers are not yet ported.",
+    "zh-CN": "适用于 Netcatty main 的插件自有 SQLite 内存工作台，其他驱动尚未迁移。"
   },
   "version": "0.1.0-alpha.1",
   "publisher": "binaricat",
@@ -21,67 +21,28 @@
     "required": [
       "views.host-drawn",
       "views.vault-pages",
-      "views.modals",
-      "metadata.brand-icon"
-    ],
-    "optional": [
-      "database.sqlite-fixture.v1",
-      "database.sqlite-file-fixture.v1",
-      "database.sqlite-fd-identity.fixture.v1",
-      "database.sqlite-wal-readonly.fixture.v1",
-      "database.sqlite-wal-concurrent.fixture.v1",
-      "database.sqlite-wal-checkpoint.fixture.v1",
-      "database.sqlite-wal-capture.fixture.v1",
-      "database.sqlite-malformed-reject.fixture.v1",
-      "database.sqlite-wal-session-refresh.fixture.v1",
-      "database.saved-connections.v1",
-      "database.tunnel-test.synthetic.v1",
-      "database.host-port-probe.v1",
-      "database.host-live-ssh-pg.fixture.v1",
-      "ai.model-invocation",
-      "database.tcp.v1"
+      "metadata.brand-icon",
+      "ai.model-invocation"
     ]
   },
   "main": {
     "browser": "browser.js"
   },
   "activationEvents": [
-    "onView:com.binaricat.netcatty-database.workbench",
-    "onView:com.binaricat.netcatty-database.new-connection"
+    "onView:com.binaricat.netcatty-database.workbench"
   ],
   "permissions": {
     "required": [
       "views"
     ],
     "optional": [
-      {
-        "permission": "database.query.read",
-        "resources": [
-          "sqlite:synthetic-notes",
-          "sqlite:disposable-file",
-          "database-tunnel:synthetic-loopback",
-          "database-host:common-ports",
-          "database-host:live-ssh-pg-fixture",
-          "database:tcp"
-        ],
-        "reason": "Read disposable SQLite, probe saved-host TCP ports, or test pinned SSH and SELECT 1 on the loopback PostgreSQL fixture / 读取一次性 SQLite、探测主机 TCP 端口，或测试固定 SSH 密钥与本机 PostgreSQL SELECT 1"
-      },
-      {
-        "permission": "database.query.write",
-        "resources": [
-          "sqlite:synthetic-notes"
-        ],
-        "reason": "Review each write to disposable synthetic SQLite / 逐次审查对一次性模拟 SQLite 数据库的写入"
-      },
       "storage",
-      "vault.metadata",
-      "secrets",
       {
         "permission": "ai.invoke",
-        "reason": "Request unexecuted SQL drafts from the host-selected model using schema metadata, editor SQL and user request / 使用数据库结构、编辑器 SQL 和用户请求，向宿主选择的模型请求未执行的 SQL 草稿",
         "resources": [
           "*"
-        ]
+        ],
+        "reason": "Request unexecuted SQL drafts using schema metadata / 使用数据库结构请求未执行的 SQL 草稿"
       }
     ]
   },
@@ -94,15 +55,6 @@
           "zh-CN": "数据库"
         },
         "location": "vault-page"
-      },
-      {
-        "id": "com.binaricat.netcatty-database.new-connection",
-        "title": {
-          "en": "New Connection",
-          "zh-CN": "新建连接"
-        },
-        "location": "modal",
-        "when": "netcatty.surface == 'modal'"
       }
     ]
   },

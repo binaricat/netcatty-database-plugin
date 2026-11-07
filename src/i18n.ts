@@ -1,6 +1,14 @@
 // Original plugin-owned copy. English source keys keep the fallback explicit.
 // Only the host environment selects language; never navigator/OS/input locale.
 export const zhCN = {
+  "SQLite memory only": "仅支持 SQLite 内存数据库",
+  "Read-only memory": "只读内存数据库",
+  "Connection successful - SQLite schema validated": "连接成功 - SQLite 数据库结构已验证",
+  "Connection color": "连接颜色",
+  "Vendor compatibility is unverified. Choose an explicit product variant; unsupported authentication or modes remain unavailable.": "厂商兼容性未验证。请选择明确的产品变体；不支持的认证或模式仍不可用。",
+  "Plugin-owned SQLite memory workspace. Read-only sample data; no host database service or user files.": "插件自有的 SQLite 内存工作区。仅支持只读示例数据，不调用宿主数据库服务或访问用户文件。",
+  "Netcatty main / plugin-owned SQLite": "Netcatty main / 插件自有 SQLite",
+
   "Product variant": "产品变体",
   "Choose a product variant": "选择产品变体",
   "Choose a product variant before testing or connecting.": "测试或连接前请选择产品变体。",

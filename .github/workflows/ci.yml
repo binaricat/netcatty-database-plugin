@@ -1,0 +1,50 @@
+name: Plugin checks
+on: [push, pull_request]
+permissions:
+  contents: read
+jobs:
+  plugin:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24.22.1'
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: npm run lint
+      - run: npm test
+      - run: npm run pack
+      - run: npm run validate
+      - uses: actions/upload-artifact@v4
+        with:
+          name: plugin-package-${{ matrix.os }}
+          path: |
+            dist/*.ncpkg
+            dist/SHA256SUMS
+  main-host:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: plugin
+      - uses: actions/checkout@v4
+        with:
+          repository: binaricat/netcatty
+          ref: 4a55492c17c3c792fbda4afc08d993f4165ca930
+          path: host
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24.22.1'
+      - run: npm ci --ignore-scripts && npm run build:plugin-runtime-deps
+        working-directory: host
+      - run: npm ci --ignore-scripts && npm run pack
+        working-directory: plugin
+      - run: npm run check:main && npm run test:react
+        working-directory: plugin
+        env:
+          NETCATTY_HOST_ROOT: ${{ github.workspace }}/host
