@@ -1,10 +1,12 @@
 import { CancellationTokenSource, type PluginByteConnection, type PluginNetworkClient } from '@netcatty/plugin-sdk';
+import { canonicalHostStreamEndpoint, type HostStreamTargetRef } from './hostStreamEndpoint';
 import { encodeRedisCommand, RedisResp2Decoder, type RedisValue } from './redisProtocol';
 export const REDIS_SESSION_LIMITS=Object.freeze({replyBytes:96*1024,requestBytes:8192,queue:16,timeoutMs:5000});
 export class RedisSessionError extends Error {constructor(readonly code:'endpoint'|'command'|'authentication'|'identification'|'closed'|'protocol'|'limit'|'timeout'|'aborted'|'transport'|'server'){super(`Redis session ${code}`);}}
 type Args=readonly (string|Uint8Array)[];
 export interface RedisRequestOptions {timeoutMs?:number;signal?:AbortSignal;}
 export interface RedisConnectOptions extends RedisRequestOptions {endpoint:string;authentication?:{username?:string;password:string};}
+export interface RedisHostConnectOptions extends RedisConnectOptions {target:HostStreamTargetRef;expectedRevision:string;}
 function duration(value:number|undefined){if(value===undefined)return REDIS_SESSION_LIMITS.timeoutMs;if(!Number.isInteger(value)||value<1||value>10000)throw new RedisSessionError('limit');return value;}
 function endpoint(value:string){
   if(typeof value!=='string'||value.length>512||!/^tls:\/\/(?:\[[0-9a-fA-F:.]+\]|[A-Za-z0-9.-]+):[1-9][0-9]{0,4}$/.test(value))throw new RedisSessionError('endpoint');
@@ -97,6 +99,21 @@ export class RedisSession {
   finally{clearTimeout(timer);options.signal?.removeEventListener('abort',abort);cancellation.dispose();}
   const session=new RedisSession(connection!);session.bindLifetime(options.signal);await session.initialize(options.authentication,{timeoutMs:ms,signal:options.signal});return session;
 }
+  static async connectViaHost(network:PluginNetworkClient,options:RedisHostConnectOptions):Promise<RedisSession>{
+  let exact:string;try{exact=canonicalHostStreamEndpoint(options.endpoint);}catch{throw new RedisSessionError('endpoint');}
+  const ms=duration(options.timeoutMs),cancellation=new CancellationTokenSource();
+  let connection:PluginByteConnection|undefined;let timedOut=false,aborted=false;let rejectStop!:(error:RedisSessionError)=>void;
+  const stop=new Promise<never>((_,reject)=>{rejectStop=reject;});
+  const cancel=(code:'timeout'|'aborted')=>{timedOut=code==='timeout';aborted=code==='aborted';cancellation.cancel();rejectStop(new RedisSessionError(code));};
+  const abort=()=>cancel('aborted');const timer=setTimeout(()=>cancel('timeout'),ms);options.signal?.addEventListener('abort',abort,{once:true});
+  try{
+    if(options.signal?.aborted)abort();
+    const opening=Promise.resolve().then(()=>{if(timedOut||aborted)throw new RedisSessionError(aborted?'aborted':'timeout');return network.connectViaHost({target:options.target,expectedRevision:options.expectedRevision,endpoint:exact},cancellation.token);}).then(value=>{if(timedOut||aborted){void value.close().catch(()=>{});throw new RedisSessionError(aborted?'aborted':'timeout');}connection=value;return value;});
+    await Promise.race([opening,stop]);
+  }catch(error){throw error instanceof RedisSessionError?error:new RedisSessionError('transport');}
+  finally{clearTimeout(timer);options.signal?.removeEventListener('abort',abort);cancellation.dispose();}
+  const session=new RedisSession(connection!);session.bindLifetime(options.signal);await session.initialize(options.authentication,{timeoutMs:ms,signal:options.signal});return session;
+}
 
 }
 function equals(bytes:Uint8Array,text:string){return bytes.length===text.length&&bytes.every((byte,index)=>byte===text.charCodeAt(index));}
@@ -104,3 +121,5 @@ function equals(bytes:Uint8Array,text:string){return bytes.length===text.length&
  * local-address checks and byte-stream quotas stay enforced by the main host.
  */
 export function connectRedis(network:PluginNetworkClient,options:RedisConnectOptions):Promise<RedisSession>{return RedisSession.connect(network,options);}
+/** Connects to Redis through a user-selected SSH host using Netcatty's host byte-stream API. */
+export function connectRedisViaHost(network:PluginNetworkClient,options:RedisHostConnectOptions):Promise<RedisSession>{return RedisSession.connectViaHost(network,options);}

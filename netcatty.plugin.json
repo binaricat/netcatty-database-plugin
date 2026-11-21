@@ -7,8 +7,8 @@
     "zh-CN": "Netcatty 数据库"
   },
   "description": {
-    "en": "SQLite workbench and experimental Redis TLS browser. Redis requires an authorized declared endpoint; real-server qualification is pending.",
-    "zh-CN": "SQLite 工作台与实验性 Redis TLS 浏览器。Redis 需配置已授权的声明端点，真实服务器验收尚未完成。"
+    "en": "SQLite workbench and SSH host byte-stream database browser (PostgreSQL, MySQL/MariaDB, Redis) using Netcatty's network.hostStream and network.byte-streams capabilities.",
+    "zh-CN": "SQLite 工作台与基于 SSH 宿主字节流（network.hostStream / network.byte-streams）的远端数据库浏览器（PostgreSQL、MySQL/MariaDB、Redis）。"
   },
   "version": "0.1.0-alpha.34",
   "publisher": "binaricat",
@@ -28,7 +28,8 @@
       "host.interactions"
     ],
     "optional": [
-      "network.byte-streams"
+      "network.byte-streams",
+      "network.host-byte-streams"
     ]
   },
   "main": {
@@ -71,6 +72,13 @@
           "*"
         ],
         "reason": "Request selected host SSH connection in native host UI / 在宿主界面请求已选主机 SSH 连接"
+      },
+      {
+        "permission": "network.hostStream",
+        "resources": [
+          "*"
+        ],
+        "reason": "Connect to remote databases (PostgreSQL, MySQL/MariaDB, Redis) through a selected SSH server without exposing SSH credentials / 通过选定的 SSH 服务器连接远端数据库，不暴露 SSH 密码或私钥"
       },
       {
         "permission": "clipboard.write",
