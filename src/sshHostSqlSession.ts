@@ -167,9 +167,24 @@ async function authenticateMysqlOverSsh(
 
   let reads = 0;
   let totalBytes = 0;
-  const readOnePacket = async (expectedSequence: number): Promise<MysqlPacket> => {
-    const decoder = new MysqlPacketDecoder(expectedSequence);
-    while (true) {
+  let activeDecoder: MysqlPacketDecoder | null = null;
+  let queuedPackets: MysqlPacket[] = [];
+
+  const resetReader = (nextSequence: number) => {
+    if (queuedPackets.length) {
+      for (const packet of queuedPackets) packet.payload.fill(0);
+      queuedPackets = [];
+      throw new SshHostSqlError('protocol');
+    }
+    if (activeDecoder) {
+      try { activeDecoder.finish(); } catch { throw new SshHostSqlError('protocol'); }
+    }
+    activeDecoder = new MysqlPacketDecoder(nextSequence);
+  };
+
+  const readNextPacket = async (expectedSequence: number): Promise<MysqlPacket> => {
+    if (!activeDecoder) activeDecoder = new MysqlPacketDecoder(expectedSequence);
+    while (!queuedPackets.length) {
       check();
       if (++reads > 1024) throw new SshHostSqlError('limit');
       const chunk = await connection.readable.read();
@@ -178,14 +193,34 @@ async function authenticateMysqlOverSsh(
         if (!(chunk instanceof Uint8Array) || !chunk.length) throw new SshHostSqlError('protocol');
         totalBytes += chunk.length;
         if (totalBytes > 96 * 1024) throw new SshHostSqlError('limit');
-        const packets = decoder.feed(chunk);
-        if (!packets.length) continue;
-        if (packets.length !== 1) throw new SshHostSqlError('protocol');
-        decoder.finish();
-        return packets[0];
+        let packets: MysqlPacket[];
+        try {
+          packets = activeDecoder.feed(chunk);
+        } catch {
+          throw new SshHostSqlError('protocol');
+        }
+        if (packets.length) queuedPackets.push(...packets);
       } finally {
         if (chunk instanceof Uint8Array) chunk.fill(0);
       }
+    }
+    const packet = queuedPackets.shift()!;
+    if (packet.sequence !== expectedSequence) {
+      packet.payload.fill(0);
+      throw new SshHostSqlError('protocol');
+    }
+    return packet;
+  };
+
+  const assertReaderDrained = () => {
+    if (queuedPackets.length) {
+      for (const packet of queuedPackets) packet.payload.fill(0);
+      queuedPackets = [];
+      throw new SshHostSqlError('protocol');
+    }
+    if (activeDecoder) {
+      try { activeDecoder.finish(); } catch { throw new SshHostSqlError('protocol'); }
+      activeDecoder = null;
     }
   };
 
@@ -195,7 +230,9 @@ async function authenticateMysqlOverSsh(
     if (options.signal?.aborted) halt('aborted');
 
     const run = async () => {
-      const greetingPacket = await readOnePacket(0);
+      resetReader(0);
+      const greetingPacket = await readNextPacket(0);
+      assertReaderDrained();
       let hello;
       try {
         hello = parseMysqlHandshake(greetingPacket.payload);
@@ -236,7 +273,8 @@ async function authenticateMysqlOverSsh(
           wire.fill(0);
         }
 
-        const firstReply = await readOnePacket(2);
+        resetReader(2);
+        const firstReply = await readNextPacket(2);
         try {
           const payload = firstReply.payload;
           if (payload[0] === 0xff) {
@@ -244,20 +282,23 @@ async function authenticateMysqlOverSsh(
             throw new SshHostSqlError('authentication');
           }
           if (payload[0] === 0x00 && payload.length >= 7) {
+            assertReaderDrained();
             return;
           }
           if (plugin === 'caching_sha2_password' && payload.length === 2 && payload[0] === 0x01) {
             if (payload[1] === 0x03) {
-              const okPacket = await readOnePacket(3);
+              const okPacket = await readNextPacket(3);
               try {
                 if (okPacket.payload[0] === 0xff) throw new SshHostSqlError('authentication');
                 if (okPacket.payload[0] !== 0x00 || okPacket.payload.length < 7) throw new SshHostSqlError('protocol');
+                assertReaderDrained();
                 return;
               } finally {
                 okPacket.payload.fill(0);
               }
             }
             if (payload[1] === 0x04) {
+              assertReaderDrained();
               if (!options.allowCleartextFullAuth) {
                 throw new SshHostSqlError('authentication');
               }
@@ -270,10 +311,12 @@ async function authenticateMysqlOverSsh(
               } finally {
                 fullWire.fill(0);
               }
-              const okPacket = await readOnePacket(4);
+              resetReader(4);
+              const okPacket = await readNextPacket(4);
               try {
                 if (okPacket.payload[0] === 0xff) throw new SshHostSqlError('authentication');
                 if (okPacket.payload[0] !== 0x00 || okPacket.payload.length < 7) throw new SshHostSqlError('protocol');
+                assertReaderDrained();
                 return;
               } finally {
                 okPacket.payload.fill(0);
@@ -297,6 +340,8 @@ async function authenticateMysqlOverSsh(
     }
     throw error instanceof SshHostSqlError ? error : new SshHostSqlError('transport');
   } finally {
+    for (const packet of queuedPackets) packet.payload.fill(0);
+    queuedPackets = [];
     passwordBytes.fill(0);
     if (timer) clearTimeout(timer);
     options.signal?.removeEventListener('abort', abort);

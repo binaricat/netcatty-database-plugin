@@ -282,9 +282,14 @@ test('connectSshHostSql authenticates MySQL mysql_native_password and caching_sh
   await nativeSession.close();
   assert.equal(nativeStream.isClosed(), true);
 
+  const fastOkPart1 = encodeMysqlPacket(new Uint8Array([0x01, 0x03]), 2);
+  const fastOkPart2 = okPacket(3);
+  const coalescedFastOk = new Uint8Array(fastOkPart1.length + fastOkPart2.length);
+  coalescedFastOk.set(fastOkPart1, 0);
+  coalescedFastOk.set(fastOkPart2, fastOkPart1.length);
   const sha2Stream = makeByteStream([
     { respond: [buildMysqlGreeting('caching_sha2_password')] },
-    { expectPrefix: [], respond: [encodeMysqlPacket(new Uint8Array([0x01, 0x03]), 2), okPacket(3)] },
+    { expectPrefix: [], respond: [coalescedFastOk] },
   ]);
   const sha2Network = {
     connectViaHost: async () => sha2Stream.connection,

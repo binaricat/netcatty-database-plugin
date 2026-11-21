@@ -260,7 +260,7 @@ export function SshHostDatabasePanel({
                           {vm.result.rows.map((row, idx) => (
                             <tr key={idx}>
                               {row.map((cell, cIdx) => (
-                                <td key={cIdx}>{cell === null ? 'NULL' : String(cell)}</td>
+                                <td key={cIdx}>{cell === null ? 'NULL' : String(cell).replaceAll('\0', '\\0')}</td>
                               ))}
                             </tr>
                           ))}
