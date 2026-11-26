@@ -32,6 +32,11 @@ for (const entry of domestic) {
     if (createHash('sha256').update(png).digest('hex') !== output.sha256) throw new Error('Domestic PNG drift');
     inspectPluginBrandIcon(png, output.file);
   }
+  for (const svgOut of entry.svgOutputs ?? []) {
+    const svg = await readFile(svgOut.file, 'utf8');
+    if (/<(?:script|image|foreignObject|use|style)\b|(?:href|on\w+)\s*=|url\(/i.test(svg.replace(/url\(#[a-zA-Z0-9_-]+\)/g, 'local-gradient'))) throw new Error(`Unsafe domestic SVG output: ${svgOut.file}`);
+    if (createHash('sha256').update(svg).digest('hex') !== svgOut.sha256) throw new Error(`Domestic SVG drift: ${svgOut.file}`);
+  }
 }
 console.log(`Validated ${domestic.length} domestic marks, local noncommercial use only`);
 
@@ -49,3 +54,16 @@ for (const entry of uiIcons) {
   if (/<(?:script|image|foreignObject|use|style)\b|(?:href|on\w+)\s*=|url\(/i.test(svg)) throw new Error(`Unsafe UI icon: ${entry.file}`);
 }
 console.log(`Validated ${uiIcons.length} static ISC UI icons`);
+
+for (const theme of ['light', 'dark']) {
+  const svgPath = `assets/plugin-icon-${theme}.svg`;
+  const pngPath = `assets/plugin-icon-${theme}.png`;
+  const svg = await readFile(svgPath, 'utf8');
+  if (/<(?:script|image|foreignObject|use|style)\b|(?:href|on\w+)\s*=|url\(/i.test(svg.replace(/url\(#[a-zA-Z0-9_-]+\)/g, 'local-gradient'))) {
+    throw new Error(`Unsafe plugin brand SVG: ${svgPath}`);
+  }
+  const png = await readFile(pngPath);
+  const { width, height } = inspectPluginBrandIcon(png, pngPath);
+  if (width !== 256 || height !== 256) throw new Error(`Unexpected plugin brand icon size: ${pngPath}`);
+}
+console.log('Validated 2 custom Netcatty Database plugin brand icons (light/dark 256x256 PNG + SVG)');

@@ -22,7 +22,17 @@
       }
     ],
     "renderFile": "assets/domestic-sources/opengauss-graphic.svg",
-    "renderSha256": "72e8076e6e4f9b1895df4ede938b1905e30e37c2e8abdf60d6fdf63aa06cad4c"
+    "renderSha256": "72e8076e6e4f9b1895df4ede938b1905e30e37c2e8abdf60d6fdf63aa06cad4c",
+    "svgOutputs": [
+      {
+        "file": "assets/icons/opengauss-light.svg",
+        "sha256": "728dc54aa06cd7d82accff78b187a2cc568e587ba21ef21cc935414e2a657692"
+      },
+      {
+        "file": "assets/icons/opengauss-dark.svg",
+        "sha256": "cd5999d4c2dc7a148ae4f7dae10b90a881e6dc292ba4b7d871f8c6d0d2924a3e"
+      }
+    ]
   },
   {
     "id": "goldendb",
@@ -47,7 +57,17 @@
       }
     ],
     "renderFile": "assets/domestic-sources/goldendb.png",
-    "renderSha256": "e2ba394f6515f6a0c8e9ac5980c9d14dbcbe3d36160008edf14f4951ec01ddad"
+    "renderSha256": "e2ba394f6515f6a0c8e9ac5980c9d14dbcbe3d36160008edf14f4951ec01ddad",
+    "svgOutputs": [
+      {
+        "file": "assets/icons/goldendb-light.svg",
+        "sha256": "ca2b1de09627539a27c0ea9cefffc22c6f76ea925c511a36a08fc4fed6927519"
+      },
+      {
+        "file": "assets/icons/goldendb-dark.svg",
+        "sha256": "c377c61b98b1b4ba362bb3e3fae7e721c565b43bee013a9b5e333db7bc587511"
+      }
+    ]
   },
   {
     "id": "gaussdb",
@@ -72,7 +92,17 @@
       }
     ],
     "renderFile": "assets/domestic-sources/gaussdb.svg",
-    "renderSha256": "c73871c4432cab3459014e554c76718bd97a5f3ee7c290ae3a7a929099238e59"
+    "renderSha256": "c73871c4432cab3459014e554c76718bd97a5f3ee7c290ae3a7a929099238e59",
+    "svgOutputs": [
+      {
+        "file": "assets/icons/gaussdb-light.svg",
+        "sha256": "ee0b876facb48ba74c4b09924a81a471f19b31092d971519b8ff8d2d715d904c"
+      },
+      {
+        "file": "assets/icons/gaussdb-dark.svg",
+        "sha256": "d7d894d8a3b78a4371b6aad62ac27e9628ede0fdfa9d57543e4d0f50cbd43843"
+      }
+    ]
   },
   {
     "id": "kingbase",
@@ -97,7 +127,17 @@
       }
     ],
     "renderFile": "assets/domestic-sources/kingbase.svg",
-    "renderSha256": "b7d39427d8b760bd4003385ae8e644ed65b9f10a41861d1a154d52a61f6c6122"
+    "renderSha256": "b7d39427d8b760bd4003385ae8e644ed65b9f10a41861d1a154d52a61f6c6122",
+    "svgOutputs": [
+      {
+        "file": "assets/icons/kingbase-light.svg",
+        "sha256": "7c143a9226463d001aece591547bb63a7103fdac6e4584a28f8f86dcad9c9bd2"
+      },
+      {
+        "file": "assets/icons/kingbase-dark.svg",
+        "sha256": "c556626250a3678e95b23ea9662cd504cd9f2a6d7c4e10f2b85223d2aa74fb43"
+      }
+    ]
   },
   {
     "id": "highgo",
@@ -110,7 +150,7 @@
     "license": "DBX Apache-2.0, only to extent contributors may license eligible contributions; no trademark grant (§6).",
     "usageStatus": "LOCAL_NONCOMMERCIAL_IDENTIFICATION_AUTHORIZED",
     "distributionBasis": "NOT_CLEARED_FOR_GENERAL_DISTRIBUTION. This local test bundle is for Qi's expressly authorized noncommercial identifying use; no endorsement or unrestricted redistribution claim. DBX §2/4 permits eligible contributions with license/notices/modification note. Third-party brand rights not established by root license. Local reference use only; broader distribution requires review.",
-    "transformation": "Static offline rasterization, equal scale, no color changes; transparent 128x128 canvas, no added frame. Removed exact-white source canvas only; black/orange mark pixels unchanged. Dark contrast limitation retained rather than recolored.",
+    "transformation": "Static offline rasterization, equal scale; transparent 128x128 canvas, no added frame. Light preserves black/orange mark; dark remaps charcoal strokes to #E8EEF7 with white-matte cleanup for crisp dark-theme contrast.",
     "outputs": [
       {
         "file": "assets/icons/highgo-light.png",
@@ -118,11 +158,21 @@
       },
       {
         "file": "assets/icons/highgo-dark.png",
-        "sha256": "094455a09391fa74f0272e9d8348144f656329df843d83d547a1354af42434ef"
+        "sha256": "a2540fe5d75ae293a5948c265eea6f1c51298e6251759c8b07c5af69924136b4"
       }
     ],
     "renderFile": "assets/domestic-sources/highgo-transparent.png",
-    "renderSha256": "7a40c21cd1b5415baca74bb01b64966596df67ed3d3e7780d73dc5793fd359ee"
+    "renderSha256": "7a40c21cd1b5415baca74bb01b64966596df67ed3d3e7780d73dc5793fd359ee",
+    "svgOutputs": [
+      {
+        "file": "assets/icons/highgo-light.svg",
+        "sha256": "1fa7c154debb671ec469d4e7f920159e37ad71e942defd60d4933a717450c02a"
+      },
+      {
+        "file": "assets/icons/highgo-dark.svg",
+        "sha256": "ff67455a2e6610ec651c54adf51b149daa4515b04c3c53cda8aaebee9d6e0aac"
+      }
+    ]
   },
   {
     "id": "vastbase",
@@ -147,7 +197,17 @@
       }
     ],
     "renderFile": "assets/domestic-sources/vastbase.svg",
-    "renderSha256": "4e4c5cad72b4d6f8388e0bb64ad541c0cc763528f4a4a818db9357890b9d7c60"
+    "renderSha256": "4e4c5cad72b4d6f8388e0bb64ad541c0cc763528f4a4a818db9357890b9d7c60",
+    "svgOutputs": [
+      {
+        "file": "assets/icons/vastbase-light.svg",
+        "sha256": "5f5878cf9d76b54aa75398a6e8de4f1d179d1eb63e14bec309967854cc8953be"
+      },
+      {
+        "file": "assets/icons/vastbase-dark.svg",
+        "sha256": "5f5878cf9d76b54aa75398a6e8de4f1d179d1eb63e14bec309967854cc8953be"
+      }
+    ]
   },
   {
     "id": "gbase8c",
@@ -172,6 +232,16 @@
       }
     ],
     "renderFile": "assets/domestic-sources/gbase8c.png",
-    "renderSha256": "67c29941dd4c3b14518971a5b96a0c795df553ea5ea45bcd2cd410ef320b180d"
+    "renderSha256": "67c29941dd4c3b14518971a5b96a0c795df553ea5ea45bcd2cd410ef320b180d",
+    "svgOutputs": [
+      {
+        "file": "assets/icons/gbase8c-light.svg",
+        "sha256": "5aef2ea564d1cb51a2825f02f4e08f516ebc0fea179f9f532b7b83f6ecf0bab2"
+      },
+      {
+        "file": "assets/icons/gbase8c-dark.svg",
+        "sha256": "204f0f6d4de87dfc97aa125d5f267cc360f7fa4e977c7a9d1cce34bc947fadf4"
+      }
+    ]
   }
 ]

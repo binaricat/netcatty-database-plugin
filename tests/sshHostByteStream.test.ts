@@ -65,6 +65,7 @@ function makeByteStream(script: Array<{ expectPrefix?: number[]; respond: Uint8A
 
   const connection: PluginByteConnection = {
     endpoint: 'tcp://127.0.0.1:3306',
+    upgradeTls: async () => ({ upgraded: true, authorized: true }),
     readable: {
       id: 'read-1',
       read: async () => {

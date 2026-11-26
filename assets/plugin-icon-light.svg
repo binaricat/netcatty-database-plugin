@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256" fill="none">
+  <defs>
+    <linearGradient id="bgLight" x1="28" y1="20" x2="228" y2="236" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#38BDF8"/>
+      <stop offset="52%" stop-color="#0284C7"/>
+      <stop offset="100%" stop-color="#1D4ED8"/>
+    </linearGradient>
+    <linearGradient id="topGlossLight" x1="128" y1="16" x2="128" y2="144" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.34"/>
+      <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="cylTopLight" x1="66" y1="62" x2="190" y2="98" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#FFFFFF"/>
+      <stop offset="100%" stop-color="#E0F2FE"/>
+    </linearGradient>
+    <linearGradient id="cylBodyLight" x1="64" y1="90" x2="192" y2="196" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.96"/>
+      <stop offset="100%" stop-color="#BAE6FD" stop-opacity="0.88"/>
+    </linearGradient>
+    <linearGradient id="badgeGradLight" x1="164" y1="162" x2="222" y2="220" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#10B981"/>
+      <stop offset="100%" stop-color="#059669"/>
+    </linearGradient>
+  </defs>
+  <!-- Squircle background -->
+  <rect x="14" y="14" width="228" height="228" rx="54" fill="url(#bgLight)"/>
+  <rect x="14" y="14" width="228" height="228" rx="54" fill="url(#topGlossLight)"/>
+  <rect x="15.5" y="15.5" width="225" height="225" rx="52.5" stroke="#FFFFFF" stroke-opacity="0.28" stroke-width="3"/>
+
+  <!-- Subtle architectural grid glow -->
+  <circle cx="88" cy="72" r="56" fill="#7DD3FC" fill-opacity="0.22"/>
+
+  <!-- 3-Tier Database Cylinder -->
+  <!-- Bottom tier -->
+  <path d="M62 146V174C62 187.8 91.5 199 128 199C164.5 199 194 187.8 194 174V146C194 159.8 164.5 171 128 171C91.5 171 62 159.8 62 146Z" fill="url(#cylBodyLight)" fill-opacity="0.78"/>
+  <!-- Middle tier -->
+  <path d="M62 110V138C62 151.8 91.5 163 128 163C164.5 163 194 151.8 194 138V110C194 123.8 164.5 135 128 135C91.5 135 62 123.8 62 110Z" fill="url(#cylBodyLight)" fill-opacity="0.90"/>
+  <!-- Top tier wall -->
+  <path d="M62 80V102C62 115.8 91.5 127 128 127C164.5 127 194 115.8 194 102V80C194 93.8 164.5 105 128 105C91.5 105 62 93.8 62 80Z" fill="url(#cylBodyLight)"/>
+  <!-- Top cap ellipse -->
+  <ellipse cx="128" cy="80" rx="66" ry="23" fill="url(#cylTopLight)"/>
+  <!-- Inner specular ring on top cap -->
+  <ellipse cx="128" cy="80" rx="46" ry="13.5" stroke="#0284C7" stroke-opacity="0.24" stroke-width="3.5"/>
+
+  <!-- Small terminal-prompt live badge (Netcatty × SQL signature) -->
+  <circle cx="192" cy="190" r="32" fill="#0C4A6E" fill-opacity="0.32"/>
+  <circle cx="192" cy="188" r="28" fill="url(#badgeGradLight)" stroke="#FFFFFF" stroke-width="4.5"/>
+  <path d="M180 180L189 188L180 196" stroke="#FFFFFF" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <line x1="194" y1="196" x2="205" y2="196" stroke="#FFFFFF" stroke-width="4.5" stroke-linecap="round"/>
+</svg>
