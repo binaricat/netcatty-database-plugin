@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256" fill="none">
+  <defs>
+    <linearGradient id="bgDark" x1="24" y1="18" x2="232" y2="238" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#1E3A5F"/>
+      <stop offset="52%" stop-color="#0F2544"/>
+      <stop offset="100%" stop-color="#0B1324"/>
+    </linearGradient>
+    <linearGradient id="rimDark" x1="24" y1="16" x2="232" y2="240" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#38BDF8" stop-opacity="0.65"/>
+      <stop offset="55%" stop-color="#3B82F6" stop-opacity="0.28"/>
+      <stop offset="100%" stop-color="#38BDF8" stop-opacity="0.45"/>
+    </linearGradient>
+    <linearGradient id="cylTopDark" x1="62" y1="60" x2="194" y2="100" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#7DD3FC"/>
+      <stop offset="100%" stop-color="#38BDF8"/>
+    </linearGradient>
+    <linearGradient id="cylBodyDark" x1="62" y1="88" x2="194" y2="198" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#38BDF8"/>
+      <stop offset="55%" stop-color="#0EA5E9"/>
+      <stop offset="100%" stop-color="#2563EB"/>
+    </linearGradient>
+    <linearGradient id="badgeGradDark" x1="164" y1="160" x2="220" y2="216" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#34D399"/>
+      <stop offset="100%" stop-color="#10B981"/>
+    </linearGradient>
+  </defs>
+  <!-- Squircle background -->
+  <rect x="14" y="14" width="228" height="228" rx="54" fill="url(#bgDark)"/>
+  <rect x="15.5" y="15.5" width="225" height="225" rx="52.5" stroke="url(#rimDark)" stroke-width="3"/>
+
+  <!-- Subtle radial aura behind cylinder -->
+  <circle cx="128" cy="126" r="78" fill="#38BDF8" fill-opacity="0.14"/>
+
+  <!-- 3-Tier Luminous Database Cylinder -->
+  <!-- Bottom tier -->
+  <path d="M62 146V174C62 187.8 91.5 199 128 199C164.5 199 194 187.8 194 174V146C194 159.8 164.5 171 128 171C91.5 171 62 159.8 62 146Z" fill="url(#cylBodyDark)" fill-opacity="0.72"/>
+  <!-- Middle tier -->
+  <path d="M62 110V138C62 151.8 91.5 163 128 163C164.5 163 194 151.8 194 138V110C194 123.8 164.5 135 128 135C91.5 135 62 123.8 62 110Z" fill="url(#cylBodyDark)" fill-opacity="0.88"/>
+  <!-- Top tier wall -->
+  <path d="M62 80V102C62 115.8 91.5 127 128 127C164.5 127 194 115.8 194 102V80C194 93.8 164.5 105 128 105C91.5 105 62 93.8 62 80Z" fill="url(#cylBodyDark)"/>
+  <!-- Top cap ellipse -->
+  <ellipse cx="128" cy="80" rx="66" ry="23" fill="url(#cylTopDark)"/>
+  <!-- Inner specular ring -->
+  <ellipse cx="128" cy="80" rx="46" ry="13.5" stroke="#E0F2FE" stroke-opacity="0.55" stroke-width="3.5"/>
+
+  <!-- Small terminal-prompt live badge (Netcatty × SQL signature) -->
+  <circle cx="192" cy="188" r="28" fill="url(#badgeGradDark)" stroke="#0B1324" stroke-width="5"/>
+  <path d="M180 180L189 188L180 196" stroke="#06281E" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <line x1="194" y1="196" x2="205" y2="196" stroke="#06281E" stroke-width="4.5" stroke-linecap="round"/>
+</svg>

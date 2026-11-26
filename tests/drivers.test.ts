@@ -17,19 +17,24 @@ test('domestic variants are typed, explicit and preserve distinct transports and
 });
 
 test('typed registry matches the shipped contract and separates aliases from packaged engines', () => {
-  assert.equal(drivers.length, 21);
+  assert.equal(drivers.length, 22);
   assert.equal(new Set(drivers.map(driver => driver.id)).size, drivers.length);
   assert.equal(driverById('goldendb').wireFamily, 'mysql');
   assert.equal(driverById('goldendb').defaultPort, 3306);
   assert.equal(driverById('kingbase').defaultPort, 54321);
   assert.equal(driverById('gbase8c').wireFamily, 'unpackaged');
+  assert.equal(driverById('duckdb').icon, 'duckdb');
   assert.equal(filterDrivers('domestic', 'golden')[0].id, 'goldendb');
   assert.equal(filterDrivers('lightweight', '').length, 1);
   assert.equal(filterDrivers('analytics', 'unknown').length, 0);
   for (const driver of drivers) {
     assert.doesNotMatch(driver.label, /\p{N}/u);
     assert.ok(driver.source.length);
-    if (driver.icon) for (const theme of ['light', 'dark']) assert.ok(readFileSync(`assets/icons/${driver.icon}-${theme}.png`).length);
+    assert.ok(driver.icon, `Missing icon for driver ${driver.id}`);
+    for (const theme of ['light', 'dark']) {
+      assert.ok(readFileSync(`assets/icons/${driver.icon}-${theme}.png`).length);
+      assert.ok(readFileSync(`assets/icons/${driver.icon}-${theme}.svg`, 'utf8').includes('<svg'));
+    }
   }
 });
 

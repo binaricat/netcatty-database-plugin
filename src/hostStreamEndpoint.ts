@@ -1,8 +1,8 @@
-import type { HostByteStreamConnectRequest, VaultHostSelectedResult } from '@netcatty/plugin-contract';
+import type { VaultHostRef, VaultHostSelectedResult } from '@netcatty/plugin-contract';
 import type { PluginContext } from '@netcatty/plugin-sdk';
 
 export type SelectedSshHost = VaultHostSelectedResult['hosts'][number];
-export type HostStreamTargetRef = HostByteStreamConnectRequest['target'];
+export type HostStreamTargetRef = VaultHostRef;
 
 export class HostStreamEndpointError extends Error {
   constructor(readonly code: 'invalid-endpoint' | 'unsupported-host-ref' | 'host-not-ssh' | 'host-expired' | 'unsupported-host') {
