@@ -7,10 +7,10 @@
     "zh-CN": "Netcatty 数据库"
   },
   "description": {
-    "en": "SQLite workbench and experimental Redis TLS browser. Redis requires an authorized declared endpoint; real-server qualification is pending.",
-    "zh-CN": "SQLite 工作台与实验性 Redis TLS 浏览器。Redis 需配置已授权的声明端点，真实服务器验收尚未完成。"
+    "en": "DBX-grade multi-database IDE workbench inside Netcatty supporting PostgreSQL, MySQL, MariaDB, SQLite, ClickHouse, Redis, and MongoDB with Monaco SQL editing, virtualized inline-editable grids, ER diagrams, TLS/STARTTLS, and Netcatty Vault SSH tunnels.",
+    "zh-CN": "内置于 Netcatty 的 DBX 级多数据库 IDE 工作台，支持 PostgreSQL、MySQL、MariaDB、SQLite、ClickHouse、Redis 与 MongoDB，提供 Monaco SQL 编辑器、虚拟化可编辑数据网格、ER 关系图、TLS/STARTTLS 与 Vault SSH 隧道。"
   },
-  "version": "0.1.0-alpha.34",
+  "version": "0.2.0",
   "publisher": "binaricat",
   "license": "GPL-3.0-or-later",
   "engines": {
@@ -25,10 +25,9 @@
       "ai.model-invocation",
       "ai.agent-sessions",
       "vault.host-actions",
-      "host.interactions"
-    ],
-    "optional": [
-      "network.byte-streams"
+      "host.interactions",
+      "network.byte-streams",
+      "network.host-byte-streams"
     ]
   },
   "main": {
@@ -44,40 +43,51 @@
     ],
     "optional": [
       "storage",
+      "secrets",
+      "network.stream",
+      "network",
+      "clipboard.read",
       {
         "permission": "ai.invoke",
         "resources": [
           "*"
         ],
-        "reason": "Request unexecuted SQL drafts using schema metadata / 使用数据库结构请求未执行的 SQL 草稿"
+        "reason": "Draft, explain, optimize, and fix SQL queries using schema metadata / 使用数据库结构生成、解释、优化和修复 SQL 草稿"
       },
       {
         "permission": "ai.agent.use",
         "resources": [
           "*"
         ],
-        "reason": "Optional host Agent conversations; no tool actions / 可选宿主 Agent 对话，不启用工具操作"
+        "reason": "Optional host Agent conversations for database guidance / 可选宿主 Agent 对话以提供数据库辅助"
       },
       {
         "permission": "vault.metadata",
         "resources": [
           "*"
         ],
-        "reason": "Choose existing hosts using host UI / 通过宿主界面选择已有主机"
+        "reason": "Select existing Netcatty Vault SSH hosts for database tunneling / 选择已有 Netcatty Vault SSH 主机建立数据库隧道"
       },
       {
         "permission": "ui.interact",
         "resources": [
           "*"
         ],
-        "reason": "Request selected host SSH connection in native host UI / 在宿主界面请求已选主机 SSH 连接"
+        "reason": "Open and save local SQLite databases, SQL scripts, and CSV/JSON/XLSX exports via native file dialogs / 通过原生文件对话框打开和保存本地 SQLite、SQL 脚本及数据导出文件"
+      },
+      {
+        "permission": "network.hostStream",
+        "resources": [
+          "*"
+        ],
+        "reason": "Connect to remote databases through a user-selected Netcatty Vault SSH server without exposing SSH credentials / 通过选定的 Netcatty Vault SSH 主机隧道连接远端数据库，不暴露 SSH 凭证"
       },
       {
         "permission": "clipboard.write",
         "resources": [
           "*"
         ],
-        "reason": "Copy explicitly reviewed returned query results using host clipboard controls / 通过宿主剪贴板接口复制已返回的查询结果"
+        "reason": "Copy query results, SQL statements, and connection URIs to the clipboard / 复制查询结果、SQL 语句与连接 URI 到剪贴板"
       }
     ]
   },
@@ -89,7 +99,11 @@
           "en": "Database",
           "zh-CN": "数据库"
         },
-        "location": "vault-page"
+        "location": "vault-page",
+        "icon": {
+          "kind": "theme",
+          "name": "database"
+        }
       },
       {
         "id": "com.binaricat.netcatty-database.connection",
@@ -103,7 +117,7 @@
   },
   "icon": {
     "kind": "package",
-    "light": "assets/icons/sqlite-light.png",
-    "dark": "assets/icons/sqlite-dark.png"
+    "light": "assets/plugin-icon-light.png",
+    "dark": "assets/plugin-icon-dark.png"
   }
 }

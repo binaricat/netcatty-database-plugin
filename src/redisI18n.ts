@@ -1,5 +1,7 @@
 const zh:Record<string,string>={
- 'Redis workbench':'Redis 工作台','Not connected':'未连接','Connected · TLS / read only':'已连接 · TLS / 只读','Connecting…':'连接中…','Connection closed':'连接已关闭','Cancel connection':'取消连接','Disconnect':'断开连接',
+ 'Redis workbench':'Redis 工作台','Not connected':'未连接','Connected · TLS / read only':'已连接 · TLS / 只读','Connected · SSH stream / read only':'已连接 · SSH 字节流 / 只读','Connecting…':'连接中…','Connection closed':'连接已关闭','Cancel connection':'取消连接','Disconnect':'断开连接',
+ 'Connects through the selected Netcatty SSH host using bounded host byte streams. Netcatty asks you to confirm each destination; SSH credentials stay in Netcatty.':'通过所选 Netcatty SSH 主机的受控字节流连接。Netcatty 会在每次建连前确认目的地址；SSH 密码和私钥留在宿主内。',
+ 'Destination on SSH host':'SSH 主机侧目标地址','Redis destination endpoint':'Redis 目标地址','Connect Redis via SSH':'通过 SSH 连接 Redis',
  'Configure a Redis TLS endpoint':'配置 Redis TLS 端点','No Redis TLS endpoint is declared in this package. An authorized exact endpoint must be included before connecting.':'当前插件包未声明 Redis TLS 端点。连接前需加入已获授权的精确端点。',
  'No database connection or discovery has been performed. A Netcatty host selection does not grant network permission or create a tunnel.':'尚未连接或探测数据库。选择 Netcatty 主机不代表已获得网络权限，也不会创建隧道。',
  'This host has not enabled the network.byte-streams feature required for Redis TLS. No connection was attempted.':'当前宿主未启用 Redis TLS 所需的 network.byte-streams 能力，未尝试连接。',

@@ -10,7 +10,7 @@ export type DatabaseConnectionMeta = {
   hostId?: string;
 };
 
-export type DatabaseDriverId = "sqlite" | "postgres" | "mysql" | "mariadb" | "goldendb" | "opengauss" | "gaussdb" | "kingbase" | "highgo" | "vastbase" | "uxdb" | "gbase8c" | "tidb" | "oceanbase" | "dameng" | "oracle" | "sqlserver" | "clickhouse" | "redis" | "mongodb" | "firebird";
+export type DatabaseDriverId = "sqlite" | "postgres" | "mysql" | "mariadb" | "goldendb" | "opengauss" | "gaussdb" | "kingbase" | "highgo" | "vastbase" | "uxdb" | "gbase8c" | "tidb" | "oceanbase" | "dameng" | "oracle" | "sqlserver" | "clickhouse" | "redis" | "mongodb" | "firebird" | "duckdb";
 
 export type DatabaseDriverProfile = {
   id: DatabaseDriverId;

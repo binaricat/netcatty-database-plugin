@@ -312,7 +312,7 @@ export const drivers = [
       "password",
       "tls"
     ],
-    "icon": null,
+    "icon": "uxdb",
     "source": "plugins/connection-types/profiles/catalog.yaml; plugins/connection-types/uxdb.yaml; crates/dbx-sql-dialect/src/sql_dialect/descriptor.rs",
     "qualification": "alias"
   },
@@ -395,7 +395,7 @@ export const drivers = [
       "password",
       "tls"
     ],
-    "icon": null,
+    "icon": "oceanbase",
     "source": "plugins/connection-types/profiles/catalog.yaml",
     "qualification": "alias"
   },
@@ -413,7 +413,7 @@ export const drivers = [
       "password",
       "tls"
     ],
-    "icon": null,
+    "icon": "dameng",
     "source": "plugins/connection-types/profiles/catalog.yaml",
     "qualification": "catalog"
   },
@@ -431,7 +431,7 @@ export const drivers = [
       "password",
       "tls"
     ],
-    "icon": null,
+    "icon": "oracle",
     "source": "plugins/connection-types/profiles/catalog.yaml",
     "qualification": "catalog"
   },
@@ -449,7 +449,7 @@ export const drivers = [
       "password",
       "tls"
     ],
-    "icon": null,
+    "icon": "sqlserver",
     "source": "plugins/connection-types/profiles/catalog.yaml",
     "qualification": "catalog"
   },
@@ -522,6 +522,19 @@ export const drivers = [
       "tls"
     ],
     "icon": "firebird",
+    "source": "plugins/connection-types/profiles/catalog.yaml",
+    "qualification": "catalog"
+  },
+  {
+    "id": "duckdb",
+    "label": "DuckDB",
+    "category": "analytics",
+    "wireFamily": "unpackaged",
+    "defaultPort": 0,
+    "fields": [
+      "source"
+    ],
+    "icon": "duckdb",
     "source": "plugins/connection-types/profiles/catalog.yaml",
     "qualification": "catalog"
   }
