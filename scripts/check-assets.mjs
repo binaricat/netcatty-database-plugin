@@ -18,6 +18,14 @@ for (const entry of rasters) {
   if (width !== 128 || height !== 128) throw new Error('Engine mark dimensions changed');
 }
 console.log(`Validated ${rasters.length} static brand PNGs with metadata.brand-icon contract and source hashes`);
+const extendedRasters = JSON.parse(await readFile('assets/extended-brand-icon-ledger.json', 'utf8'));
+for (const entry of extendedRasters) {
+  const png = await readFile(entry.file);
+  if (createHash('sha256').update(png).digest('hex') !== entry.sha256) throw new Error(`Extended raster drift: ${entry.file}`);
+  const { width, height } = inspectPluginBrandIcon(png, entry.file);
+  if (width !== 128 || height !== 128) throw new Error(`Extended engine mark dimensions changed: ${entry.file}`);
+}
+console.log(`Validated ${extendedRasters.length} extended official engine brand PNGs (128x128)`);
 const domestic = JSON.parse(await readFile('assets/domestic-icon-ledger.json', 'utf8'));
 for (const entry of domestic) {
   if (!entry.distributionBasis.includes('NOT_CLEARED_FOR_GENERAL_DISTRIBUTION')) throw new Error('Missing domestic usage boundary');

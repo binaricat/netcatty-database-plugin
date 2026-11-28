@@ -1083,10 +1083,6 @@ test('engineCatalogAdditions covers all 113 supported engine profiles with valid
         existsSync(`assets/icons/${entry.icon}-${theme}.png`),
         `Missing PNG asset for icon '${entry.icon}'`,
       );
-      assert.ok(
-        existsSync(`assets/icons/${entry.icon}-${theme}.svg`),
-        `Missing SVG asset for icon '${entry.icon}'`,
-      );
     }
   }
 

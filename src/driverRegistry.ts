@@ -565,7 +565,7 @@ export const drivers = [
     "wireFamily": "unpackaged",
     "defaultPort": 9669,
     "fields": ["hostname", "port", "database", "username", "password", "tls"],
-    "icon": "neo4j",
+    "icon": "nebula",
     "source": "plugins/connection-types/nebula.yaml",
     "qualification": "catalog"
   },
@@ -587,7 +587,7 @@ export const drivers = [
     "wireFamily": "search",
     "defaultPort": 8000,
     "fields": ["hostname", "port", "apiKey", "tls"],
-    "icon": "qdrant",
+    "icon": "chromadb",
     "source": "plugins/connection-types/chromadb.yaml",
     "qualification": "wire"
   },
@@ -598,7 +598,7 @@ export const drivers = [
     "wireFamily": "search",
     "defaultPort": 8080,
     "fields": ["hostname", "port", "apiKey", "tls"],
-    "icon": "qdrant",
+    "icon": "weaviate",
     "source": "plugins/connection-types/weaviate.yaml",
     "qualification": "wire"
   },
@@ -620,7 +620,7 @@ export const drivers = [
     "wireFamily": "search",
     "defaultPort": 9200,
     "fields": ["hostname", "port", "username", "password", "apiKey", "tls"],
-    "icon": "elasticsearch",
+    "icon": "easysearch",
     "source": "plugins/connection-types/easysearch.yaml",
     "qualification": "wire"
   },
@@ -631,7 +631,7 @@ export const drivers = [
     "wireFamily": "search",
     "defaultPort": 7700,
     "fields": ["hostname", "port", "apiKey", "tls"],
-    "icon": "elasticsearch",
+    "icon": "meilisearch",
     "source": "plugins/connection-types/meilisearch.yaml",
     "qualification": "wire"
   },
@@ -642,7 +642,7 @@ export const drivers = [
     "wireFamily": "search",
     "defaultPort": 5984,
     "fields": ["hostname", "port", "username", "password", "tls"],
-    "icon": "mongodb",
+    "icon": "couchdb",
     "source": "plugins/connection-types/couchdb.yaml",
     "qualification": "wire"
   },
@@ -653,7 +653,7 @@ export const drivers = [
     "wireFamily": "mysql",
     "defaultPort": 9306,
     "fields": ["hostname", "port", "database", "username", "password", "tls"],
-    "icon": "elasticsearch",
+    "icon": "manticoresearch",
     "source": "plugins/connection-types/manticoresearch.yaml",
     "qualification": "alias"
   },
@@ -697,7 +697,7 @@ export const drivers = [
     "wireFamily": "postgres",
     "defaultPort": 8812,
     "fields": ["hostname", "port", "database", "username", "password", "tls"],
-    "icon": "influxdb",
+    "icon": "questdb",
     "source": "plugins/connection-types/questdb.yaml",
     "qualification": "alias"
   },
@@ -708,7 +708,7 @@ export const drivers = [
     "wireFamily": "http_sql",
     "defaultPort": 8428,
     "fields": ["hostname", "port", "username", "password", "apiKey", "tls"],
-    "icon": "tdengine",
+    "icon": "victoriametrics",
     "source": "plugins/connection-types/victoriametrics.yaml",
     "qualification": "wire"
   },
@@ -730,7 +730,7 @@ export const drivers = [
     "wireFamily": "mysql",
     "defaultPort": 3306,
     "fields": ["hostname", "port", "database", "username", "password", "tls"],
-    "icon": "mysql",
+    "icon": "dolt",
     "source": "plugins/connection-types/profiles/catalog.yaml",
     "qualification": "alias"
   },
@@ -752,7 +752,7 @@ export const drivers = [
     "wireFamily": "mysql",
     "defaultPort": 9030,
     "fields": ["hostname", "port", "database", "username", "password", "tls"],
-    "icon": "doris",
+    "icon": "starrocks",
     "source": "plugins/connection-types/starrocks.yaml",
     "qualification": "alias"
   },
@@ -763,7 +763,7 @@ export const drivers = [
     "wireFamily": "mysql",
     "defaultPort": 9030,
     "fields": ["hostname", "port", "database", "username", "password", "tls"],
-    "icon": "doris",
+    "icon": "selectdb",
     "source": "plugins/connection-types/profiles/catalog.yaml",
     "qualification": "alias"
   },
@@ -785,7 +785,7 @@ export const drivers = [
     "wireFamily": "http_sql",
     "defaultPort": 8080,
     "fields": ["hostname", "port", "database", "username", "password", "tls"],
-    "icon": "trino",
+    "icon": "prestosql",
     "source": "plugins/connection-types/prestosql.yaml",
     "qualification": "wire"
   },
@@ -796,7 +796,7 @@ export const drivers = [
     "wireFamily": "http_sql",
     "defaultPort": 8000,
     "fields": ["hostname", "port", "database", "username", "password", "tls"],
-    "icon": "clickhouse",
+    "icon": "databend",
     "source": "plugins/connection-types/databend.yaml",
     "qualification": "wire"
   },
@@ -807,7 +807,7 @@ export const drivers = [
     "wireFamily": "postgres",
     "defaultPort": 5439,
     "fields": ["hostname", "port", "database", "username", "password", "tls"],
-    "icon": "postgresql",
+    "icon": "redshift",
     "source": "plugins/connection-types/redshift.yaml",
     "qualification": "alias"
   },
@@ -818,7 +818,7 @@ export const drivers = [
     "wireFamily": "postgres",
     "defaultPort": 5432,
     "fields": ["hostname", "port", "database", "username", "password", "tls"],
-    "icon": "postgresql",
+    "icon": "cloudberry",
     "source": "plugins/connection-types/profiles/catalog.yaml",
     "qualification": "alias"
   },
@@ -829,7 +829,7 @@ export const drivers = [
     "wireFamily": "http_sql",
     "defaultPort": 4001,
     "fields": ["hostname", "port", "username", "password", "tls"],
-    "icon": "sqlite",
+    "icon": "rqlite",
     "source": "plugins/connection-types/rqlite.yaml",
     "qualification": "wire"
   },
@@ -840,7 +840,7 @@ export const drivers = [
     "wireFamily": "http_sql",
     "defaultPort": 443,
     "fields": ["hostname", "port", "apiKey", "tls"],
-    "icon": "sqlite",
+    "icon": "turso",
     "source": "plugins/connection-types/turso.yaml",
     "qualification": "wire"
   },
@@ -851,7 +851,7 @@ export const drivers = [
     "wireFamily": "mysql",
     "defaultPort": 3306,
     "fields": ["hostname", "port", "database", "username", "password", "tls"],
-    "icon": "mysql",
+    "icon": "polardb",
     "source": "plugins/connection-types/profiles/catalog.yaml",
     "qualification": "alias"
   },
@@ -862,7 +862,7 @@ export const drivers = [
     "wireFamily": "mysql",
     "defaultPort": 3306,
     "fields": ["hostname", "port", "database", "username", "password", "tls"],
-    "icon": "mysql",
+    "icon": "tdsql",
     "source": "plugins/connection-types/profiles/catalog.yaml",
     "qualification": "alias"
   },
@@ -873,7 +873,7 @@ export const drivers = [
     "wireFamily": "mysql",
     "defaultPort": 3306,
     "fields": ["hostname", "port", "database", "username", "password", "tls"],
-    "icon": "mysql",
+    "icon": "greatsql",
     "source": "plugins/connection-types/profiles/catalog.yaml",
     "qualification": "alias"
   },
@@ -884,7 +884,7 @@ export const drivers = [
     "wireFamily": "postgres",
     "defaultPort": 11000,
     "fields": ["hostname", "port", "database", "username", "password", "tls"],
-    "icon": "postgresql",
+    "icon": "opentenbase",
     "source": "plugins/connection-types/profiles/catalog.yaml",
     "qualification": "alias"
   },
@@ -895,7 +895,7 @@ export const drivers = [
     "wireFamily": "postgres",
     "defaultPort": 26257,
     "fields": ["hostname", "port", "database", "username", "password", "tls"],
-    "icon": "cockroachdb",
+    "icon": "kwdb",
     "source": "plugins/connection-types/kwdb.yaml",
     "qualification": "alias"
   },
@@ -928,7 +928,7 @@ export const drivers = [
     "wireFamily": "kv",
     "defaultPort": 8848,
     "fields": ["hostname", "port", "username", "password", "namespace", "tls"],
-    "icon": "etcd",
+    "icon": "nacos",
     "source": "plugins/connection-types/nacos.yaml",
     "qualification": "wire"
   },
@@ -996,7 +996,7 @@ export const drivers = [
     "wireFamily": "http_sql",
     "defaultPort": 443,
     "fields": ["hostname", "accountId", "database", "apiKey", "tls"],
-    "icon": "sqlite",
+    "icon": "cloudflare-d1",
     "source": "plugins/connection-types/profiles/catalog.yaml",
     "qualification": "wire"
   },
@@ -1007,7 +1007,7 @@ export const drivers = [
     "wireFamily": "search",
     "defaultPort": 8983,
     "fields": ["hostname", "port", "username", "password", "httpPath", "tls"],
-    "icon": "elasticsearch",
+    "icon": "solr",
     "source": "plugins/connection-types/profiles/catalog.yaml",
     "qualification": "wire"
   },
@@ -1018,7 +1018,7 @@ export const drivers = [
     "wireFamily": "search",
     "defaultPort": 19530,
     "fields": ["hostname", "port", "database", "username", "password", "apiKey", "tls"],
-    "icon": "qdrant",
+    "icon": "milvus",
     "source": "plugins/connection-types/profiles/catalog.yaml",
     "qualification": "wire"
   },
@@ -1029,7 +1029,7 @@ export const drivers = [
     "wireFamily": "search",
     "defaultPort": 443,
     "fields": ["hostname", "port", "region", "username", "password", "tls"],
-    "icon": "mongodb",
+    "icon": "dynamodb",
     "source": "plugins/connection-types/profiles/catalog.yaml",
     "qualification": "wire"
   },
@@ -1040,7 +1040,7 @@ export const drivers = [
     "wireFamily": "search",
     "defaultPort": 8080,
     "fields": ["hostname", "port", "username", "password", "tls"],
-    "icon": "elasticsearch",
+    "icon": "hbase",
     "source": "plugins/connection-types/profiles/catalog.yaml",
     "qualification": "wire"
   },
@@ -1051,7 +1051,7 @@ export const drivers = [
     "wireFamily": "mq",
     "defaultPort": 15672,
     "fields": ["hostname", "port", "vhost", "username", "password", "tls"],
-    "icon": "redis",
+    "icon": "rabbitmq",
     "source": "plugins/connection-types/profiles/catalog.yaml",
     "qualification": "wire"
   },
@@ -1062,7 +1062,7 @@ export const drivers = [
     "wireFamily": "mq",
     "defaultPort": 8080,
     "fields": ["hostname", "port", "org", "namespace", "apiKey", "tls"],
-    "icon": "redis",
+    "icon": "pulsar",
     "source": "plugins/connection-types/profiles/catalog.yaml",
     "qualification": "wire"
   },
@@ -1073,7 +1073,7 @@ export const drivers = [
     "wireFamily": "mq",
     "defaultPort": 1883,
     "fields": ["hostname", "port", "username", "password", "tls"],
-    "icon": "redis",
+    "icon": "mqtt",
     "source": "plugins/connection-types/profiles/catalog.yaml",
     "qualification": "wire"
   },
@@ -1084,7 +1084,7 @@ export const drivers = [
     "wireFamily": "mq",
     "defaultPort": 9092,
     "fields": ["hostname", "port", "username", "password", "tls"],
-    "icon": "redis",
+    "icon": "kafka",
     "source": "plugins/connection-types/profiles/catalog.yaml",
     "qualification": "wire"
   },
@@ -1095,7 +1095,7 @@ export const drivers = [
     "wireFamily": "mq",
     "defaultPort": 15672,
     "fields": ["hostname", "port", "vhost", "username", "password", "tls"],
-    "icon": "redis",
+    "icon": "mq",
     "source": "plugins/connection-types/profiles/catalog.yaml",
     "qualification": "alias"
   },
@@ -1106,12 +1106,12 @@ export const drivers = [
     "wireFamily": "cql",
     "defaultPort": 9042,
     "fields": ["hostname", "port", "database", "username", "password", "tls"],
-    "icon": "mongodb",
+    "icon": "scylladb",
     "source": "plugins/connection-types/profiles/catalog.yaml",
     "qualification": "alias"
   },
   { "id": "dm", "label": "DM (Dameng Alias)", "category": "domestic", "wireFamily": "unpackaged", "defaultPort": 5236, "fields": ["hostname", "port", "database", "username", "password"], "icon": "dameng", "source": "plugins/connection-types/profiles/catalog.yaml", "qualification": "catalog" },
-  { "id": "exasol", "label": "Exasol", "category": "analytics", "wireFamily": "unpackaged", "defaultPort": 8563, "fields": ["hostname", "port", "database", "username", "password"], "icon": "clickhouse", "source": "plugins/connection-types/profiles/catalog.yaml", "qualification": "catalog" },
+  { "id": "exasol", "label": "Exasol", "category": "analytics", "wireFamily": "unpackaged", "defaultPort": 8563, "fields": ["hostname", "port", "database", "username", "password"], "icon": "exasol", "source": "plugins/connection-types/profiles/catalog.yaml", "qualification": "catalog" },
   {
     "id": "iotdb",
     "label": "Apache IoTDB (REST)",
@@ -1119,7 +1119,7 @@ export const drivers = [
     "wireFamily": "http_sql",
     "defaultPort": 18080,
     "fields": ["hostname", "port", "username", "password", "tls"],
-    "icon": "clickhouse",
+    "icon": "iotdb",
     "source": "plugins/connection-types/profiles/catalog.yaml",
     "qualification": "wire"
   },
@@ -1130,7 +1130,7 @@ export const drivers = [
     "wireFamily": "http_sql",
     "defaultPort": 7070,
     "fields": ["hostname", "port", "database", "username", "password", "tls"],
-    "icon": "clickhouse",
+    "icon": "kylin",
     "source": "plugins/connection-types/profiles/catalog.yaml",
     "qualification": "wire"
   },
@@ -1141,7 +1141,7 @@ export const drivers = [
     "wireFamily": "http_sql",
     "defaultPort": 443,
     "fields": ["hostname", "warehouseId", "database", "apiKey", "tls"],
-    "icon": "clickhouse",
+    "icon": "databricks",
     "source": "plugins/connection-types/profiles/catalog.yaml",
     "qualification": "wire"
   },
@@ -1152,7 +1152,7 @@ export const drivers = [
     "wireFamily": "http_sql",
     "defaultPort": 443,
     "fields": ["hostname", "warehouseId", "database", "schema", "apiKey", "tls"],
-    "icon": "clickhouse",
+    "icon": "snowflake",
     "source": "plugins/connection-types/profiles/catalog.yaml",
     "qualification": "wire"
   },
@@ -1163,7 +1163,7 @@ export const drivers = [
     "wireFamily": "http_sql",
     "defaultPort": 443,
     "fields": ["accountId", "database", "region", "apiKey", "tls"],
-    "icon": "clickhouse",
+    "icon": "bigquery",
     "source": "plugins/connection-types/profiles/catalog.yaml",
     "qualification": "wire"
   },
@@ -1174,7 +1174,7 @@ export const drivers = [
     "wireFamily": "http_sql",
     "defaultPort": 443,
     "fields": ["hostname", "apiKey", "tls"],
-    "icon": "clickhouse",
+    "icon": "salesforce",
     "source": "plugins/connection-types/profiles/catalog.yaml",
     "qualification": "wire"
   },
@@ -1185,7 +1185,7 @@ export const drivers = [
     "wireFamily": "cql",
     "defaultPort": 9042,
     "fields": ["hostname", "port", "database", "username", "password", "tls"],
-    "icon": "mongodb",
+    "icon": "cassandra",
     "source": "plugins/connection-types/profiles/catalog.yaml",
     "qualification": "wire"
   },
@@ -1196,41 +1196,41 @@ export const drivers = [
     "wireFamily": "kv",
     "defaultPort": 2181,
     "fields": ["hostname", "port", "tls"],
-    "icon": "consul",
+    "icon": "zookeeper",
     "source": "plugins/connection-types/profiles/catalog.yaml",
     "qualification": "wire"
   },
   // --- Wave D (3c): Honest Catalog Entries (JDBC / OCI / Native C / Thrift / gRPC) ---
-  { "id": "yashandb", "label": "YashanDB", "category": "domestic", "wireFamily": "unpackaged", "defaultPort": 1688, "fields": ["hostname", "port", "database", "username", "password"], "icon": "dameng", "source": "plugins/connection-types/profiles/catalog.yaml", "qualification": "catalog" },
-  { "id": "xugu", "label": "XuGuDB", "category": "domestic", "wireFamily": "unpackaged", "defaultPort": 5138, "fields": ["hostname", "port", "database", "username", "password"], "icon": "dameng", "source": "plugins/connection-types/profiles/catalog.yaml", "qualification": "catalog" },
-  { "id": "oscar", "label": "ShenTong (Oscar)", "category": "domestic", "wireFamily": "unpackaged", "defaultPort": 2003, "fields": ["hostname", "port", "database", "username", "password"], "icon": "dameng", "source": "plugins/connection-types/profiles/catalog.yaml", "qualification": "catalog" },
-  { "id": "sundb", "label": "SunDB", "category": "domestic", "wireFamily": "unpackaged", "defaultPort": 22000, "fields": ["hostname", "port", "database", "username", "password"], "icon": "dameng", "source": "plugins/connection-types/profiles/catalog.yaml", "qualification": "catalog" },
-  { "id": "gbase", "label": "GBase", "category": "domestic", "wireFamily": "unpackaged", "defaultPort": 5258, "fields": ["hostname", "port", "database", "username", "password"], "icon": "dameng", "source": "plugins/connection-types/profiles/catalog.yaml", "qualification": "catalog" },
-  { "id": "gbase8a", "label": "GBase 8a", "category": "domestic", "wireFamily": "unpackaged", "defaultPort": 5258, "fields": ["hostname", "port", "database", "username", "password"], "icon": "dameng", "source": "plugins/connection-types/profiles/catalog.yaml", "qualification": "catalog" },
-  { "id": "gbase8s", "label": "GBase 8s", "category": "domestic", "wireFamily": "unpackaged", "defaultPort": 9088, "fields": ["hostname", "port", "database", "username", "password"], "icon": "dameng", "source": "plugins/connection-types/profiles/catalog.yaml", "qualification": "catalog" },
-  { "id": "db2", "label": "IBM Db2", "category": "relational", "wireFamily": "unpackaged", "defaultPort": 50000, "fields": ["hostname", "port", "database", "username", "password"], "icon": "oracle", "source": "plugins/connection-types/profiles/catalog.yaml", "qualification": "catalog" },
-  { "id": "informix", "label": "IBM Informix", "category": "relational", "wireFamily": "unpackaged", "defaultPort": 9088, "fields": ["hostname", "port", "database", "username", "password"], "icon": "oracle", "source": "plugins/connection-types/profiles/catalog.yaml", "qualification": "catalog" },
-  { "id": "saphana", "label": "SAP HANA", "category": "relational", "wireFamily": "unpackaged", "defaultPort": 30015, "fields": ["hostname", "port", "database", "username", "password"], "icon": "oracle", "source": "plugins/connection-types/profiles/catalog.yaml", "qualification": "catalog" },
-  { "id": "teradata", "label": "Teradata", "category": "analytics", "wireFamily": "unpackaged", "defaultPort": 1025, "fields": ["hostname", "port", "database", "username", "password"], "icon": "clickhouse", "source": "plugins/connection-types/profiles/catalog.yaml", "qualification": "catalog" },
-  { "id": "vertica", "label": "Vertica", "category": "analytics", "wireFamily": "unpackaged", "defaultPort": 5433, "fields": ["hostname", "port", "database", "username", "password"], "icon": "clickhouse", "source": "plugins/connection-types/profiles/catalog.yaml", "qualification": "catalog" },
-  { "id": "iris", "label": "InterSystems IRIS", "category": "relational", "wireFamily": "unpackaged", "defaultPort": 1972, "fields": ["hostname", "port", "database", "username", "password"], "icon": "oracle", "source": "plugins/connection-types/profiles/catalog.yaml", "qualification": "catalog" },
-  { "id": "cache", "label": "InterSystems Caché", "category": "relational", "wireFamily": "unpackaged", "defaultPort": 1972, "fields": ["hostname", "port", "database", "username", "password"], "icon": "oracle", "source": "plugins/connection-types/profiles/catalog.yaml", "qualification": "catalog" },
-  { "id": "h2", "label": "H2 Database", "category": "lightweight", "wireFamily": "unpackaged", "defaultPort": 9092, "fields": ["hostname", "port", "database", "username", "password"], "icon": "sqlite", "source": "plugins/connection-types/profiles/catalog.yaml", "qualification": "catalog" },
-  { "id": "h2-legacy", "label": "H2 Database (Legacy)", "category": "lightweight", "wireFamily": "unpackaged", "defaultPort": 9092, "fields": ["hostname", "port", "database", "username", "password"], "icon": "sqlite", "source": "plugins/connection-types/profiles/catalog.yaml", "qualification": "catalog" },
-  { "id": "access", "label": "Microsoft Access", "category": "lightweight", "wireFamily": "unpackaged", "defaultPort": 0, "fields": ["source"], "icon": "sqlite", "source": "plugins/connection-types/profiles/catalog.yaml", "qualification": "catalog" },
-  { "id": "hive", "label": "Apache Hive", "category": "analytics", "wireFamily": "unpackaged", "defaultPort": 10000, "fields": ["hostname", "port", "database", "username", "password"], "icon": "clickhouse", "source": "plugins/connection-types/profiles/catalog.yaml", "qualification": "catalog" },
-  { "id": "kyuubi", "label": "Apache Kyuubi", "category": "analytics", "wireFamily": "unpackaged", "defaultPort": 10009, "fields": ["hostname", "port", "database", "username", "password"], "icon": "clickhouse", "source": "plugins/connection-types/profiles/catalog.yaml", "qualification": "catalog" },
-  { "id": "impala", "label": "Apache Impala", "category": "analytics", "wireFamily": "unpackaged", "defaultPort": 21050, "fields": ["hostname", "port", "database", "username", "password"], "icon": "clickhouse", "source": "plugins/connection-types/profiles/catalog.yaml", "qualification": "catalog" },
-  { "id": "spark", "label": "Apache Spark SQL", "category": "analytics", "wireFamily": "unpackaged", "defaultPort": 10015, "fields": ["hostname", "port", "database", "username", "password"], "icon": "clickhouse", "source": "plugins/connection-types/profiles/catalog.yaml", "qualification": "catalog" },
-  { "id": "transwarp-inceptor", "label": "Transwarp Inceptor", "category": "domestic", "wireFamily": "unpackaged", "defaultPort": 10000, "fields": ["hostname", "port", "database", "username", "password"], "icon": "dameng", "source": "plugins/connection-types/profiles/catalog.yaml", "qualification": "catalog" },
-  { "id": "argo", "label": "Transwarp ArgoDB", "category": "domestic", "wireFamily": "unpackaged", "defaultPort": 10000, "fields": ["hostname", "port", "database", "username", "password"], "icon": "dameng", "source": "plugins/connection-types/profiles/catalog.yaml", "qualification": "catalog" },
-  { "id": "ignite", "label": "Apache Ignite 2", "category": "analytics", "wireFamily": "unpackaged", "defaultPort": 10800, "fields": ["hostname", "port", "username", "password"], "icon": "clickhouse", "source": "plugins/connection-types/profiles/catalog.yaml", "qualification": "catalog" },
-  { "id": "ignite3", "label": "Apache Ignite 3", "category": "analytics", "wireFamily": "unpackaged", "defaultPort": 10800, "fields": ["hostname", "port", "username", "password"], "icon": "clickhouse", "source": "plugins/connection-types/profiles/catalog.yaml", "qualification": "catalog" },
-  { "id": "spanner", "label": "Google Cloud Spanner", "category": "relational", "wireFamily": "unpackaged", "defaultPort": 443, "fields": ["accountId", "database"], "icon": "postgresql", "source": "plugins/connection-types/profiles/catalog.yaml", "qualification": "catalog" },
-  { "id": "rocketmq", "label": "Apache RocketMQ", "category": "messaging", "wireFamily": "unpackaged", "defaultPort": 9876, "fields": ["hostname", "port", "username", "password"], "icon": "redis", "source": "plugins/connection-types/profiles/catalog.yaml", "qualification": "catalog" },
-  { "id": "dremio", "label": "Dremio", "category": "analytics", "wireFamily": "unpackaged", "defaultPort": 31010, "fields": ["hostname", "port", "database", "username", "password"], "icon": "clickhouse", "source": "plugins/connection-types/profiles/catalog.yaml", "qualification": "catalog" },
-  { "id": "jdbc", "label": "Generic JDBC", "category": "relational", "wireFamily": "unpackaged", "defaultPort": 0, "fields": ["hostname", "port", "database", "username", "password"], "icon": "oracle", "source": "plugins/connection-types/profiles/catalog.yaml", "qualification": "catalog" },
-  { "id": "jdbcx", "label": "Extended JDBC (JDBCx)", "category": "relational", "wireFamily": "unpackaged", "defaultPort": 0, "fields": ["hostname", "port", "database", "username", "password"], "icon": "oracle", "source": "plugins/connection-types/profiles/catalog.yaml", "qualification": "catalog" }
+  { "id": "yashandb", "label": "YashanDB", "category": "domestic", "wireFamily": "unpackaged", "defaultPort": 1688, "fields": ["hostname", "port", "database", "username", "password"], "icon": "yashandb", "source": "plugins/connection-types/profiles/catalog.yaml", "qualification": "catalog" },
+  { "id": "xugu", "label": "XuGuDB", "category": "domestic", "wireFamily": "unpackaged", "defaultPort": 5138, "fields": ["hostname", "port", "database", "username", "password"], "icon": "xugu", "source": "plugins/connection-types/profiles/catalog.yaml", "qualification": "catalog" },
+  { "id": "oscar", "label": "ShenTong (Oscar)", "category": "domestic", "wireFamily": "unpackaged", "defaultPort": 2003, "fields": ["hostname", "port", "database", "username", "password"], "icon": "oscar", "source": "plugins/connection-types/profiles/catalog.yaml", "qualification": "catalog" },
+  { "id": "sundb", "label": "SunDB", "category": "domestic", "wireFamily": "unpackaged", "defaultPort": 22000, "fields": ["hostname", "port", "database", "username", "password"], "icon": "sundb", "source": "plugins/connection-types/profiles/catalog.yaml", "qualification": "catalog" },
+  { "id": "gbase", "label": "GBase", "category": "domestic", "wireFamily": "unpackaged", "defaultPort": 5258, "fields": ["hostname", "port", "database", "username", "password"], "icon": "gbase8c", "source": "plugins/connection-types/profiles/catalog.yaml", "qualification": "catalog" },
+  { "id": "gbase8a", "label": "GBase 8a", "category": "domestic", "wireFamily": "unpackaged", "defaultPort": 5258, "fields": ["hostname", "port", "database", "username", "password"], "icon": "gbase8c", "source": "plugins/connection-types/profiles/catalog.yaml", "qualification": "catalog" },
+  { "id": "gbase8s", "label": "GBase 8s", "category": "domestic", "wireFamily": "unpackaged", "defaultPort": 9088, "fields": ["hostname", "port", "database", "username", "password"], "icon": "gbase8s", "source": "plugins/connection-types/profiles/catalog.yaml", "qualification": "catalog" },
+  { "id": "db2", "label": "IBM Db2", "category": "relational", "wireFamily": "unpackaged", "defaultPort": 50000, "fields": ["hostname", "port", "database", "username", "password"], "icon": "db2", "source": "plugins/connection-types/profiles/catalog.yaml", "qualification": "catalog" },
+  { "id": "informix", "label": "IBM Informix", "category": "relational", "wireFamily": "unpackaged", "defaultPort": 9088, "fields": ["hostname", "port", "database", "username", "password"], "icon": "informix", "source": "plugins/connection-types/profiles/catalog.yaml", "qualification": "catalog" },
+  { "id": "saphana", "label": "SAP HANA", "category": "relational", "wireFamily": "unpackaged", "defaultPort": 30015, "fields": ["hostname", "port", "database", "username", "password"], "icon": "saphana", "source": "plugins/connection-types/profiles/catalog.yaml", "qualification": "catalog" },
+  { "id": "teradata", "label": "Teradata", "category": "analytics", "wireFamily": "unpackaged", "defaultPort": 1025, "fields": ["hostname", "port", "database", "username", "password"], "icon": "teradata", "source": "plugins/connection-types/profiles/catalog.yaml", "qualification": "catalog" },
+  { "id": "vertica", "label": "Vertica", "category": "analytics", "wireFamily": "unpackaged", "defaultPort": 5433, "fields": ["hostname", "port", "database", "username", "password"], "icon": "vertica", "source": "plugins/connection-types/profiles/catalog.yaml", "qualification": "catalog" },
+  { "id": "iris", "label": "InterSystems IRIS", "category": "relational", "wireFamily": "unpackaged", "defaultPort": 1972, "fields": ["hostname", "port", "database", "username", "password"], "icon": "iris", "source": "plugins/connection-types/profiles/catalog.yaml", "qualification": "catalog" },
+  { "id": "cache", "label": "InterSystems Caché", "category": "relational", "wireFamily": "unpackaged", "defaultPort": 1972, "fields": ["hostname", "port", "database", "username", "password"], "icon": "cache", "source": "plugins/connection-types/profiles/catalog.yaml", "qualification": "catalog" },
+  { "id": "h2", "label": "H2 Database", "category": "lightweight", "wireFamily": "unpackaged", "defaultPort": 9092, "fields": ["hostname", "port", "database", "username", "password"], "icon": "h2", "source": "plugins/connection-types/profiles/catalog.yaml", "qualification": "catalog" },
+  { "id": "h2-legacy", "label": "H2 Database (Legacy)", "category": "lightweight", "wireFamily": "unpackaged", "defaultPort": 9092, "fields": ["hostname", "port", "database", "username", "password"], "icon": "h2", "source": "plugins/connection-types/profiles/catalog.yaml", "qualification": "catalog" },
+  { "id": "access", "label": "Microsoft Access", "category": "lightweight", "wireFamily": "unpackaged", "defaultPort": 0, "fields": ["source"], "icon": "access", "source": "plugins/connection-types/profiles/catalog.yaml", "qualification": "catalog" },
+  { "id": "hive", "label": "Apache Hive", "category": "analytics", "wireFamily": "unpackaged", "defaultPort": 10000, "fields": ["hostname", "port", "database", "username", "password"], "icon": "hive", "source": "plugins/connection-types/profiles/catalog.yaml", "qualification": "catalog" },
+  { "id": "kyuubi", "label": "Apache Kyuubi", "category": "analytics", "wireFamily": "unpackaged", "defaultPort": 10009, "fields": ["hostname", "port", "database", "username", "password"], "icon": "kyuubi", "source": "plugins/connection-types/profiles/catalog.yaml", "qualification": "catalog" },
+  { "id": "impala", "label": "Apache Impala", "category": "analytics", "wireFamily": "unpackaged", "defaultPort": 21050, "fields": ["hostname", "port", "database", "username", "password"], "icon": "impala", "source": "plugins/connection-types/profiles/catalog.yaml", "qualification": "catalog" },
+  { "id": "spark", "label": "Apache Spark SQL", "category": "analytics", "wireFamily": "unpackaged", "defaultPort": 10015, "fields": ["hostname", "port", "database", "username", "password"], "icon": "spark", "source": "plugins/connection-types/profiles/catalog.yaml", "qualification": "catalog" },
+  { "id": "transwarp-inceptor", "label": "Transwarp Inceptor", "category": "domestic", "wireFamily": "unpackaged", "defaultPort": 10000, "fields": ["hostname", "port", "database", "username", "password"], "icon": "transwarp-inceptor", "source": "plugins/connection-types/profiles/catalog.yaml", "qualification": "catalog" },
+  { "id": "argo", "label": "Transwarp ArgoDB", "category": "domestic", "wireFamily": "unpackaged", "defaultPort": 10000, "fields": ["hostname", "port", "database", "username", "password"], "icon": "argo", "source": "plugins/connection-types/profiles/catalog.yaml", "qualification": "catalog" },
+  { "id": "ignite", "label": "Apache Ignite 2", "category": "analytics", "wireFamily": "unpackaged", "defaultPort": 10800, "fields": ["hostname", "port", "username", "password"], "icon": "ignite", "source": "plugins/connection-types/profiles/catalog.yaml", "qualification": "catalog" },
+  { "id": "ignite3", "label": "Apache Ignite 3", "category": "analytics", "wireFamily": "unpackaged", "defaultPort": 10800, "fields": ["hostname", "port", "username", "password"], "icon": "ignite", "source": "plugins/connection-types/profiles/catalog.yaml", "qualification": "catalog" },
+  { "id": "spanner", "label": "Google Cloud Spanner", "category": "relational", "wireFamily": "unpackaged", "defaultPort": 443, "fields": ["accountId", "database"], "icon": "spanner", "source": "plugins/connection-types/profiles/catalog.yaml", "qualification": "catalog" },
+  { "id": "rocketmq", "label": "Apache RocketMQ", "category": "messaging", "wireFamily": "unpackaged", "defaultPort": 9876, "fields": ["hostname", "port", "username", "password"], "icon": "rocketmq", "source": "plugins/connection-types/profiles/catalog.yaml", "qualification": "catalog" },
+  { "id": "dremio", "label": "Dremio", "category": "analytics", "wireFamily": "unpackaged", "defaultPort": 31010, "fields": ["hostname", "port", "database", "username", "password"], "icon": "dremio", "source": "plugins/connection-types/profiles/catalog.yaml", "qualification": "catalog" },
+  { "id": "jdbc", "label": "Generic JDBC", "category": "relational", "wireFamily": "unpackaged", "defaultPort": 0, "fields": ["hostname", "port", "database", "username", "password"], "icon": "jdbc", "source": "plugins/connection-types/profiles/catalog.yaml", "qualification": "catalog" },
+  { "id": "jdbcx", "label": "Extended JDBC (JDBCx)", "category": "relational", "wireFamily": "unpackaged", "defaultPort": 0, "fields": ["hostname", "port", "database", "username", "password"], "icon": "jdbcx", "source": "plugins/connection-types/profiles/catalog.yaml", "qualification": "catalog" }
 ] as const satisfies readonly DriverProfile[];
 export type DriverId = typeof drivers[number]['id'];
 export type DriverCategory = DriverProfile['category'];

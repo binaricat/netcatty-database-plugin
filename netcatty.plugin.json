@@ -10,7 +10,7 @@
     "en": "Enterprise-grade multi-database IDE inside Netcatty covering 113 engine profiles (76 live pure-TS drivers across 13 families incl. SQL, CQL, Redis, MongoDB, Neo4j, Search/Vector, KV, RabbitMQ/Pulsar/MQTT/Kafka + 37 catalog entries), BI Dashboard across 53 engines (SQL/CQL/HTTP-SQL + MongoDB Aggregation), Catty Agent tools, Server Monitor, Users Admin, Data Compare, Mock Data, Data Dictionary/Model Codegen, Global Search, Dolt VC, and Vault SSH tunnels.",
     "zh-CN": "内置于 Netcatty 的全功能企业级多数据库 IDE，覆盖 113 种引擎配置（76 个跨 13 大协议族原生驱动，含 SQL/CQL/Redis/MongoDB/Neo4j/检索向量/KV/RabbitMQ/Pulsar/MQTT/Kafka + 37 个目录引擎），支持 53 种引擎 BI 看板（SQL/CQL/HTTP-SQL + MongoDB 聚合）、Catty Agent 工具、服务监控、用户权限、数据对比、测试数据生成、数据字典与代码生成、全局搜索、Dolt 版本控制与 Vault SSH 隧道。"
   },
-  "version": "0.3.1",
+  "version": "0.3.2",
   "publisher": "binaricat",
   "license": "GPL-3.0-or-later",
   "engines": {

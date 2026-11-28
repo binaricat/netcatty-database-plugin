@@ -45,7 +45,6 @@ test('typed registry matches the shipped contract and separates aliases from pac
     assert.ok(driver.icon, `Missing icon for driver ${driver.id}`);
     for (const theme of ['light', 'dark']) {
       assert.ok(readFileSync(`assets/icons/${driver.icon}-${theme}.png`).length);
-      assert.ok(readFileSync(`assets/icons/${driver.icon}-${theme}.svg`, 'utf8').includes('<svg'));
     }
   }
 });

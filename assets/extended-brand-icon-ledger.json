@@ -1,0 +1,1262 @@
+[
+  {
+    "id": "access",
+    "file": "assets/icons/access-dark.png",
+    "theme": "dark",
+    "sha256": "f72d4ec825570b84ef54d7a10fd8619e2b6176efd2fc7686a73c3b1c0022ab6e",
+    "width": 128,
+    "height": 128,
+    "note": "Official vendor/project mark normalized to transparent 128x128 static PNG for engine identification."
+  },
+  {
+    "id": "access",
+    "file": "assets/icons/access-light.png",
+    "theme": "light",
+    "sha256": "f72d4ec825570b84ef54d7a10fd8619e2b6176efd2fc7686a73c3b1c0022ab6e",
+    "width": 128,
+    "height": 128,
+    "note": "Official vendor/project mark normalized to transparent 128x128 static PNG for engine identification."
+  },
+  {
+    "id": "argo",
+    "file": "assets/icons/argo-dark.png",
+    "theme": "dark",
+    "sha256": "ac94689ae2fc6ce03e60074f347cde5baec38bd24c6e3d457b20c3d8c6108756",
+    "width": 128,
+    "height": 128,
+    "note": "Official vendor/project mark normalized to transparent 128x128 static PNG for engine identification."
+  },
+  {
+    "id": "argo",
+    "file": "assets/icons/argo-light.png",
+    "theme": "light",
+    "sha256": "ac94689ae2fc6ce03e60074f347cde5baec38bd24c6e3d457b20c3d8c6108756",
+    "width": 128,
+    "height": 128,
+    "note": "Official vendor/project mark normalized to transparent 128x128 static PNG for engine identification."
+  },
+  {
+    "id": "bigquery",
+    "file": "assets/icons/bigquery-dark.png",
+    "theme": "dark",
+    "sha256": "b6cebe2a0f2b876c664273ac6df7c37ad25e1ad877e3ad9abd17635c0984bec5",
+    "width": 128,
+    "height": 128,
+    "note": "Official vendor/project mark normalized to transparent 128x128 static PNG for engine identification."
+  },
+  {
+    "id": "bigquery",
+    "file": "assets/icons/bigquery-light.png",
+    "theme": "light",
+    "sha256": "b669b4dfd9d53750075a8c5af77682be4c01a724afbc3ee0cbbdfd3e4d4ae6c7",
+    "width": 128,
+    "height": 128,
+    "note": "Official vendor/project mark normalized to transparent 128x128 static PNG for engine identification."
+  },
+  {
+    "id": "cache",
+    "file": "assets/icons/cache-dark.png",
+    "theme": "dark",
+    "sha256": "de53f0a1777fb70d80b62ad150107aa5439f506fbb27609dd8f2089ac9b7b470",
+    "width": 128,
+    "height": 128,
+    "note": "Official vendor/project mark normalized to transparent 128x128 static PNG for engine identification."
+  },
+  {
+    "id": "cache",
+    "file": "assets/icons/cache-light.png",
+    "theme": "light",
+    "sha256": "de53f0a1777fb70d80b62ad150107aa5439f506fbb27609dd8f2089ac9b7b470",
+    "width": 128,
+    "height": 128,
+    "note": "Official vendor/project mark normalized to transparent 128x128 static PNG for engine identification."
+  },
+  {
+    "id": "cassandra",
+    "file": "assets/icons/cassandra-dark.png",
+    "theme": "dark",
+    "sha256": "49d49d3e29db00badc3c346b76241d435e2968368eea1d772e570918a057b723",
+    "width": 128,
+    "height": 128,
+    "note": "Official vendor/project mark normalized to transparent 128x128 static PNG for engine identification."
+  },
+  {
+    "id": "cassandra",
+    "file": "assets/icons/cassandra-light.png",
+    "theme": "light",
+    "sha256": "8c28613b7bbdf30651ac69ccabf25898957fc7803696a35cfe1337ff36a0ed09",
+    "width": 128,
+    "height": 128,
+    "note": "Official vendor/project mark normalized to transparent 128x128 static PNG for engine identification."
+  },
+  {
+    "id": "chromadb",
+    "file": "assets/icons/chromadb-dark.png",
+    "theme": "dark",
+    "sha256": "2b385c71baeb900fd6850236a41b226de3837b7fd46893b6b14e25746c34867a",
+    "width": 128,
+    "height": 128,
+    "note": "Official vendor/project mark normalized to transparent 128x128 static PNG for engine identification."
+  },
+  {
+    "id": "chromadb",
+    "file": "assets/icons/chromadb-light.png",
+    "theme": "light",
+    "sha256": "2b385c71baeb900fd6850236a41b226de3837b7fd46893b6b14e25746c34867a",
+    "width": 128,
+    "height": 128,
+    "note": "Official vendor/project mark normalized to transparent 128x128 static PNG for engine identification."
+  },
+  {
+    "id": "cloudberry",
+    "file": "assets/icons/cloudberry-dark.png",
+    "theme": "dark",
+    "sha256": "569b57cf5a1220bfc3b5b7ecde74cfc79445639addb72d45e40eb50a26eee1be",
+    "width": 128,
+    "height": 128,
+    "note": "Official vendor/project mark normalized to transparent 128x128 static PNG for engine identification."
+  },
+  {
+    "id": "cloudberry",
+    "file": "assets/icons/cloudberry-light.png",
+    "theme": "light",
+    "sha256": "569b57cf5a1220bfc3b5b7ecde74cfc79445639addb72d45e40eb50a26eee1be",
+    "width": 128,
+    "height": 128,
+    "note": "Official vendor/project mark normalized to transparent 128x128 static PNG for engine identification."
+  },
+  {
+    "id": "cloudflare-d1",
+    "file": "assets/icons/cloudflare-d1-dark.png",
+    "theme": "dark",
+    "sha256": "b6948ef62d28e9246541d64e195fe20002ff897baf6d582f81072368aa182ae9",
+    "width": 128,
+    "height": 128,
+    "note": "Official vendor/project mark normalized to transparent 128x128 static PNG for engine identification."
+  },
+  {
+    "id": "cloudflare-d1",
+    "file": "assets/icons/cloudflare-d1-light.png",
+    "theme": "light",
+    "sha256": "a54373e1a6eddb8437ff74882f23e2151326db3218cc8aaaa7557c05a7fd90b5",
+    "width": 128,
+    "height": 128,
+    "note": "Official vendor/project mark normalized to transparent 128x128 static PNG for engine identification."
+  },
+  {
+    "id": "couchdb",
+    "file": "assets/icons/couchdb-dark.png",
+    "theme": "dark",
+    "sha256": "acad62d3936f28bd900b7d35aa93da27a35e017d719916f7ddd408d06d611aed",
+    "width": 128,
+    "height": 128,
+    "note": "Official vendor/project mark normalized to transparent 128x128 static PNG for engine identification."
+  },
+  {
+    "id": "couchdb",
+    "file": "assets/icons/couchdb-light.png",
+    "theme": "light",
+    "sha256": "483c90dc11d898976d1d3e6e414720e813de6a2a47028fd1a48102418a8c054c",
+    "width": 128,
+    "height": 128,
+    "note": "Official vendor/project mark normalized to transparent 128x128 static PNG for engine identification."
+  },
+  {
+    "id": "databend",
+    "file": "assets/icons/databend-dark.png",
+    "theme": "dark",
+    "sha256": "b54365bdd6cb113c25393cea00c959dfc86b3cae9043b7d7f5320d595c9c45a9",
+    "width": 128,
+    "height": 128,
+    "note": "Official vendor/project mark normalized to transparent 128x128 static PNG for engine identification."
+  },
+  {
+    "id": "databend",
+    "file": "assets/icons/databend-light.png",
+    "theme": "light",
+    "sha256": "b54365bdd6cb113c25393cea00c959dfc86b3cae9043b7d7f5320d595c9c45a9",
+    "width": 128,
+    "height": 128,
+    "note": "Official vendor/project mark normalized to transparent 128x128 static PNG for engine identification."
+  },
+  {
+    "id": "databricks",
+    "file": "assets/icons/databricks-dark.png",
+    "theme": "dark",
+    "sha256": "ee4a1f6339ac740ac5039a428390af776716e5adef6b61e416b17ea81c65217d",
+    "width": 128,
+    "height": 128,
+    "note": "Official vendor/project mark normalized to transparent 128x128 static PNG for engine identification."
+  },
+  {
+    "id": "databricks",
+    "file": "assets/icons/databricks-light.png",
+    "theme": "light",
+    "sha256": "20828485bd5b61234e21e1a4ea18054b5d751a1eca5df81ea66a477360b4eccc",
+    "width": 128,
+    "height": 128,
+    "note": "Official vendor/project mark normalized to transparent 128x128 static PNG for engine identification."
+  },
+  {
+    "id": "db2",
+    "file": "assets/icons/db2-dark.png",
+    "theme": "dark",
+    "sha256": "f015cff7aaf0ba7ed58a90325189b8b197d676a56068651d11ba53ab902500ca",
+    "width": 128,
+    "height": 128,
+    "note": "Official vendor/project mark normalized to transparent 128x128 static PNG for engine identification."
+  },
+  {
+    "id": "db2",
+    "file": "assets/icons/db2-light.png",
+    "theme": "light",
+    "sha256": "f015cff7aaf0ba7ed58a90325189b8b197d676a56068651d11ba53ab902500ca",
+    "width": 128,
+    "height": 128,
+    "note": "Official vendor/project mark normalized to transparent 128x128 static PNG for engine identification."
+  },
+  {
+    "id": "dolt",
+    "file": "assets/icons/dolt-dark.png",
+    "theme": "dark",
+    "sha256": "5f436fdbcad3bb62f113d1fa09c699c3d44ad97eead2065ff5b57fe6005f5243",
+    "width": 128,
+    "height": 128,
+    "note": "Official vendor/project mark normalized to transparent 128x128 static PNG for engine identification."
+  },
+  {
+    "id": "dolt",
+    "file": "assets/icons/dolt-light.png",
+    "theme": "light",
+    "sha256": "5f436fdbcad3bb62f113d1fa09c699c3d44ad97eead2065ff5b57fe6005f5243",
+    "width": 128,
+    "height": 128,
+    "note": "Official vendor/project mark normalized to transparent 128x128 static PNG for engine identification."
+  },
+  {
+    "id": "dremio",
+    "file": "assets/icons/dremio-dark.png",
+    "theme": "dark",
+    "sha256": "74d0491f67fcd1e4826b2cbfe56b462c660aa1d47d02572cd705a0c335ed9688",
+    "width": 128,
+    "height": 128,
+    "note": "Official vendor/project mark normalized to transparent 128x128 static PNG for engine identification."
+  },
+  {
+    "id": "dremio",
+    "file": "assets/icons/dremio-light.png",
+    "theme": "light",
+    "sha256": "74d0491f67fcd1e4826b2cbfe56b462c660aa1d47d02572cd705a0c335ed9688",
+    "width": 128,
+    "height": 128,
+    "note": "Official vendor/project mark normalized to transparent 128x128 static PNG for engine identification."
+  },
+  {
+    "id": "dynamodb",
+    "file": "assets/icons/dynamodb-dark.png",
+    "theme": "dark",
+    "sha256": "e84e308aac51fec697d3850ea07239a5b7ecea6bb4fd3f0209b4cf49e5203122",
+    "width": 128,
+    "height": 128,
+    "note": "Official vendor/project mark normalized to transparent 128x128 static PNG for engine identification."
+  },
+  {
+    "id": "dynamodb",
+    "file": "assets/icons/dynamodb-light.png",
+    "theme": "light",
+    "sha256": "e84e308aac51fec697d3850ea07239a5b7ecea6bb4fd3f0209b4cf49e5203122",
+    "width": 128,
+    "height": 128,
+    "note": "Official vendor/project mark normalized to transparent 128x128 static PNG for engine identification."
+  },
+  {
+    "id": "easysearch",
+    "file": "assets/icons/easysearch-dark.png",
+    "theme": "dark",
+    "sha256": "e6542cbd4364ecdc12e4b1fd4caf418f5903c231568329d9b05055a0025287ea",
+    "width": 128,
+    "height": 128,
+    "note": "Official vendor/project mark normalized to transparent 128x128 static PNG for engine identification."
+  },
+  {
+    "id": "easysearch",
+    "file": "assets/icons/easysearch-light.png",
+    "theme": "light",
+    "sha256": "e6542cbd4364ecdc12e4b1fd4caf418f5903c231568329d9b05055a0025287ea",
+    "width": 128,
+    "height": 128,
+    "note": "Official vendor/project mark normalized to transparent 128x128 static PNG for engine identification."
+  },
+  {
+    "id": "exasol",
+    "file": "assets/icons/exasol-dark.png",
+    "theme": "dark",
+    "sha256": "3ea6436c1c402ccc33a4358b0c4c1c1d9027d5e5fba59984b6fdf578919458ef",
+    "width": 128,
+    "height": 128,
+    "note": "Official vendor/project mark normalized to transparent 128x128 static PNG for engine identification."
+  },
+  {
+    "id": "exasol",
+    "file": "assets/icons/exasol-light.png",
+    "theme": "light",
+    "sha256": "3ea6436c1c402ccc33a4358b0c4c1c1d9027d5e5fba59984b6fdf578919458ef",
+    "width": 128,
+    "height": 128,
+    "note": "Official vendor/project mark normalized to transparent 128x128 static PNG for engine identification."
+  },
+  {
+    "id": "gbase8s",
+    "file": "assets/icons/gbase8s-dark.png",
+    "theme": "dark",
+    "sha256": "6e016b1e3cd5c69ba6a39ace818f630a927f0a3ca59862c4138363c4a171fa51",
+    "width": 128,
+    "height": 128,
+    "note": "Official vendor/project mark normalized to transparent 128x128 static PNG for engine identification."
+  },
+  {
+    "id": "gbase8s",
+    "file": "assets/icons/gbase8s-light.png",
+    "theme": "light",
+    "sha256": "6e016b1e3cd5c69ba6a39ace818f630a927f0a3ca59862c4138363c4a171fa51",
+    "width": 128,
+    "height": 128,
+    "note": "Official vendor/project mark normalized to transparent 128x128 static PNG for engine identification."
+  },
+  {
+    "id": "greatsql",
+    "file": "assets/icons/greatsql-dark.png",
+    "theme": "dark",
+    "sha256": "5fbf9141b4f9df00dcdc9ad7a91b0e18961b5d03d9b0faa29bf7908692bfb3de",
+    "width": 128,
+    "height": 128,
+    "note": "Official vendor/project mark normalized to transparent 128x128 static PNG for engine identification."
+  },
+  {
+    "id": "greatsql",
+    "file": "assets/icons/greatsql-light.png",
+    "theme": "light",
+    "sha256": "5fbf9141b4f9df00dcdc9ad7a91b0e18961b5d03d9b0faa29bf7908692bfb3de",
+    "width": 128,
+    "height": 128,
+    "note": "Official vendor/project mark normalized to transparent 128x128 static PNG for engine identification."
+  },
+  {
+    "id": "h2",
+    "file": "assets/icons/h2-dark.png",
+    "theme": "dark",
+    "sha256": "8f09a627680a24f76d1a529a7598d73183f0d661b1a9799b96298c7501fa900f",
+    "width": 128,
+    "height": 128,
+    "note": "Official vendor/project mark normalized to transparent 128x128 static PNG for engine identification."
+  },
+  {
+    "id": "h2",
+    "file": "assets/icons/h2-light.png",
+    "theme": "light",
+    "sha256": "8684c6b76cf93bcec591cf5c6aee6b343c77b093fd1af1043286d516ffccf17f",
+    "width": 128,
+    "height": 128,
+    "note": "Official vendor/project mark normalized to transparent 128x128 static PNG for engine identification."
+  },
+  {
+    "id": "hbase",
+    "file": "assets/icons/hbase-dark.png",
+    "theme": "dark",
+    "sha256": "8ada843e2b38b531d47ce7e7da909d0eb1ba87c865c5c9afbaa9bda58d85cb7d",
+    "width": 128,
+    "height": 128,
+    "note": "Official vendor/project mark normalized to transparent 128x128 static PNG for engine identification."
+  },
+  {
+    "id": "hbase",
+    "file": "assets/icons/hbase-light.png",
+    "theme": "light",
+    "sha256": "39636c9f6f2f64f147177c6455888ec64b3fef934077568a51afca2ba9dc89b4",
+    "width": 128,
+    "height": 128,
+    "note": "Official vendor/project mark normalized to transparent 128x128 static PNG for engine identification."
+  },
+  {
+    "id": "hive",
+    "file": "assets/icons/hive-dark.png",
+    "theme": "dark",
+    "sha256": "bd089e348e834e022742220dc0489fb59b4ee774c9106fa771d4b3fe9e392ac1",
+    "width": 128,
+    "height": 128,
+    "note": "Official vendor/project mark normalized to transparent 128x128 static PNG for engine identification."
+  },
+  {
+    "id": "hive",
+    "file": "assets/icons/hive-light.png",
+    "theme": "light",
+    "sha256": "042902fdc1cf34e37320109964a8928120c2d19d6592dfce760e94871124fc77",
+    "width": 128,
+    "height": 128,
+    "note": "Official vendor/project mark normalized to transparent 128x128 static PNG for engine identification."
+  },
+  {
+    "id": "ignite",
+    "file": "assets/icons/ignite-dark.png",
+    "theme": "dark",
+    "sha256": "f3e004c8fce89dd4d4d5a55c9530713fdc4a9ac71429d04d8561f3a22067b59d",
+    "width": 128,
+    "height": 128,
+    "note": "Official vendor/project mark normalized to transparent 128x128 static PNG for engine identification."
+  },
+  {
+    "id": "ignite",
+    "file": "assets/icons/ignite-light.png",
+    "theme": "light",
+    "sha256": "f3e004c8fce89dd4d4d5a55c9530713fdc4a9ac71429d04d8561f3a22067b59d",
+    "width": 128,
+    "height": 128,
+    "note": "Official vendor/project mark normalized to transparent 128x128 static PNG for engine identification."
+  },
+  {
+    "id": "impala",
+    "file": "assets/icons/impala-dark.png",
+    "theme": "dark",
+    "sha256": "6ff01e0bc6134eb6d2ff22542fbf0041db11a181bf1a583bc978dd19c8dbc138",
+    "width": 128,
+    "height": 128,
+    "note": "Official vendor/project mark normalized to transparent 128x128 static PNG for engine identification."
+  },
+  {
+    "id": "impala",
+    "file": "assets/icons/impala-light.png",
+    "theme": "light",
+    "sha256": "6ff01e0bc6134eb6d2ff22542fbf0041db11a181bf1a583bc978dd19c8dbc138",
+    "width": 128,
+    "height": 128,
+    "note": "Official vendor/project mark normalized to transparent 128x128 static PNG for engine identification."
+  },
+  {
+    "id": "informix",
+    "file": "assets/icons/informix-dark.png",
+    "theme": "dark",
+    "sha256": "f0b9e4eb9f45374955b978725a8a87c0d755f92feacff2f19c67acf844af8ead",
+    "width": 128,
+    "height": 128,
+    "note": "Official vendor/project mark normalized to transparent 128x128 static PNG for engine identification."
+  },
+  {
+    "id": "informix",
+    "file": "assets/icons/informix-light.png",
+    "theme": "light",
+    "sha256": "f0b9e4eb9f45374955b978725a8a87c0d755f92feacff2f19c67acf844af8ead",
+    "width": 128,
+    "height": 128,
+    "note": "Official vendor/project mark normalized to transparent 128x128 static PNG for engine identification."
+  },
+  {
+    "id": "iotdb",
+    "file": "assets/icons/iotdb-dark.png",
+    "theme": "dark",
+    "sha256": "07b8bc9bec51e3be5d8b8a3aa6c6edf528048dedf2934ec4cd9f043b9cb526af",
+    "width": 128,
+    "height": 128,
+    "note": "Official vendor/project mark normalized to transparent 128x128 static PNG for engine identification."
+  },
+  {
+    "id": "iotdb",
+    "file": "assets/icons/iotdb-light.png",
+    "theme": "light",
+    "sha256": "07b8bc9bec51e3be5d8b8a3aa6c6edf528048dedf2934ec4cd9f043b9cb526af",
+    "width": 128,
+    "height": 128,
+    "note": "Official vendor/project mark normalized to transparent 128x128 static PNG for engine identification."
+  },
+  {
+    "id": "iris",
+    "file": "assets/icons/iris-dark.png",
+    "theme": "dark",
+    "sha256": "f0cc1b80c0ba85eb1ab1f44da570e6d8a32b6b41bebb9ee5f8a709647ea546ae",
+    "width": 128,
+    "height": 128,
+    "note": "Official vendor/project mark normalized to transparent 128x128 static PNG for engine identification."
+  },
+  {
+    "id": "iris",
+    "file": "assets/icons/iris-light.png",
+    "theme": "light",
+    "sha256": "f0cc1b80c0ba85eb1ab1f44da570e6d8a32b6b41bebb9ee5f8a709647ea546ae",
+    "width": 128,
+    "height": 128,
+    "note": "Official vendor/project mark normalized to transparent 128x128 static PNG for engine identification."
+  },
+  {
+    "id": "jdbc",
+    "file": "assets/icons/jdbc-dark.png",
+    "theme": "dark",
+    "sha256": "53091bd810945c28416f26a4c76f77052bc319da1a5465f1f441aa03efeca31b",
+    "width": 128,
+    "height": 128,
+    "note": "Official vendor/project mark normalized to transparent 128x128 static PNG for engine identification."
+  },
+  {
+    "id": "jdbc",
+    "file": "assets/icons/jdbc-light.png",
+    "theme": "light",
+    "sha256": "53091bd810945c28416f26a4c76f77052bc319da1a5465f1f441aa03efeca31b",
+    "width": 128,
+    "height": 128,
+    "note": "Official vendor/project mark normalized to transparent 128x128 static PNG for engine identification."
+  },
+  {
+    "id": "jdbcx",
+    "file": "assets/icons/jdbcx-dark.png",
+    "theme": "dark",
+    "sha256": "7c922a16700fb2e87e44230af102f9910eba3541e62d11d21108696048e0d64d",
+    "width": 128,
+    "height": 128,
+    "note": "Official vendor/project mark normalized to transparent 128x128 static PNG for engine identification."
+  },
+  {
+    "id": "jdbcx",
+    "file": "assets/icons/jdbcx-light.png",
+    "theme": "light",
+    "sha256": "7c922a16700fb2e87e44230af102f9910eba3541e62d11d21108696048e0d64d",
+    "width": 128,
+    "height": 128,
+    "note": "Official vendor/project mark normalized to transparent 128x128 static PNG for engine identification."
+  },
+  {
+    "id": "kafka",
+    "file": "assets/icons/kafka-dark.png",
+    "theme": "dark",
+    "sha256": "92426a1b0104f767c59990a04c6a5716494744ee94fc53d85d3f4f56ead1517d",
+    "width": 128,
+    "height": 128,
+    "note": "Official vendor/project mark normalized to transparent 128x128 static PNG for engine identification."
+  },
+  {
+    "id": "kafka",
+    "file": "assets/icons/kafka-light.png",
+    "theme": "light",
+    "sha256": "4bd62147d19cb702eeaa61bf8f341b816bf2dad55fe2bb529684414222ebb212",
+    "width": 128,
+    "height": 128,
+    "note": "Official vendor/project mark normalized to transparent 128x128 static PNG for engine identification."
+  },
+  {
+    "id": "kwdb",
+    "file": "assets/icons/kwdb-dark.png",
+    "theme": "dark",
+    "sha256": "967cb11cc6141682642b31b27a6e1c4425a3a6dbc7724b5800a4b3d4dd05bc73",
+    "width": 128,
+    "height": 128,
+    "note": "Official vendor/project mark normalized to transparent 128x128 static PNG for engine identification."
+  },
+  {
+    "id": "kwdb",
+    "file": "assets/icons/kwdb-light.png",
+    "theme": "light",
+    "sha256": "1832864bd52d0805d9268d98321d81da0037937fe49528b27985c88c5129174e",
+    "width": 128,
+    "height": 128,
+    "note": "Official vendor/project mark normalized to transparent 128x128 static PNG for engine identification."
+  },
+  {
+    "id": "kylin",
+    "file": "assets/icons/kylin-dark.png",
+    "theme": "dark",
+    "sha256": "175e245f33720333df5a0e4bb875d6708f3c3d272d1cc83f18b60c267c44ee0f",
+    "width": 128,
+    "height": 128,
+    "note": "Official vendor/project mark normalized to transparent 128x128 static PNG for engine identification."
+  },
+  {
+    "id": "kylin",
+    "file": "assets/icons/kylin-light.png",
+    "theme": "light",
+    "sha256": "012b3295bf133839bc350ed8a85726f71ebf4a233e139c62b82dc2fe67b522f0",
+    "width": 128,
+    "height": 128,
+    "note": "Official vendor/project mark normalized to transparent 128x128 static PNG for engine identification."
+  },
+  {
+    "id": "kyuubi",
+    "file": "assets/icons/kyuubi-dark.png",
+    "theme": "dark",
+    "sha256": "c01a7df12778b4f6771c72b039b2298d5cf54dfdb321e257fe63fb683c978238",
+    "width": 128,
+    "height": 128,
+    "note": "Official vendor/project mark normalized to transparent 128x128 static PNG for engine identification."
+  },
+  {
+    "id": "kyuubi",
+    "file": "assets/icons/kyuubi-light.png",
+    "theme": "light",
+    "sha256": "c01a7df12778b4f6771c72b039b2298d5cf54dfdb321e257fe63fb683c978238",
+    "width": 128,
+    "height": 128,
+    "note": "Official vendor/project mark normalized to transparent 128x128 static PNG for engine identification."
+  },
+  {
+    "id": "manticoresearch",
+    "file": "assets/icons/manticoresearch-dark.png",
+    "theme": "dark",
+    "sha256": "401ef11add8e0a219c829aab2f52baf047c2a198594ff61b79e8b6f5585c8c9d",
+    "width": 128,
+    "height": 128,
+    "note": "Official vendor/project mark normalized to transparent 128x128 static PNG for engine identification."
+  },
+  {
+    "id": "manticoresearch",
+    "file": "assets/icons/manticoresearch-light.png",
+    "theme": "light",
+    "sha256": "401ef11add8e0a219c829aab2f52baf047c2a198594ff61b79e8b6f5585c8c9d",
+    "width": 128,
+    "height": 128,
+    "note": "Official vendor/project mark normalized to transparent 128x128 static PNG for engine identification."
+  },
+  {
+    "id": "meilisearch",
+    "file": "assets/icons/meilisearch-dark.png",
+    "theme": "dark",
+    "sha256": "6d66af61a9abe09e48e6c5456035700a8b12be08555c5c7999600a5f47ffd665",
+    "width": 128,
+    "height": 128,
+    "note": "Official vendor/project mark normalized to transparent 128x128 static PNG for engine identification."
+  },
+  {
+    "id": "meilisearch",
+    "file": "assets/icons/meilisearch-light.png",
+    "theme": "light",
+    "sha256": "8eb29f4f275ba45308941f4b07bfe6a1886e0aec3016f51b7ceffef89e609540",
+    "width": 128,
+    "height": 128,
+    "note": "Official vendor/project mark normalized to transparent 128x128 static PNG for engine identification."
+  },
+  {
+    "id": "milvus",
+    "file": "assets/icons/milvus-dark.png",
+    "theme": "dark",
+    "sha256": "b0b288555e37f3767d2acdf0a3c69c76b9e8688eb2a7383d77156ab308bd7bfa",
+    "width": 128,
+    "height": 128,
+    "note": "Official vendor/project mark normalized to transparent 128x128 static PNG for engine identification."
+  },
+  {
+    "id": "milvus",
+    "file": "assets/icons/milvus-light.png",
+    "theme": "light",
+    "sha256": "cfc3024bb7fe7f768cdc6efbb8969e22225bdd9aaf6bd9b730f30ec8e1fcdb7e",
+    "width": 128,
+    "height": 128,
+    "note": "Official vendor/project mark normalized to transparent 128x128 static PNG for engine identification."
+  },
+  {
+    "id": "mq",
+    "file": "assets/icons/mq-dark.png",
+    "theme": "dark",
+    "sha256": "ea830baf9db74f62755db2cffbac98f7c771a3bba43bd147093b5a355b962bca",
+    "width": 128,
+    "height": 128,
+    "note": "Official vendor/project mark normalized to transparent 128x128 static PNG for engine identification."
+  },
+  {
+    "id": "mq",
+    "file": "assets/icons/mq-light.png",
+    "theme": "light",
+    "sha256": "9af2e9f66e0a69355f6deecf2091245ed3c6affa45882fdf10ab1bf9cea050cb",
+    "width": 128,
+    "height": 128,
+    "note": "Official vendor/project mark normalized to transparent 128x128 static PNG for engine identification."
+  },
+  {
+    "id": "mqtt",
+    "file": "assets/icons/mqtt-dark.png",
+    "theme": "dark",
+    "sha256": "2622e404a4a1408dbcffc1fa2b27f4fdaf04384bbfea835f77d7e7431aef04c9",
+    "width": 128,
+    "height": 128,
+    "note": "Official vendor/project mark normalized to transparent 128x128 static PNG for engine identification."
+  },
+  {
+    "id": "mqtt",
+    "file": "assets/icons/mqtt-light.png",
+    "theme": "light",
+    "sha256": "c0e26c7f092127581b03ac18bdf0100da94f79f81cc78cbfccb1aae860bf3230",
+    "width": 128,
+    "height": 128,
+    "note": "Official vendor/project mark normalized to transparent 128x128 static PNG for engine identification."
+  },
+  {
+    "id": "nacos",
+    "file": "assets/icons/nacos-dark.png",
+    "theme": "dark",
+    "sha256": "ecbdaef87f5c4a2075c1d6716e75e790a1de7397585393ba70ca17389f9c5d3b",
+    "width": 128,
+    "height": 128,
+    "note": "Official vendor/project mark normalized to transparent 128x128 static PNG for engine identification."
+  },
+  {
+    "id": "nacos",
+    "file": "assets/icons/nacos-light.png",
+    "theme": "light",
+    "sha256": "ecbdaef87f5c4a2075c1d6716e75e790a1de7397585393ba70ca17389f9c5d3b",
+    "width": 128,
+    "height": 128,
+    "note": "Official vendor/project mark normalized to transparent 128x128 static PNG for engine identification."
+  },
+  {
+    "id": "nebula",
+    "file": "assets/icons/nebula-dark.png",
+    "theme": "dark",
+    "sha256": "2578631fc640584a43a7f5fceb591893bbd3e89d3f6fc7f3a4d75bb75927475f",
+    "width": 128,
+    "height": 128,
+    "note": "Official vendor/project mark normalized to transparent 128x128 static PNG for engine identification."
+  },
+  {
+    "id": "nebula",
+    "file": "assets/icons/nebula-light.png",
+    "theme": "light",
+    "sha256": "2578631fc640584a43a7f5fceb591893bbd3e89d3f6fc7f3a4d75bb75927475f",
+    "width": 128,
+    "height": 128,
+    "note": "Official vendor/project mark normalized to transparent 128x128 static PNG for engine identification."
+  },
+  {
+    "id": "opentenbase",
+    "file": "assets/icons/opentenbase-dark.png",
+    "theme": "dark",
+    "sha256": "7ac3179903ba3fdb865b9abe88add53e0b756916f024053b5df8ffcbe6b5dde3",
+    "width": 128,
+    "height": 128,
+    "note": "Official vendor/project mark normalized to transparent 128x128 static PNG for engine identification."
+  },
+  {
+    "id": "opentenbase",
+    "file": "assets/icons/opentenbase-light.png",
+    "theme": "light",
+    "sha256": "7ac3179903ba3fdb865b9abe88add53e0b756916f024053b5df8ffcbe6b5dde3",
+    "width": 128,
+    "height": 128,
+    "note": "Official vendor/project mark normalized to transparent 128x128 static PNG for engine identification."
+  },
+  {
+    "id": "oscar",
+    "file": "assets/icons/oscar-dark.png",
+    "theme": "dark",
+    "sha256": "e32c96ea3dc47ee89328644be8d975680373c7f9a6a2b3bdc3631397e93b4f32",
+    "width": 128,
+    "height": 128,
+    "note": "Official vendor/project mark normalized to transparent 128x128 static PNG for engine identification."
+  },
+  {
+    "id": "oscar",
+    "file": "assets/icons/oscar-light.png",
+    "theme": "light",
+    "sha256": "2dfef4201ad1c1201cf9326586056b762211b7f7c38fa90a71b06d2324c63981",
+    "width": 128,
+    "height": 128,
+    "note": "Official vendor/project mark normalized to transparent 128x128 static PNG for engine identification."
+  },
+  {
+    "id": "polardb",
+    "file": "assets/icons/polardb-dark.png",
+    "theme": "dark",
+    "sha256": "2c5b50f1df403b1f4a4ba5cb306d974c1e4cf55ccab65eb3c401ca57d65a9f0b",
+    "width": 128,
+    "height": 128,
+    "note": "Official vendor/project mark normalized to transparent 128x128 static PNG for engine identification."
+  },
+  {
+    "id": "polardb",
+    "file": "assets/icons/polardb-light.png",
+    "theme": "light",
+    "sha256": "2c5b50f1df403b1f4a4ba5cb306d974c1e4cf55ccab65eb3c401ca57d65a9f0b",
+    "width": 128,
+    "height": 128,
+    "note": "Official vendor/project mark normalized to transparent 128x128 static PNG for engine identification."
+  },
+  {
+    "id": "prestosql",
+    "file": "assets/icons/prestosql-dark.png",
+    "theme": "dark",
+    "sha256": "37f4c5bb2726b468bb76dfc064a429402b7e6c1b1a610edcf96069029c152d28",
+    "width": 128,
+    "height": 128,
+    "note": "Official vendor/project mark normalized to transparent 128x128 static PNG for engine identification."
+  },
+  {
+    "id": "prestosql",
+    "file": "assets/icons/prestosql-light.png",
+    "theme": "light",
+    "sha256": "12e6bfbc660dd311f5b6a42dd80c2691f3ccfac0daea92cc2dd65e72b5cacb4b",
+    "width": 128,
+    "height": 128,
+    "note": "Official vendor/project mark normalized to transparent 128x128 static PNG for engine identification."
+  },
+  {
+    "id": "pulsar",
+    "file": "assets/icons/pulsar-dark.png",
+    "theme": "dark",
+    "sha256": "e72fa18f0dcc7df2771fb55bd2f561962020d95c8d6fbbb6d2491902f9b9f6ce",
+    "width": 128,
+    "height": 128,
+    "note": "Official vendor/project mark normalized to transparent 128x128 static PNG for engine identification."
+  },
+  {
+    "id": "pulsar",
+    "file": "assets/icons/pulsar-light.png",
+    "theme": "light",
+    "sha256": "dbeab064b4e2e23cb4a4b00865863074f07260cc031327eb7bedf267efb5984b",
+    "width": 128,
+    "height": 128,
+    "note": "Official vendor/project mark normalized to transparent 128x128 static PNG for engine identification."
+  },
+  {
+    "id": "questdb",
+    "file": "assets/icons/questdb-dark.png",
+    "theme": "dark",
+    "sha256": "d5cb327038c1e4045e74c9bddf7b75fcf68975420504b990cdb050acbc436af9",
+    "width": 128,
+    "height": 128,
+    "note": "Official vendor/project mark normalized to transparent 128x128 static PNG for engine identification."
+  },
+  {
+    "id": "questdb",
+    "file": "assets/icons/questdb-light.png",
+    "theme": "light",
+    "sha256": "d5cb327038c1e4045e74c9bddf7b75fcf68975420504b990cdb050acbc436af9",
+    "width": 128,
+    "height": 128,
+    "note": "Official vendor/project mark normalized to transparent 128x128 static PNG for engine identification."
+  },
+  {
+    "id": "rabbitmq",
+    "file": "assets/icons/rabbitmq-dark.png",
+    "theme": "dark",
+    "sha256": "a0515db7e53035b3f5c3270e973b12376f21c3a7674d8d7bb6fae2160cd23a60",
+    "width": 128,
+    "height": 128,
+    "note": "Official vendor/project mark normalized to transparent 128x128 static PNG for engine identification."
+  },
+  {
+    "id": "rabbitmq",
+    "file": "assets/icons/rabbitmq-light.png",
+    "theme": "light",
+    "sha256": "e5de777b4cf91303e4e304a575520b0d7ba0684f4202f7162376ccb0ae67ea49",
+    "width": 128,
+    "height": 128,
+    "note": "Official vendor/project mark normalized to transparent 128x128 static PNG for engine identification."
+  },
+  {
+    "id": "redshift",
+    "file": "assets/icons/redshift-dark.png",
+    "theme": "dark",
+    "sha256": "3a929097372b4bf43eca094018145a3d251860859be860dad2c7139cf3720b21",
+    "width": 128,
+    "height": 128,
+    "note": "Official vendor/project mark normalized to transparent 128x128 static PNG for engine identification."
+  },
+  {
+    "id": "redshift",
+    "file": "assets/icons/redshift-light.png",
+    "theme": "light",
+    "sha256": "3a929097372b4bf43eca094018145a3d251860859be860dad2c7139cf3720b21",
+    "width": 128,
+    "height": 128,
+    "note": "Official vendor/project mark normalized to transparent 128x128 static PNG for engine identification."
+  },
+  {
+    "id": "rocketmq",
+    "file": "assets/icons/rocketmq-dark.png",
+    "theme": "dark",
+    "sha256": "6b41ad8fc948e8a8666a8a362c387c376199696e8bb9be0b839cbacdc0c1035f",
+    "width": 128,
+    "height": 128,
+    "note": "Official vendor/project mark normalized to transparent 128x128 static PNG for engine identification."
+  },
+  {
+    "id": "rocketmq",
+    "file": "assets/icons/rocketmq-light.png",
+    "theme": "light",
+    "sha256": "a6ebcb4fd270698010f873bdaca24eecc5bfe11bc2f1d828e9bb6c2b11dba205",
+    "width": 128,
+    "height": 128,
+    "note": "Official vendor/project mark normalized to transparent 128x128 static PNG for engine identification."
+  },
+  {
+    "id": "rqlite",
+    "file": "assets/icons/rqlite-dark.png",
+    "theme": "dark",
+    "sha256": "e4e0c75aa83cdf3160d0afba99f551b4afd06cc2db9c1ffc6929f607a81feb9e",
+    "width": 128,
+    "height": 128,
+    "note": "Official vendor/project mark normalized to transparent 128x128 static PNG for engine identification."
+  },
+  {
+    "id": "rqlite",
+    "file": "assets/icons/rqlite-light.png",
+    "theme": "light",
+    "sha256": "e4e0c75aa83cdf3160d0afba99f551b4afd06cc2db9c1ffc6929f607a81feb9e",
+    "width": 128,
+    "height": 128,
+    "note": "Official vendor/project mark normalized to transparent 128x128 static PNG for engine identification."
+  },
+  {
+    "id": "salesforce",
+    "file": "assets/icons/salesforce-dark.png",
+    "theme": "dark",
+    "sha256": "c002d6a8ef0e7b1def35892baba2b3ab8dfebddff6e51401518b32eab47b1299",
+    "width": 128,
+    "height": 128,
+    "note": "Official vendor/project mark normalized to transparent 128x128 static PNG for engine identification."
+  },
+  {
+    "id": "salesforce",
+    "file": "assets/icons/salesforce-light.png",
+    "theme": "light",
+    "sha256": "c002d6a8ef0e7b1def35892baba2b3ab8dfebddff6e51401518b32eab47b1299",
+    "width": 128,
+    "height": 128,
+    "note": "Official vendor/project mark normalized to transparent 128x128 static PNG for engine identification."
+  },
+  {
+    "id": "saphana",
+    "file": "assets/icons/saphana-dark.png",
+    "theme": "dark",
+    "sha256": "ef37d60cb358110c28eb7fc7b39fe3b2126d285d992163c082b01ad8e22f757f",
+    "width": 128,
+    "height": 128,
+    "note": "Official vendor/project mark normalized to transparent 128x128 static PNG for engine identification."
+  },
+  {
+    "id": "saphana",
+    "file": "assets/icons/saphana-light.png",
+    "theme": "light",
+    "sha256": "dc468a3105375f14846e96926b2fc1bff92e0dd4a3ed9115c8f7a9d5cf5b3ddb",
+    "width": 128,
+    "height": 128,
+    "note": "Official vendor/project mark normalized to transparent 128x128 static PNG for engine identification."
+  },
+  {
+    "id": "scylladb",
+    "file": "assets/icons/scylladb-dark.png",
+    "theme": "dark",
+    "sha256": "4fff4d90695a4e9f62f5d05bcad3c6fbcdc934762be2bdf12e9f564826cbb37f",
+    "width": 128,
+    "height": 128,
+    "note": "Official vendor/project mark normalized to transparent 128x128 static PNG for engine identification."
+  },
+  {
+    "id": "scylladb",
+    "file": "assets/icons/scylladb-light.png",
+    "theme": "light",
+    "sha256": "4fcea06e6a344535939c980c9e317b4f6d51d50e8a3047b071e89a5b740ab972",
+    "width": 128,
+    "height": 128,
+    "note": "Official vendor/project mark normalized to transparent 128x128 static PNG for engine identification."
+  },
+  {
+    "id": "selectdb",
+    "file": "assets/icons/selectdb-dark.png",
+    "theme": "dark",
+    "sha256": "0c84d9769916b412e85d0f4d2cbc5e9bb521b910664a31506be5ac4afa884922",
+    "width": 128,
+    "height": 128,
+    "note": "Official vendor/project mark normalized to transparent 128x128 static PNG for engine identification."
+  },
+  {
+    "id": "selectdb",
+    "file": "assets/icons/selectdb-light.png",
+    "theme": "light",
+    "sha256": "0c84d9769916b412e85d0f4d2cbc5e9bb521b910664a31506be5ac4afa884922",
+    "width": 128,
+    "height": 128,
+    "note": "Official vendor/project mark normalized to transparent 128x128 static PNG for engine identification."
+  },
+  {
+    "id": "snowflake",
+    "file": "assets/icons/snowflake-dark.png",
+    "theme": "dark",
+    "sha256": "24bf7dc5efdc9359fa6c868ed741d698c024c3add2cfcb6eb0563b076d0ce18c",
+    "width": 128,
+    "height": 128,
+    "note": "Official vendor/project mark normalized to transparent 128x128 static PNG for engine identification."
+  },
+  {
+    "id": "snowflake",
+    "file": "assets/icons/snowflake-light.png",
+    "theme": "light",
+    "sha256": "52d00958c92fde89a14197c72279571f3e8c7c038bc70994058df5a6a276b6d5",
+    "width": 128,
+    "height": 128,
+    "note": "Official vendor/project mark normalized to transparent 128x128 static PNG for engine identification."
+  },
+  {
+    "id": "solr",
+    "file": "assets/icons/solr-dark.png",
+    "theme": "dark",
+    "sha256": "799e85fc992fafe655a417496a2f41df685792fbb0dba52560f4dbb25df9f694",
+    "width": 128,
+    "height": 128,
+    "note": "Official vendor/project mark normalized to transparent 128x128 static PNG for engine identification."
+  },
+  {
+    "id": "solr",
+    "file": "assets/icons/solr-light.png",
+    "theme": "light",
+    "sha256": "12764c5bb5689d5a89c8c6b580458a4ad25fa797a1938e7b5872c3c7eab457ee",
+    "width": 128,
+    "height": 128,
+    "note": "Official vendor/project mark normalized to transparent 128x128 static PNG for engine identification."
+  },
+  {
+    "id": "spanner",
+    "file": "assets/icons/spanner-dark.png",
+    "theme": "dark",
+    "sha256": "4906c279aa2b1230adc6d8f51959100401dd144fcd811438c3c1305d2ba81f97",
+    "width": 128,
+    "height": 128,
+    "note": "Official vendor/project mark normalized to transparent 128x128 static PNG for engine identification."
+  },
+  {
+    "id": "spanner",
+    "file": "assets/icons/spanner-light.png",
+    "theme": "light",
+    "sha256": "4652eade81859ea6839392e6e97e10005d4351cfd59c3bfb8df49d0d3811b33c",
+    "width": 128,
+    "height": 128,
+    "note": "Official vendor/project mark normalized to transparent 128x128 static PNG for engine identification."
+  },
+  {
+    "id": "spark",
+    "file": "assets/icons/spark-dark.png",
+    "theme": "dark",
+    "sha256": "488c819f27d15387a93ef8574f83cf4bcde8bb28e6ebf2d2019a681fd32da18c",
+    "width": 128,
+    "height": 128,
+    "note": "Official vendor/project mark normalized to transparent 128x128 static PNG for engine identification."
+  },
+  {
+    "id": "spark",
+    "file": "assets/icons/spark-light.png",
+    "theme": "light",
+    "sha256": "b633b9a9b92b9c1b992cb78c7e1aa2de155e87031c8d969baf32b9434bbca3fc",
+    "width": 128,
+    "height": 128,
+    "note": "Official vendor/project mark normalized to transparent 128x128 static PNG for engine identification."
+  },
+  {
+    "id": "starrocks",
+    "file": "assets/icons/starrocks-dark.png",
+    "theme": "dark",
+    "sha256": "2e73c5477d7ca16b63cbe42226ee09c04c9c10b7e349d2572af70b1795a2394c",
+    "width": 128,
+    "height": 128,
+    "note": "Official vendor/project mark normalized to transparent 128x128 static PNG for engine identification."
+  },
+  {
+    "id": "starrocks",
+    "file": "assets/icons/starrocks-light.png",
+    "theme": "light",
+    "sha256": "2e73c5477d7ca16b63cbe42226ee09c04c9c10b7e349d2572af70b1795a2394c",
+    "width": 128,
+    "height": 128,
+    "note": "Official vendor/project mark normalized to transparent 128x128 static PNG for engine identification."
+  },
+  {
+    "id": "sundb",
+    "file": "assets/icons/sundb-dark.png",
+    "theme": "dark",
+    "sha256": "02157210fa90037db55cea0bfc667479d1b96f465b4d3707c9a034739628c1d2",
+    "width": 128,
+    "height": 128,
+    "note": "Official vendor/project mark normalized to transparent 128x128 static PNG for engine identification."
+  },
+  {
+    "id": "sundb",
+    "file": "assets/icons/sundb-light.png",
+    "theme": "light",
+    "sha256": "02157210fa90037db55cea0bfc667479d1b96f465b4d3707c9a034739628c1d2",
+    "width": 128,
+    "height": 128,
+    "note": "Official vendor/project mark normalized to transparent 128x128 static PNG for engine identification."
+  },
+  {
+    "id": "tdsql",
+    "file": "assets/icons/tdsql-dark.png",
+    "theme": "dark",
+    "sha256": "13a6b9079f176147c50e7eaabd4fb7f381181768e2f87c34f8fcbca9ef3df6ad",
+    "width": 128,
+    "height": 128,
+    "note": "Official vendor/project mark normalized to transparent 128x128 static PNG for engine identification."
+  },
+  {
+    "id": "tdsql",
+    "file": "assets/icons/tdsql-light.png",
+    "theme": "light",
+    "sha256": "13a6b9079f176147c50e7eaabd4fb7f381181768e2f87c34f8fcbca9ef3df6ad",
+    "width": 128,
+    "height": 128,
+    "note": "Official vendor/project mark normalized to transparent 128x128 static PNG for engine identification."
+  },
+  {
+    "id": "teradata",
+    "file": "assets/icons/teradata-dark.png",
+    "theme": "dark",
+    "sha256": "b16bd980ab20af1505667e766a7ea635b1b12400cc96ccfb40f72f89d1dd14d9",
+    "width": 128,
+    "height": 128,
+    "note": "Official vendor/project mark normalized to transparent 128x128 static PNG for engine identification."
+  },
+  {
+    "id": "teradata",
+    "file": "assets/icons/teradata-light.png",
+    "theme": "light",
+    "sha256": "81afe621e59bf904cdde5521872f64c109dee7af1d2b5e3d12c6e9a9595960c5",
+    "width": 128,
+    "height": 128,
+    "note": "Official vendor/project mark normalized to transparent 128x128 static PNG for engine identification."
+  },
+  {
+    "id": "transwarp-inceptor",
+    "file": "assets/icons/transwarp-inceptor-dark.png",
+    "theme": "dark",
+    "sha256": "a83f16a82e1d9d64dcfb2260ee03778cdcb769dc50bd47d08dfde1e8f7bbe7e2",
+    "width": 128,
+    "height": 128,
+    "note": "Official vendor/project mark normalized to transparent 128x128 static PNG for engine identification."
+  },
+  {
+    "id": "transwarp-inceptor",
+    "file": "assets/icons/transwarp-inceptor-light.png",
+    "theme": "light",
+    "sha256": "a83f16a82e1d9d64dcfb2260ee03778cdcb769dc50bd47d08dfde1e8f7bbe7e2",
+    "width": 128,
+    "height": 128,
+    "note": "Official vendor/project mark normalized to transparent 128x128 static PNG for engine identification."
+  },
+  {
+    "id": "turso",
+    "file": "assets/icons/turso-dark.png",
+    "theme": "dark",
+    "sha256": "109c929ccd1b6cc9a57599ee686570aa0d324389be955bb8b6c843392cefd833",
+    "width": 128,
+    "height": 128,
+    "note": "Official vendor/project mark normalized to transparent 128x128 static PNG for engine identification."
+  },
+  {
+    "id": "turso",
+    "file": "assets/icons/turso-light.png",
+    "theme": "light",
+    "sha256": "b922b624e77c648ceb7eb9641bfe9379b0b1243d3b80cff353ff67b5b9453f6c",
+    "width": 128,
+    "height": 128,
+    "note": "Official vendor/project mark normalized to transparent 128x128 static PNG for engine identification."
+  },
+  {
+    "id": "vertica",
+    "file": "assets/icons/vertica-dark.png",
+    "theme": "dark",
+    "sha256": "6e7693dd15ad56283bb0286c971e4e12a060b4c462474d56b9770a431dde42ec",
+    "width": 128,
+    "height": 128,
+    "note": "Official vendor/project mark normalized to transparent 128x128 static PNG for engine identification."
+  },
+  {
+    "id": "vertica",
+    "file": "assets/icons/vertica-light.png",
+    "theme": "light",
+    "sha256": "73145b3c237e8df36420a81971af7dc2d921559233ef2d05a31e70f43466ff96",
+    "width": 128,
+    "height": 128,
+    "note": "Official vendor/project mark normalized to transparent 128x128 static PNG for engine identification."
+  },
+  {
+    "id": "victoriametrics",
+    "file": "assets/icons/victoriametrics-dark.png",
+    "theme": "dark",
+    "sha256": "2015ee756b423a9921e3da0b6aadf129efe5c103058c346c28922a483f15a30b",
+    "width": 128,
+    "height": 128,
+    "note": "Official vendor/project mark normalized to transparent 128x128 static PNG for engine identification."
+  },
+  {
+    "id": "victoriametrics",
+    "file": "assets/icons/victoriametrics-light.png",
+    "theme": "light",
+    "sha256": "fa09ba14d9126d2df2fbca2975a67e15e2a142734b44585017cab4cb17c4b5d9",
+    "width": 128,
+    "height": 128,
+    "note": "Official vendor/project mark normalized to transparent 128x128 static PNG for engine identification."
+  },
+  {
+    "id": "weaviate",
+    "file": "assets/icons/weaviate-dark.png",
+    "theme": "dark",
+    "sha256": "26f29010a0e95c71eda127d362458615d83c810feb4dd85cdeb0a281cc4a44f3",
+    "width": 128,
+    "height": 128,
+    "note": "Official vendor/project mark normalized to transparent 128x128 static PNG for engine identification."
+  },
+  {
+    "id": "weaviate",
+    "file": "assets/icons/weaviate-light.png",
+    "theme": "light",
+    "sha256": "26f29010a0e95c71eda127d362458615d83c810feb4dd85cdeb0a281cc4a44f3",
+    "width": 128,
+    "height": 128,
+    "note": "Official vendor/project mark normalized to transparent 128x128 static PNG for engine identification."
+  },
+  {
+    "id": "xugu",
+    "file": "assets/icons/xugu-dark.png",
+    "theme": "dark",
+    "sha256": "3d779c1ce37626a13dbbdbc247a1520585feda7b7637561ece59b06fc4b077e3",
+    "width": 128,
+    "height": 128,
+    "note": "Official vendor/project mark normalized to transparent 128x128 static PNG for engine identification."
+  },
+  {
+    "id": "xugu",
+    "file": "assets/icons/xugu-light.png",
+    "theme": "light",
+    "sha256": "3d779c1ce37626a13dbbdbc247a1520585feda7b7637561ece59b06fc4b077e3",
+    "width": 128,
+    "height": 128,
+    "note": "Official vendor/project mark normalized to transparent 128x128 static PNG for engine identification."
+  },
+  {
+    "id": "yashandb",
+    "file": "assets/icons/yashandb-dark.png",
+    "theme": "dark",
+    "sha256": "d41b0fa4da9f377c92dc9bbb2b1ca5439e37ef5f2f9da3d9e43db668ec9db2fa",
+    "width": 128,
+    "height": 128,
+    "note": "Official vendor/project mark normalized to transparent 128x128 static PNG for engine identification."
+  },
+  {
+    "id": "yashandb",
+    "file": "assets/icons/yashandb-light.png",
+    "theme": "light",
+    "sha256": "d41b0fa4da9f377c92dc9bbb2b1ca5439e37ef5f2f9da3d9e43db668ec9db2fa",
+    "width": 128,
+    "height": 128,
+    "note": "Official vendor/project mark normalized to transparent 128x128 static PNG for engine identification."
+  },
+  {
+    "id": "zookeeper",
+    "file": "assets/icons/zookeeper-dark.png",
+    "theme": "dark",
+    "sha256": "486c4cfa1bd4df6ac0870c95842b1a5f9edc84d3190580134ade433994306659",
+    "width": 128,
+    "height": 128,
+    "note": "Official vendor/project mark normalized to transparent 128x128 static PNG for engine identification."
+  },
+  {
+    "id": "zookeeper",
+    "file": "assets/icons/zookeeper-light.png",
+    "theme": "light",
+    "sha256": "486c4cfa1bd4df6ac0870c95842b1a5f9edc84d3190580134ade433994306659",
+    "width": 128,
+    "height": 128,
+    "note": "Official vendor/project mark normalized to transparent 128x128 static PNG for engine identification."
+  }
+]
