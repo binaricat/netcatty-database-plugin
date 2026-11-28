@@ -14,7 +14,7 @@
 
 <p align="center">
   <a href="https://github.com/binaricat/netcatty-database-plugin/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/binaricat/netcatty-database-plugin/ci.yml?branch=main&style=flat-square&label=CI&color=10b981" alt="CI Status"></a>
-  <img src="https://img.shields.io/badge/version-v0.3.0-0ea5e9?style=flat-square" alt="Version v0.3.0">
+  <img src="https://img.shields.io/badge/version-v0.3.1-0ea5e9?style=flat-square" alt="Version v0.3.1">
   <img src="https://img.shields.io/badge/Netcatty%20Plugin-Host--Rendered-334155?style=flat-square" alt="Netcatty Host-Rendered Plugin">
   <img src="https://img.shields.io/badge/engines-113%20profiles%20%C2%B7%2076%20live-2563eb?style=flat-square" alt="113 Engine Profiles · 76 Live Drivers">
   <img src="https://img.shields.io/badge/i18n-EN%20%7C%20%E7%AE%80%E4%BD%93%E4%B8%AD%E6%96%87-475569?style=flat-square" alt="EN | 简体中文">
@@ -23,9 +23,9 @@
 
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/db-workbench-dark.png">
-    <source media="(prefers-color-scheme: light)" srcset="docs/screenshots/db-workbench-light.png">
-    <img src="docs/screenshots/db-workbench-dark.png" alt="Netcatty Database Workbench" width="100%">
+    <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/db-workbench-dark.webp">
+    <source media="(prefers-color-scheme: light)" srcset="docs/screenshots/db-workbench-light.webp">
+    <img src="docs/screenshots/db-workbench-dark.webp" alt="Netcatty Database Workbench" width="100%">
   </picture>
 </p>
 
@@ -41,7 +41,7 @@
    ```text
    binaricat/netcatty-database-plugin
    ```
-2. Or download `netcatty-database-0.3.0.ncpkg` from the [latest GitHub Release](https://github.com/binaricat/netcatty-database-plugin/releases/latest) and import it via **Settings → Plugins → Manage → Import**.
+2. Or download `netcatty-database-0.3.1.ncpkg` from the [latest GitHub Release](https://github.com/binaricat/netcatty-database-plugin/releases/latest) and import it via **Settings → Plugins → Manage → Import**.
 
 ---
 
@@ -106,7 +106,7 @@
 
 ---
 
-## Highlights (`v0.3.0`)
+## Highlights (`v0.3.1`)
 
 - **100% Host-Rendered & Sandbox-Isolated (`main.browser`)** — Pure TypeScript wire-protocol engines running inside Netcatty's offline browser plugin sandbox (zero iframes, zero `eval`/`new Function`, zero Node companion required), paired with Netcatty's host-rendered native IDE primitives (`PluginCodeEditor`, `PluginDataGrid`, `PluginSplitPane`, `PluginErCanvas`, `PluginBiChart`).
 - **Catty Agent BI & Persistent BI Dashboard (`PluginBiChart`) across 53 Engines (SQL/CQL/HTTP-SQL + MongoDB Aggregation) + 1-Click SQL Result `Chart` Tab** — Ask business questions directly in Netcatty's native **Catty Agent Sidebar** (`context.ai`, schema-only metadata, strict read-only SQL guards `LIMIT 500` / `TOP 500` & MongoDB read-only pipeline guards blocking `$out`/`$merge`, inline interactive `PluginBiChart` artifacts, and 1-click **Pin to BI Dashboard**). Also works 100% offline via the instant **`Chart`** subtab inside SQL Query Results and **`Pin to BI`** on MongoDB Aggregation results across **10 host-rendered chart types** (`bar`, `horizontal-bar`, `stacked-bar`, `line`, `area`, `pie`, `donut`, `scatter`, `funnel`, `combo`) with live Dimension/Measure/Aggregation (`SUM`/`AVG`/`COUNT`/`MIN`/`MAX`) switching, click-to-cross-filter across sibling cards & `PluginDataGrid`, persistent per-connection **BI Dashboards**, and **SVG / 2× PNG / Markdown / JSON** export.
@@ -133,23 +133,19 @@
 
 | BI Dashboard (Midnight Dark) | BI Dashboard (Snow Light) |
 | --- | --- |
-| ![BI Dashboard Dark](docs/screenshots/db-bi-studio-dark.png) | ![BI Dashboard Light](docs/screenshots/db-bi-studio-light.png) |
+| ![BI Dashboard Dark](docs/screenshots/db-bi-studio-dark.webp) | ![BI Dashboard Light](docs/screenshots/db-bi-studio-light.webp) |
 
 | SQL IDE Instant `Chart` Result Tab (Midnight Dark) | Interactive ER Diagram & Foreign Key Canvas (Midnight Dark) |
 | --- | --- |
-| ![SQL Result Chart Dark](docs/screenshots/db-sql-chart-dark.png) | ![Interactive ER Diagram Dark](docs/screenshots/db-er-or-graph-dark.png) |
+| ![SQL Result Chart Dark](docs/screenshots/db-sql-chart-dark.webp) | ![Interactive ER Diagram Dark](docs/screenshots/db-er-or-graph-dark.webp) |
 
 | SQL IDE & Virtualized Grid (Midnight Dark) | SQL IDE & Virtualized Grid (Snow Light) |
 | --- | --- |
-| ![SQL IDE Dark](docs/screenshots/db-workbench-dark.png) | ![SQL IDE Light](docs/screenshots/db-workbench-light.png) |
+| ![SQL IDE Dark](docs/screenshots/db-workbench-dark.webp) | ![SQL IDE Light](docs/screenshots/db-workbench-light.webp) |
 
-| Catty Agent Contextual Sidebar + Zero-Overflow Topbar (Midnight Dark) | Catty Agent Contextual Sidebar + Zero-Overflow Topbar (Snow Light) |
+| Catty Agent Contextual Sidebar + Zero-Overflow Topbar (Midnight Dark) | 113-Engine Catalog & Paginated Connection Picker (Midnight Dark) |
 | --- | --- |
-| ![Catty Agent Sidebar Dark](docs/screenshots/db-catty-sidebar-dark.png) | ![Catty Agent Sidebar Light](docs/screenshots/db-catty-sidebar-light.png) |
-
-| 113-Engine Catalog & Paginated Connection Picker (Midnight Dark) |
-| --- |
-| ![113-Engine Picker Dark](docs/screenshots/db-engines-dark.png) |
+| ![Catty Agent Sidebar Dark](docs/screenshots/db-catty-sidebar-dark.webp) | ![113-Engine Picker Dark](docs/screenshots/db-engines-dark.webp) |
 
 ---
 
@@ -167,7 +163,7 @@ npm run pack
 npm run validate
 ```
 
-The packaged plugin is written to `dist/netcatty-database-0.3.0.ncpkg`. Install it in Netcatty via **Settings → Plugins → Manage → Import**.
+The packaged plugin is written to `dist/netcatty-database-0.3.1.ncpkg`. Install it in Netcatty via **Settings → Plugins → Manage → Import**.
 
 ---
 
