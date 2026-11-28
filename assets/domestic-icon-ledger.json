@@ -1,0 +1,37 @@
+[
+  {
+    "id": "opengauss",
+    "title": "openGauss",
+    "sourceFile": "assets/domestic-sources/opengauss.svg",
+    "sourceSha256": "14f4a6039fdcdb9c1e6ba1633a5b8dc0bb306ef3147ea87a9d8ce26fe68d05c4",
+    "sourceUrl": "https://opengauss.org/category/brand/view/logo1.svg",
+    "officialUrl": "https://opengauss.org/zh/brand/",
+    "copyright": "Brand artwork and trademarks remain with their respective owners; no individual copyright notice in source.",
+    "license": "Official conditional brand policy (not an open license)",
+    "usageStatus": "LOCAL_NONCOMMERCIAL_IDENTIFICATION_AUTHORIZED",
+    "distributionBasis": "NOT_CLEARED_FOR_GENERAL_DISTRIBUTION. This local test bundle is for Qi's expressly authorized noncommercial identifying use; no endorsement or unrestricted redistribution claim. Official Chinese policy expressly permits personal/educational/noncommercial use; preserve artwork, colors, ratio and protection space.",
+    "transformation": "Static offline rasterization, equal scale, no color changes; transparent 128x128 canvas, no added frame. Official policy A-2 permits separate graphic: omitted wordmark path only; four graphic paths/gradients unchanged. Graphic displayed at 32px with surrounding clearspace.",
+    "outputs": [
+      {
+        "file": "assets/icons/opengauss-light.png",
+        "sha256": "2af8ffc416766e7bc6b87947382328e0c7dfdaf637e252e3c8e20a2e48098c98"
+      },
+      {
+        "file": "assets/icons/opengauss-dark.png",
+        "sha256": "2af8ffc416766e7bc6b87947382328e0c7dfdaf637e252e3c8e20a2e48098c98"
+      }
+    ],
+    "renderFile": "assets/domestic-sources/opengauss-graphic.svg",
+    "renderSha256": "72e8076e6e4f9b1895df4ede938b1905e30e37c2e8abdf60d6fdf63aa06cad4c",
+    "svgOutputs": [
+      {
+        "file": "assets/icons/opengauss-light.svg",
+        "sha256": "728dc54aa06cd7d82accff78b187a2cc568e587ba21ef21cc935414e2a657692"
+      },
+      {
+        "file": "assets/icons/opengauss-dark.svg",
+        "sha256": "cd5999d4c2dc7a148ae4f7dae10b90a881e6dc292ba4b7d871f8c6d0d2924a3e"
+      }
+    ]
+  }
+]

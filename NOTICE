@@ -1,0 +1,45 @@
+Netcatty Database 0.3.0
+Copyright 2026 Netcatty Database contributors. GPL-3.0-or-later.
+
+All workbench, domain, driver, and service code is authored for Netcatty Database.
+Netcatty SDK, contract and CLI are vendored from Netcatty host snapshots
+documented in docs/provenance.md. They are GPL-3.0-or-later.
+Vendor tarballs include corresponding TypeScript source, generated contract,
+build configuration and GPL license. Package lock pins dependency integrity.
+
+React, React DOM, Scheduler and @remote-dom/core are bundled under their
+respective MIT licenses in licenses/. Simple Icons SVGs (SQLite, PostgreSQL,
+MySQL, MariaDB, ClickHouse, Redis, MongoDB, TiDB, Oracle, SQL Server, DuckDB,
+OceanBase) are provided under CC0-1.0; brand rights are not waived. See
+assets/icon-ledger.json and assets/brand-icon-ledger.json for official brand
+sources, upstream license metadata, hashes and exact modifications.
+The application does not imply endorsement by database vendors.
+
+Additional authentic open-source database marks:
+- Firebird, Vastbase, GBase, KingbaseES: sourced from Syngnat/GoNavi under
+  Apache-2.0 (see licenses/Apache-2.0.txt and assets/icon-ledger.json).
+- Dameng, GaussDB: sourced from dataease/dataease under GPL-3.0-or-later
+  (see LICENSE and assets/icon-ledger.json).
+- UXDB, HighGo, GoldenDB: vectorized from official vendor portal brand marks
+  for product identification (uxdb.net.cn, highgo.com, goldendb.com).
+All third-party brand artwork and trademarks remain with their respective owners.
+
+openGauss uses official logo1.svg graphic paths under the openGauss conditional
+brand policy. The Chinese official policy permits personal, educational, and
+noncommercial use; its shape, color, proportion, and clearspace rules apply.
+See licenses/domestic-brands.txt, licenses/openGauss-brand-policy.txt, and
+assets/domestic-icon-ledger.json. All brand rights remain with their owners.
+NOT_CLEARED_FOR_GENERAL_DISTRIBUTION: no unrestricted brand redistribution claim.
+
+SQL.js 1.14.1 (MIT): https://github.com/sql-js/sql.js
+SQLite engine: public domain. See licenses/sql.js-MIT.txt.
+
+UI icon resources generated from lucide-react 0.560.0 (ISC), with fixed gray strokes.
+Source: https://github.com/lucide-icons/lucide/tree/0.560.0
+See licenses/lucide-ISC.txt and assets/ui-icon-ledger.json.
+
+Original geometric engine emblems (Neo4j, Elasticsearch, Qdrant, InfluxDB, TDengine,
+Trino, CockroachDB, Apache Doris, etcd, Consul) are original SVG/PNG assets authored
+for Netcatty Database under CC0-1.0. Underlying third-party trademarks and brand
+rights remain with their respective owners. See assets/icon-ledger.json and
+assets/brand-icon-ledger.json.

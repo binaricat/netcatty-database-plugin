@@ -1,0 +1,83 @@
+import assert from 'node:assert/strict';
+import test from 'node:test';
+import { readFileSync } from 'node:fs';
+import { createHash } from 'node:crypto';
+import { drivers, filterDrivers, driverById } from '../src/driverRegistry';
+import { translator, type Message } from '../src/i18n';
+import { defaultQuery, selectObject, buildPrompt } from '../src/domain';
+
+test('domestic variants are typed, explicit and preserve distinct transports and catalog ownership', () => {
+  const gauss = driverById('gaussdb');
+  assert.equal(gauss.variants?.find(v => v.id === 'gaussdb-dws')?.defaultPort, 8000);
+  assert.equal(gauss.variants?.find(v => v.id === 'gaussdb-mysql')?.wireFamily, 'mysql');
+  assert.equal(driverById('kingbase').variants?.find(v => v.id === 'kingbase-pg')?.metadata, 'sys');
+  assert.equal(driverById('gbase8c').variants?.find(v => v.id === 'gbase-8c-pg')?.wireFamily, 'postgres');
+  assert.equal(driverById('gbase8c').variants?.find(v => v.id === 'gbase-8c')?.wireFamily, 'unpackaged');
+  const source = readFileSync('src/index.tsx', 'utf8');
+  assert.match(source, /Vendor compatibility is unverified/);
+});
+
+test('typed registry matches the shipped contract and separates aliases from packaged engines', () => {
+  assert.equal(drivers.length, 113);
+  assert.equal(new Set(drivers.map(driver => driver.id)).size, drivers.length);
+  assert.equal(driverById('goldendb').wireFamily, 'mysql');
+  assert.equal(driverById('goldendb').defaultPort, 3306);
+  assert.equal(driverById('kingbase').defaultPort, 54321);
+  assert.equal(driverById('gbase8c').wireFamily, 'unpackaged');
+  assert.equal(driverById('duckdb').icon, 'duckdb');
+  assert.equal(driverById('neo4j').wireFamily, 'graph');
+  assert.equal(driverById('neo4j').defaultPort, 7687);
+  assert.equal(driverById('sqlserver').wireFamily, 'mssql');
+  assert.equal(driverById('elasticsearch').wireFamily, 'search');
+  assert.equal(driverById('qdrant').wireFamily, 'search');
+  assert.equal(driverById('etcd').wireFamily, 'kv');
+  assert.equal(driverById('cassandra').wireFamily, 'cql');
+  assert.equal(driverById('rabbitmq').wireFamily, 'mq');
+  assert.equal(driverById('kafka').wireFamily, 'mq');
+  assert.equal(driverById('zookeeper').wireFamily, 'kv');
+  assert.equal(filterDrivers('domestic', 'golden')[0].id, 'goldendb');
+  assert.ok(filterDrivers('lightweight', '').length >= 3);
+  assert.equal(filterDrivers('graph', 'neo4j')[0].id, 'neo4j');
+  assert.equal(filterDrivers('analytics', 'unknown').length, 0);
+  for (const driver of drivers) {
+    assert.ok(driver.label.length > 0);
+    assert.ok(driver.source.length);
+    assert.ok(driver.icon, `Missing icon for driver ${driver.id}`);
+    for (const theme of ['light', 'dark']) {
+      assert.ok(readFileSync(`assets/icons/${driver.icon}-${theme}.png`).length);
+      assert.ok(readFileSync(`assets/icons/${driver.icon}-${theme}.svg`, 'utf8').includes('<svg'));
+    }
+  }
+});
+
+test('connection copy is digitless in both languages, including legacy advanced diagnostics', () => {
+  const source = readFileSync('src/index.tsx', 'utf8').split('function ConnectionDialog')[1].split('function SchemaTree')[0];
+  const keys = [...source.matchAll(/t\("([^"]+)"/g)].map(match => match[1] as Message);
+  for (const key of keys) for (const locale of ['en', 'zh-CN']) assert.doesNotMatch(translator(locale)(key), /\p{N}/u, key);
+  for (const key of ['Choose database', 'Configure connection', 'Available', 'Protocol alias', 'Driver not packaged'] as Message[]) for (const locale of ['en', 'zh-CN']) assert.doesNotMatch(translator(locale)(key), /\p{N}/u);
+  assert.doesNotMatch(source, /Step \d|step-number|\['all', 'All databases', '\d'/);
+});
+
+test('engine rasters and sources match licensed ledger hashes and retain actual brand colors', () => {
+  const ledger: Array<{ file: string; sourceFile: string; sha256: string; sourceSha256: string; license: string }> = JSON.parse(readFileSync('assets/brand-icon-ledger.json', 'utf8'));
+  const hash = (file: string) => createHash('sha256').update(readFileSync(file)).digest('hex');
+  for (const entry of ledger) {
+    assert.equal(hash(entry.file), entry.sha256);
+    assert.equal(hash(entry.sourceFile), entry.sourceSha256);
+    assert.match(entry.license, /CC0|Apache|GPL/);
+    const source = readFileSync(entry.sourceFile, 'utf8');
+    assert.doesNotMatch(source, /currentColor|grayscale/);
+    assert.match(source, /#[a-fA-F\d]{6}/);
+  }
+  const css = readFileSync('src/style.css', 'utf8');
+  assert.match(css, /\.engine-mark,\.engine-icon,\.engine-fallback \{ border: 0; background: transparent; border-radius: 0; box-shadow: none; opacity: 1; filter: none;/);
+});
+
+test('queries quote identifiers by active engine and AI receives the actual dialect without execution', () => {
+  assert.equal(selectObject('a`b', 'mysql'), 'SELECT * FROM `a``b`');
+  assert.equal(selectObject('a"b', 'postgres'), 'SELECT * FROM "a""b"');
+  assert.equal(defaultQuery({tables:[{name:'inventory',columns:[]}]},'postgres').sql,'SELECT * FROM "inventory"');
+  const prompt = buildPrompt('generate', {tables:[{name:'inventory',columns:[]}]}, '', 'read', 'Loopback', 'postgres', 'opengauss');
+  assert.match(prompt, /"engine":"postgres","dialect":"opengauss"/);
+  assert.match(prompt, /Never execute anything/);
+});

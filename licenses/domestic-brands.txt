@@ -1,0 +1,24 @@
+Brand identification notice (noncommercial reference scope)
+
+Third-party brand marks identify selectable database products. Neither Netcatty
+nor this package claims affiliation, endorsement, or ownership.
+
+openGauss official artwork and policy:
+https://opengauss.org/zh/brand/
+https://opengauss.org/category/brand/view/logo1.svg
+https://opengauss.org/file/brand/openGauss%E5%95%86%E6%A0%87%E4%BD%BF%E7%94%A8%E8%A7%84%E8%8C%83.pdf
+The official policy permits personal, educational, and noncommercial use.
+Section A-2 permits using graphic and wordmark separately. Only the wordmark was
+omitted; graphic paths, ratios, and gradient colors remain unchanged. The graphic
+uses 32px display size with surrounding UI clearspace. No general commercial
+permission is inferred. Policy text is retained in openGauss-brand-policy.txt.
+
+Per-engine original URL, SHA-256, source notices, transformations, usage status,
+and distribution boundary are tracked in assets/domestic-icon-ledger.json.
+NOT_CLEARED_FOR_GENERAL_DISTRIBUTION remains in force for the official openGauss
+brand artwork; no unrestricted brand redistribution permission is inferred.
+
+Other regional database marks (OceanBase, Dameng, GaussDB, KingbaseES, Vastbase,
+GBase, UXDB, HighGo, GoldenDB) are tracked with exact upstream URLs, licenses,
+and SHA-256 digests in assets/icon-ledger.json and assets/brand-icon-ledger.json.
+Underlying trademarks remain with their respective owners.

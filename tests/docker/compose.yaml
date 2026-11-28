@@ -1,0 +1,36 @@
+services:
+  database-host:
+    build: .
+    hostname: fixture.internal
+    ports:
+      - "127.0.0.1:${FIXTURE_SSH_PORT:-2222}:22"
+    # No DB port is published. Do not add host networking or Docker socket mounts.
+    secrets:
+      - ssh_public_key
+      - redis_password
+      - postgres_password
+      - mariadb_password
+      - tls_ca
+      - tls_certificate
+      - tls_private_key
+    environment:
+      FIXTURE_TLS_NAME: "${FIXTURE_TLS_NAME:?Set a certificate hostname explicitly}"
+    stop_grace_period: 30s
+    pids_limit: 256
+    mem_limit: 2g
+    cpus: 2
+secrets:
+  ssh_public_key:
+    file: "${FIXTURE_SECRETS_DIR:?Set an absolute runtime secret directory}/ssh.pub"
+  redis_password:
+    file: "${FIXTURE_SECRETS_DIR}/redis.password"
+  postgres_password:
+    file: "${FIXTURE_SECRETS_DIR}/postgres.password"
+  mariadb_password:
+    file: "${FIXTURE_SECRETS_DIR}/mariadb.password"
+  tls_ca:
+    file: "${FIXTURE_SECRETS_DIR}/ca.pem"
+  tls_certificate:
+    file: "${FIXTURE_SECRETS_DIR}/server.pem"
+  tls_private_key:
+    file: "${FIXTURE_SECRETS_DIR}/server.key"

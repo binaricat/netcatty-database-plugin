@@ -1,0 +1,8 @@
+.env
+.env.*
+secrets/
+runtime/
+*.key
+*.pem
+*.pub
+*.password

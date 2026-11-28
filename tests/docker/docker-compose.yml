@@ -1,0 +1,159 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: netcatty-db-postgres
+    environment:
+      POSTGRES_USER: netcatty
+      POSTGRES_PASSWORD: netcatty_pg_pass
+      POSTGRES_DB: shop_demo
+      POSTGRES_HOST_AUTH_METHOD: scram-sha-256
+      POSTGRES_INITDB_ARGS: --auth-host=scram-sha-256 --auth-local=trust
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - ./certs:/certs:ro
+      - ./init/postgres/00-pg-entrypoint.sh:/usr/local/bin/pg-ssl-entrypoint.sh:ro
+      - ./init/postgres/01-seed.sql:/docker-entrypoint-initdb.d/01-seed.sql:ro
+    entrypoint: ["sh", "/usr/local/bin/pg-ssl-entrypoint.sh"]
+    networks:
+      - dbnet
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U netcatty -d shop_demo"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  mysql:
+    image: mysql:8.4
+    container_name: netcatty-db-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: netcatty_root_pass
+      MYSQL_DATABASE: shop_demo
+      MYSQL_USER: netcatty
+      MYSQL_PASSWORD: netcatty_mysql_pass
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+      - --authentication-policy=caching_sha2_password
+    ports:
+      - "127.0.0.1:3306:3306"
+    volumes:
+      - ./init/mysql/01-seed.sql:/docker-entrypoint-initdb.d/01-seed.sql:ro
+    networks:
+      - dbnet
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -u netcatty -pnetcatty_mysql_pass --silent"]
+      interval: 4s
+      timeout: 4s
+      retries: 30
+
+  mariadb:
+    image: mariadb:11
+    container_name: netcatty-db-mariadb
+    environment:
+      MARIADB_ROOT_PASSWORD: netcatty_root_pass
+      MARIADB_DATABASE: shop_demo
+      MARIADB_USER: netcatty
+      MARIADB_PASSWORD: netcatty_maria_pass
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+    ports:
+      - "127.0.0.1:3307:3306"
+    volumes:
+      - ./init/mariadb/01-seed.sql:/docker-entrypoint-initdb.d/01-seed.sql:ro
+    networks:
+      - dbnet
+    healthcheck:
+      test: ["CMD-SHELL", "mariadb-admin ping -h 127.0.0.1 -u netcatty -pnetcatty_maria_pass --silent"]
+      interval: 4s
+      timeout: 4s
+      retries: 30
+
+  redis:
+    image: redis:7.4-alpine
+    container_name: netcatty-db-redis
+    command: ["redis-server", "--requirepass", "netcatty_redis_pass", "--appendonly", "no"]
+    ports:
+      - "127.0.0.1:6379:6379"
+    networks:
+      - dbnet
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "netcatty_redis_pass", "--no-auth-warning", "PING"]
+      interval: 3s
+      timeout: 3s
+      retries: 15
+
+  redis-seed:
+    image: redis:7.4-alpine
+    container_name: netcatty-db-redis-seed
+    depends_on:
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./init/redis/seed.sh:/seed.sh:ro
+    entrypoint: ["sh", "/seed.sh"]
+    networks:
+      - dbnet
+    restart: "no"
+
+  mongodb:
+    image: mongo:7
+    container_name: netcatty-db-mongodb
+    command: ["mongod", "--bind_ip", "0.0.0.0", "--nounixsocket"]
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: netcatty
+      MONGO_INITDB_ROOT_PASSWORD: netcatty_mongo_pass
+      MONGO_INITDB_DATABASE: shop_demo
+    ports:
+      - "127.0.0.1:27017:27017"
+    volumes:
+      - ./init/mongo/01-seed.js:/docker-entrypoint-initdb.d/01-seed.js:ro
+    networks:
+      - dbnet
+    healthcheck:
+      test: ["CMD-SHELL", "mongosh -u netcatty -p netcatty_mongo_pass --authenticationDatabase admin --quiet --eval 'db.adminCommand({ ping: 1 }).ok' | grep 1"]
+      interval: 4s
+      timeout: 5s
+      retries: 25
+
+  clickhouse:
+    image: clickhouse/clickhouse-server:24-alpine
+    container_name: netcatty-db-clickhouse
+    environment:
+      CLICKHOUSE_DB: analytics_demo
+      CLICKHOUSE_USER: netcatty
+      CLICKHOUSE_PASSWORD: netcatty_ch_pass
+      CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: "1"
+    ports:
+      - "127.0.0.1:8123:8123"
+    volumes:
+      - ./init/clickhouse/01-seed.sql:/docker-entrypoint-initdb.d/01-seed.sql:ro
+    networks:
+      - dbnet
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- 'http://netcatty:netcatty_ch_pass@127.0.0.1:8123/?query=SELECT+1' | grep -qx 1"]
+      interval: 3s
+      timeout: 3s
+      retries: 25
+
+  bastion:
+    build:
+      context: ./bastion
+    container_name: netcatty-db-bastion
+    ports:
+      - "127.0.0.1:2222:22"
+    volumes:
+      - ./keys/id_ed25519.pub:/etc/bastion/authorized_key.pub:ro
+    networks:
+      - dbnet
+    healthcheck:
+      test: ["CMD-SHELL", "nc -z 127.0.0.1 22"]
+      interval: 3s
+      timeout: 3s
+      retries: 15
+
+networks:
+  dbnet:
+    name: netcatty_db_test_net
+    driver: bridge
