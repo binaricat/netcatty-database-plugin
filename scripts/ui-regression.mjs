@@ -1,172 +1,356 @@
-// Actual main SDK remote DOM + real plugin-owned SQLite. Host storage/view transport
-// is injected (including deterministic quickPick replies); this is not native GUI,
-// native confirmation/permission, Docker or live AI evidence.
+// Real Netcatty main host remote-DOM validator + real plugin-owned SQLite (sql.js) regression test.
+// Exercises the v0.3.0 DatabaseWorkbench through the host's actual `validatePluginRemoteTree` and
+// `validatePluginMutationBatch` policies (plus 128 KiB JSON frame cap) using injected storage/view transports.
 import assert from 'node:assert/strict';
-import {mkdir,writeFile,readFile} from 'node:fs/promises';
-import {createRequire} from 'node:module';
+import { mkdir, writeFile } from 'node:fs/promises';
+import { createRequire } from 'node:module';
 import path from 'node:path';
-const root=process.cwd(),hostRoot=process.env.NETCATTY_HOST_ROOT;
-if(!hostRoot||!path.isAbsolute(hostRoot))throw new Error('Set NETCATTY_HOST_ROOT to the current main checkout.');
-const host=createRequire(path.join(hostRoot,'package.json')),plugin=createRequire(path.join(root,'package.json'));
-const {JSDOM}=host('jsdom'),{build}=host('esbuild');
-const {validatePluginRemoteTree,validatePluginMutationBatch}=host('./domain/pluginRemoteTreePolicy.cjs');
-const evidence=path.resolve(process.env.NETCATTY_REACT_EVIDENCE||'dist/react-main');await mkdir(evidence,{recursive:true});
-const dom=new JSDOM('<!doctype html><body></body>',{url:'https://synthetic.invalid',pretendToBeVisual:true});
-for(const key of ['window','document','navigator','HTMLElement','Element','HTMLInputElement','HTMLTextAreaElement','HTMLSelectElement','HTMLFormElement','Node','MutationObserver','Event','MouseEvent','KeyboardEvent','CustomEvent','FocusEvent','CompositionEvent'])Object.defineProperty(globalThis,key,{configurable:true,writable:true,value:key==='window'?dom.window:dom.window[key]});
-globalThis.IS_REACT_ACT_ENVIRONMENT=true;
-globalThis.__relationshipQueryCalls=0;
-const {act}=plugin('react');const bundle=path.join(evidence,'plugin.cjs');
-await build({entryPoints:['src/index.tsx'],outfile:bundle,bundle:true,platform:'node',format:'cjs',loader:{'.css':'text'},plugins:[{name:'deferred-schema-apply-test',setup(b){b.onLoad({filter:/sqliteClient\.ts$/},async args=>({loader:'ts',contents:(await readFile(args.path,'utf8')).replace('const query = async (request: DatabaseQueryRequest): Promise<DatabaseQueryResult> => {','const query = async (request: DatabaseQueryRequest): Promise<DatabaseQueryResult> => { globalThis.__relationshipQueryCalls++;').replace('const applyRenameColumn=async(request:RenameColumnApplyRequest):Promise<RenameColumnResult>=>{','const applyRenameColumn=async(request:RenameColumnApplyRequest):Promise<RenameColumnResult>=>{ await globalThis.__schemaApplyTestGate?.();')}));}},{name:'shared-react',setup(b){b.onResolve({filter:/^react(?:-dom)?(?:\/.*)?$/},args=>({path:plugin.resolve(args.path),external:true}));}}]});
-const VIEW='com.binaricat.netcatty-database.workbench',instanceId='main-regression';
-const receivers=new Map(),storage=new Map(),disposables=[],environmentListeners=new Set();let tree={children:[]};let maxNodes=0,batches=0;const errors=[];
-const nodes=(root=tree)=>{const all=[];function visit(node){all.push(node);node.children?.forEach(visit);}root.children.forEach(visit);return all;};
-const text=node=>node.type===3?node.data:(node.children??[]).map(text).join('');
-const find=fn=>nodes().find(fn),byLabel=label=>find(n=>n.attributes?.['aria-label']===label),button=label=>find(n=>n.element==='button'&&text(n)===label);
-const receive=message=>receivers.get(VIEW)?.({instanceId,...message});
-const clipboardCalls=[];let clipboardOutcome=false;
-const quickPickCalls=[],draftStorageCalls=[];let quickPickOutcome='confirm',draftStorageFailure=false;
-const draftAccess=(operation,key)=>{if(!key.startsWith('database.editor-drafts.v1:'))return;draftStorageCalls.push({operation,key});if(draftStorageFailure)throw new Error('Synthetic draft storage denied');};
-const context={ui:{quickPick:async(title,items)=>{quickPickCalls.push({title,items});return quickPickOutcome;}},clipboard:{writeText:async(value,title)=>{clipboardCalls.push({value,title});if(clipboardOutcome instanceof Error)throw clipboardOutcome;return clipboardOutcome;}},enabledFeatures:new Set(['views.host-drawn','views.vault-pages','metadata.brand-icon','ai.model-invocation','ai.agent-sessions','vault.host-actions','host.interactions']),environment:{locale:'en',theme:'dark',onDidChange(fn){environmentListeners.add(fn);return {dispose(){environmentListeners.delete(fn);}};}},subscriptions:{add(d){disposables.push(d);}},storage:{keys:async()=>[...storage.keys()],get:async key=>{draftAccess('get',key);return structuredClone(storage.get(key));},set:async(key,value)=>{draftAccess('set',key);storage.set(key,structuredClone(value));},delete:async key=>{draftAccess('delete',key);storage.delete(key);}},agent:{listBackends:async()=>({items:[]}),closeChat:async()=>{}},vault:{selectHosts:async()=>({cancelled:true}),requestConnect:async()=>({cancelled:false,status:'requested'})},ai:{openChat:async()=>{throw new Error('No live model configured in this fixture');}},views:{onDidReceiveMessage(id,listener){receivers.set(id,listener);return {dispose(){receivers.delete(id);}};},getState:async()=>null,setState:async()=>{},postMessage(id,message){if(message.kind!=='host-ui.update')return;try{assert.equal(id,VIEW);validatePluginMutationBatch(message.mutations);batches++;for(const m of message.mutations){const n=m[1]==='~'?tree:nodes().find(n=>n.id===m[1]);assert.ok(n,'mutation target exists: '+JSON.stringify(m));if(m[0]===0)n.children.splice(m[3],0,structuredClone(m[2]));else if(m[0]===1)n.children.splice(m[2],1);else if(m[0]===2)n.data=m[2];else if(m[3]===null)delete n.attributes[m[2]];else n.attributes[m[2]]=m[3];}validatePluginRemoteTree(tree);maxNodes=Math.max(maxNodes,nodes().length);}catch(e){errors.push(e.message);}}}};
-const tick=()=>new Promise(resolve=>setTimeout(resolve,30));
-async function settle(predicate=()=>true){for(let i=0;i<100;i++){await act(async()=>{await tick();});assert.deepEqual(errors,[]);if(predicate())return;}throw new Error('UI did not settle: '+text(tree));}
-async function event(node,props){assert.ok(node);await act(async()=>{receive({kind:'host-ui.event',event:{nodeId:node.id,...props}});await tick();});assert.deepEqual(errors,[]);}
-async function click(label){const n=button(label);assert.ok(n,'Missing button '+label);assert.ok(!Object.hasOwn(n.attributes,'disabled'),'Disabled '+label);await event(n,{type:'click'});}
-async function change(label,value){const node=byLabel(label);await event(node,{type:node.element==='select'?'change':'input',value});}
-const snapshotNames=new Set();
-async function snapshot(name){snapshotNames.add(name);await writeFile(path.join(evidence,name+'.json'),JSON.stringify(tree,null,2));}
-try{
- await act(async()=>{await plugin(bundle).default.activate(context);receive({kind:'host-ui.open',stateScope:VIEW});await tick();});await settle(()=>button('New Connection'));await snapshot('01-home');
- await click('Host connections');await click('Choose saved hosts');await settle(()=>text(tree).includes('Host selection cancelled.'));await click('Host connections');
- await click('New Connection');await settle(()=>byLabel('SQLite'));assert.ok(byLabel('PostgreSQL'));assert.ok(nodes().filter(n=>n.element==='img').every(n=>n.attributes.src.startsWith('asset:')));await snapshot('02-picker');
- await event(byLabel('SQLite'),{type:'click'});await click('Next');await change('Connection name','Main regression sample');await click('Test');await settle(()=>!Object.hasOwn(button('Save & Connect').attributes,'disabled'));
- await click('Save & Connect');await settle(()=>byLabel('Open table notes'));await snapshot('03-connected');
- await click('Run read query');await settle(()=>text(tree).includes('Synthetic launch checklist'));assert.match(text(tree),/2 rows \/ 3 columns/);await snapshot('04-query');
- await event(byLabel('Open table orders'),{type:'click'});assert.ok(byLabel('Structure of orders'));await click('Data');await click('Run read query');await settle(()=>text(tree).includes('Sample order'));assert.match(text(tree),/NULL/);assert.match(text(tree),/Empty string/);await snapshot('05-orders');
- const beforeRelationships=globalThis.__relationshipQueryCalls;const ordersSql=byLabel('SQL statement').attributes.value;
- await click('Relationships');await settle(()=>byLabel('Read-only table relationships'));assert.match(text(tree),/orders → customers/);assert.match(text(tree),/customer_id → id/);assert.match(text(tree),/No inferred links/);assert.equal(globalThis.__relationshipQueryCalls,beforeRelationships);await snapshot('39-relationships');
- await click('Query library');assert.ok(!byLabel('Read-only table relationships'));await click('Back to editor');assert.equal(byLabel('SQL statement').attributes.value,ordersSql);assert.ok(byLabel('Inspect row 1, column 1'));await click('Relationships');await click('Close relationships');assert.equal(globalThis.__relationshipQueryCalls,beforeRelationships);assert.equal(byLabel('SQL statement').attributes.value,ordersSql);
- await click('Relationships');await event(byLabel('Open table orders'),{type:'click'});assert.ok(!byLabel('Read-only table relationships'));await click('Data');
 
- await change('SQL statement','DELETE FROM notes');await click('Run read query');await settle(()=>text(tree).includes('read-only'));await change('SQL statement','SELECT name,total FROM order_totals ORDER BY name');await click('Run read query');await settle(()=>text(tree).includes('41.5'));await snapshot('06-recovery');
- await click('AI SQL assistant');await click('Run assistance');await settle(()=>text(tree).includes('AI unavailable. Check host model configuration'));assert.ok(Object.hasOwn(button('Insert draft into editor').attributes,'disabled'));await event(byLabel('Close AI assistant'),{type:'click'});
- // Deterministic mock transport tests UI handling only, never a live model claim.
- let aiSequence=0;const prompts=[];Object.assign(context.ai,{openChat:async()=>({chatHandle:'mock-chat',model:'Synthetic test only',expiresAt:1}),startTurn:async({prompt})=>{prompts.push(prompt);aiSequence=0;return {turnHandle:'mock-turn'};},readTurn:async()=>++aiSequence===1?{kind:'text',sequence:1,text:'```sql\nSELECT 42 AS answer\n```\nSynthetic explanation.'}:{kind:'end',sequence:2},stopTurn:async()=>{},closeChat:async()=>{}});
- await click('AI SQL assistant');await change('Your request','Draft a literal');await click('Run assistance');await settle(()=>button('Insert draft into editor')&&!Object.hasOwn(button('Insert draft into editor').attributes,'disabled'));await click('Insert draft into editor');assert.equal(byLabel('SQL statement').attributes.value,'SELECT 42 AS answer');assert.match(text(tree),/Nothing executed/);await click('Run assistance');await settle(()=>prompts.length===2&&!Object.hasOwn(button('Run assistance').attributes,'disabled'));assert.ok(prompts[1].includes('Draft a literal'));await click('New AI conversation');assert.match(text(tree),/No draft generated/);await event(byLabel('Close AI assistant'),{type:'click'});await change('SQL statement','SELECT name,total FROM order_totals ORDER BY name');
- await click('AI SQL assistant');await change('AI mode','agent');await click('Check Agent backends');await settle(()=>text(tree).includes('No Agent backend checked.'));await event(byLabel('Close AI assistant'),{type:'click'});
- await click('Query library');await change('Query name','Saved totals');await click('Save current SQL');assert.ok(text(tree).includes('Saved totals'));await event(find(n=>n.element==='button'&&text(n).startsWith('Saved totals')),{type:'click'});assert.equal(byLabel('SQL statement').attributes.value,'SELECT name,total FROM order_totals ORDER BY name');
- // Real remote-DOM event path + actual SQLite; storage and quickPick responses below
- // are deterministic injected transports, NOT evidence of native approval dialogs.
- assert.equal(draftStorageCalls.length,0,'Draft storage must not be read automatically');
- const savedDraftSql="SELECT ? AS draft_no_auto_execution";
- await change('SQL statement',savedDraftSql);await change('SQL parameters','["草稿参数"]');
- await click('Query library');assert.match(text(tree),/Saving stores SQL and parameters/);
- await click('Save workspace drafts');await settle(()=>text(tree).includes('Workspace drafts saved.'));
- assert.equal(quickPickCalls.length,0,'Explicit save uses the disclosed button, no invented confirmation');
- const draftKey=[...storage.keys()].find(key=>key.startsWith('database.editor-drafts.v1:'));assert.ok(draftKey);
- const storedDraft=JSON.parse(storage.get(draftKey));assert.equal(storedDraft.tabs.find(tab=>tab.id===storedDraft.activeTab).sql,savedDraftSql);
- assert.ok(storedDraft.tabs.every(tab=>!('result' in tab)&&!('handleId' in tab)&&!('pendingWrite' in tab)));
- await click('Back to editor');await change('SQL statement',"SELECT 'unsaved-marker' AS proof");await change('SQL parameters','[]');
- await click('Run read query');await settle(()=>byLabel('Inspect row 1, column 1'));assert.match(text(tree),/unsaved-marker/);
- await click('Query library');quickPickOutcome=undefined;await click('Restore saved drafts');await settle(()=>text(tree).includes('Draft operation cancelled.'));
- assert.equal(quickPickCalls.at(-1).title,'Replace current editor tabs with saved drafts?');
- await click('Back to editor');assert.equal(byLabel('SQL statement').attributes.value,"SELECT 'unsaved-marker' AS proof");assert.ok(byLabel('Inspect row 1, column 1'),'Cancelled restore must retain current result');
- await click('Query library');quickPickOutcome='confirm';await click('Restore saved drafts');await settle(()=>text(tree).includes('Drafts restored without executing SQL.'));await snapshot('10-workspace-draft-restored');
- assert.ok(!text(tree).includes(savedDraftSql),'Restoring must not add an executed-query history entry');
- await click('Back to editor');assert.equal(byLabel('SQL statement').attributes.value,savedDraftSql);assert.equal(byLabel('SQL parameters').attributes.value,'["草稿参数"]');
- assert.match(text(tree),/Nothing executed/);assert.ok(!byLabel('Inspect row 1, column 1'),'Restore must clear result without executing the restored SQL');
- await click('Query library');draftStorageFailure=true;await click('Save workspace drafts');await settle(()=>text(tree).includes('Draft storage failed. Check permission or size limits.'));
- await click('Restore saved drafts');await settle(()=>text(tree).includes('Draft storage failed. Check permission or size limits.'));assert.equal(storage.get(draftKey),JSON.stringify(storedDraft));
- draftStorageFailure=false;quickPickOutcome=undefined;await click('Clear saved drafts');await settle(()=>text(tree).includes('Draft operation cancelled.'));assert.ok(storage.has(draftKey),'Cancelled delete must preserve saved drafts');
- quickPickOutcome='confirm';await click('Clear saved drafts');await settle(()=>text(tree).includes('Saved drafts cleared.'));assert.equal(storage.has(draftKey),false);assert.equal(quickPickCalls.at(-1).title,'Delete saved workspace drafts for this connection?');
- await click('Restore saved drafts');await settle(()=>text(tree).includes('No saved workspace drafts.'));await snapshot('11-workspace-draft-cleared');
- await click('Back to editor');assert.equal(byLabel('SQL statement').attributes.value,savedDraftSql);await change('SQL parameters','[]');
- await change('SQL statement','WITH RECURSIVE numbers(n) AS (SELECT 1 UNION ALL SELECT n+1 FROM numbers WHERE n<25) SELECT n, n+1 AS b, n+2 AS c, n+3 AS d,n+4 AS e,n+5 AS f,n+6 AS g,n+7 AS h,n+8 AS i FROM numbers');await click('Run read query');await settle(()=>text(tree).includes('25 rows / 9 columns'));await event(byLabel('Next rows'),{type:'click'});assert.ok(byLabel('Inspect row 25, column 1'));await event(byLabel('Next columns'),{type:'click'});assert.ok(byLabel('Inspect row 25, column 9'));await event(byLabel('Inspect row 25, column 9'),{type:'click'});assert.equal(byLabel('Full cell value').attributes.value,'33');await click('Close');await change('Filter returned rows','33');assert.ok(byLabel('Inspect row 25, column 9'));await snapshot('08-result-pages');
- await change('SQL statement','SELECT name,total FROM order_totals ORDER BY name');await click('Run read query');await settle(()=>text(tree).includes('41.5'));
- await change('SQL statement',"SELECT printf('%010000d', 1) AS long_value");await click('Run read query');await settle(()=>byLabel('Inspect row 1, column 1'));await event(byLabel('Inspect row 1, column 1'),{type:'click'});assert.equal(byLabel('Full cell value').attributes.value.length,4000);await click('Next');await click('Next');assert.equal(byLabel('Full cell value').attributes.value.length,2000);await click('Close');
- await change('SQL statement','SELECT name,total FROM order_totals ORDER BY name');await click('Run read query');await settle(()=>text(tree).includes('41.5'));
- // Deterministic clipboard transport: no native clipboard or permission-approval claim.
- await change('SQL statement',"SELECT 1 AS id, '=1+1' AS label, NULL AS missing");await click('Run read query');await settle(()=>byLabel('Export format'));
- assert.equal(clipboardCalls.length,0,'Rendering results must not request clipboard access');
- await event(find(n=>n.element==='summary'&&text(n)==='Export returned result'),{type:'click'});
- assert.equal(clipboardCalls.length,0,'Opening export must not request clipboard access');
- assert.equal(byLabel('Export format').attributes.value,'csv');
- const expectedCsv='"id","label","missing"\r\n1,"\'=1+1",\\N\r\n';
- // Native textarea normalizes CRLF for display; the clipboard payload must retain CRLF.
- assert.equal(byLabel('Export preview part').attributes.value,expectedCsv.replaceAll('\r\n','\n'));
- await click('Copy complete returned result');await settle(()=>text(tree).includes('Copy cancelled. No clipboard change was confirmed.'));
- assert.deepEqual(clipboardCalls,[{value:expectedCsv,title:'Copy returned result'}]);assert.doesNotMatch(text(tree),/Export copied/);
- clipboardOutcome=true;await click('Copy complete returned result');await settle(()=>text(tree).includes('Export copied.'));assert.equal(clipboardCalls.length,2);assert.equal(clipboardCalls[1].value,expectedCsv);
- await change('Export format','json');assert.equal(clipboardCalls.length,2,'Changing export format must not copy');
- const expectedJson=JSON.stringify({scope:'returned-rows-only',columns:['id','label','missing'],rows:[[1,'=1+1',null]],truncated:false},null,2);
- assert.equal(byLabel('Export preview part').attributes.value,expectedJson);await click('Copy complete returned result');assert.equal(clipboardCalls[2].value,expectedJson);
- clipboardOutcome=new Error('Synthetic clipboard unavailable');await click('Copy complete returned result');await settle(()=>text(tree).includes('Copy failed: Synthetic clipboard unavailable'));assert.doesNotMatch(text(tree),/Export copied/);
- clipboardOutcome=true;await click('Copy complete returned result');await settle(()=>text(tree).includes('Export copied.'));assert.equal(clipboardCalls[4].value,expectedJson);
- await change('Export format','sql');assert.equal(byLabel('Destination table name').attributes.value,'');assert.match(text(tree),/SQL export requires a valid destination table name/);assert.ok(!button('Copy complete returned result'),'SQL export cannot copy without an explicit table');assert.equal(clipboardCalls.length,5);
- await change('Destination table name','export_target');assert.equal(clipboardCalls.length,5,'Entering SQL destination must not copy');
- const expectedSql='-- Returned rows only; not a full table export.\nINSERT INTO "export_target" ("id", "label", "missing") VALUES (1, \'=1+1\', NULL);';
- assert.equal(byLabel('Export preview part').attributes.value,expectedSql);await click('Copy complete returned result');assert.equal(clipboardCalls[5].value,expectedSql);await snapshot('09-result-export');
- await change('SQL statement','SELECT name,total FROM order_totals ORDER BY name');await click('Run read query');await settle(()=>text(tree).includes('41.5'));
- // Actual SQL.js DDL through the production UI and main remote-DOM validators.
- await click('New object');await change('New table name','reviewed_table');await click('Add column');await change('Column 2 name','title');
- await click('Preview CREATE TABLE');await settle(()=>text(byLabel('Reviewed CREATE TABLE SQL')).includes('reviewed_table'));
- assert.match(text(byLabel('Reviewed CREATE TABLE SQL')),/"id" INTEGER NOT NULL PRIMARY KEY/);
- await change('New table name','reviewed_final');assert.equal(text(byLabel('Reviewed CREATE TABLE SQL')),'');
- assert.ok(Object.hasOwn(button('Confirm create table').attributes,'disabled'));
- await click('Preview CREATE TABLE');await settle(()=>text(byLabel('Reviewed CREATE TABLE SQL')).includes('reviewed_final'));await snapshot('13-create-table-review');
- await click('Confirm create table');await settle(()=>text(tree).includes('Table created. Schema refreshed; no additional SQL was executed.'));await snapshot('14-create-table-created');
- await click('Close');await change('SQL statement',"SELECT name FROM sqlite_master WHERE name = 'reviewed_final'");await click('Run read query');await settle(()=>byLabel('Inspect row 1, column 1'));assert.ok(text(tree).includes('reviewed_final'));
- await click('New object');await change('New table name','cancelled_table');await click('Preview CREATE TABLE');await settle(()=>text(byLabel('Reviewed CREATE TABLE SQL')).includes('cancelled_table'));await click('Cancel');
- await change('SQL statement',"SELECT COUNT(*) AS count FROM sqlite_master WHERE name = 'cancelled_table'");await click('Run read query');await settle(()=>byLabel('Inspect row 1, column 1'));await event(byLabel('Inspect row 1, column 1'),{type:'click'});assert.equal(byLabel('Full cell value').attributes.value,'0');await click('Close');
- await change('SQL statement','SELECT name,total FROM order_totals ORDER BY name');await click('Run read query');await settle(()=>text(tree).includes('41.5'));
- await click('Indexes');await change('New index name','notes_title_idx');await change('Index table','notes');await change('Index column 1','title');await change('Index column 1 order','DESC');
- await click('Preview CREATE INDEX');await settle(()=>text(byLabel('Reviewed CREATE INDEX SQL')).includes('notes_title_idx'));assert.match(text(byLabel('Reviewed CREATE INDEX SQL')),/"title" DESC/);await snapshot('15-create-index-review');
- await click('Confirm create index');await settle(()=>text(tree).includes('Index created. Schema refreshed; no additional SQL was executed.'));await snapshot('16-create-index-created');await click('Close');
- await change('SQL statement',"SELECT name FROM sqlite_master WHERE type='index' AND name='notes_title_idx'");await click('Run read query');await settle(()=>byLabel('Inspect row 1, column 1'));assert.ok(text(tree).includes('notes_title_idx'));
- await change('SQL statement','SELECT name,total FROM order_totals ORDER BY name');await click('Run read query');await settle(()=>text(tree).includes('41.5'));
- await change('SQL statement','SELECT * FROM "main"."notes"');await change('SQL parameters','[]');await click('Run read query');await settle(()=>byLabel('Edit or delete row 1'));await event(byLabel('Edit or delete row 1'),{type:'click'});
- await change('Value: title','Grid verified');await click('Preview change');await settle(()=>byLabel('Reviewed SQL') && text(byLabel('Reviewed SQL')).startsWith('UPDATE'));assert.match(text(byLabel('Reviewed SQL')),/COLLATE BINARY IS/);await snapshot('17-grid-update-review');
- await click('Confirm update one row');await settle(()=>text(tree).includes('One row changed. No additional SQL was executed.'));await click('Close');assert.match(text(tree),/Nothing executed/);assert.ok(!byLabel('Edit or delete row 1'),'Successful mutation clears old results without a query');
- await click('Run read query');await settle(()=>text(tree).includes('Grid verified'));await snapshot('18-grid-update-readback');
- await event(byLabel('Edit or delete row 1'),{type:'click'});await change('Row action','delete');await click('Preview change');await settle(()=>byLabel('Reviewed SQL') && text(byLabel('Reviewed SQL')).startsWith('DELETE'));assert.ok(byLabel('Original row'));assert.ok(byLabel('Reviewed parameters in binding order'));assert.ok(!JSON.stringify(tree).includes('row-mutation-layout'));await snapshot('19-grid-delete-review');await click('Confirm delete one row');await settle(()=>text(tree).includes('One row changed. No additional SQL was executed.'));await click('Close');await click('Run read query');await settle(()=>byLabel('Edit or delete row 1'));assert.ok(!text(tree).includes('Grid verified'));await snapshot('20-grid-delete-readback');
- await change('SQL statement','SELECT name,total FROM order_totals ORDER BY name');await click('Run read query');await settle(()=>text(tree).includes('41.5'));
- await event(byLabel('Open table notes'),{type:'click'});await settle(()=>button('Import CSV'));await click('Import CSV');assert.ok(!byLabel('Reviewed SQL'));assert.ok(!byLabel('Every parameter row'));await change('CSV source','id,title,status\n4,CSV imported,open\n5,"CSV, quoted",done');await click('Preview import');await settle(()=>button('Confirm import 2 rows'));assert.match(text(byLabel('Reviewed SQL')),/INSERT INTO "notes"/);assert.deepEqual(text(byLabel('Every parameter row')).split('\n').map(line=>JSON.parse(line)),[[4,'CSV imported','open'],[5,'CSV, quoted','done']]);await snapshot('21-csv-import-review');
- await click('Confirm import 2 rows');await settle(()=>text(tree).includes('The reviewed rows were imported. No additional SQL was executed.'));assert.ok(!byLabel('CSV source'));assert.ok(!byLabel('Reviewed SQL'));assert.ok(!byLabel('Every parameter row'));await click('Close');await click('Data');await click('Run read query');await settle(()=>text(tree).includes('CSV imported'));assert.match(text(tree),/CSV, quoted/);await snapshot('22-csv-import-readback');
- await click('Import CSV');await change('CSV source','id,title,status\n6,rollback,open\n4,duplicate,open');await click('Preview import');await settle(()=>button('Confirm import 2 rows'));await click('Confirm import 2 rows');await settle(()=>text(tree).includes('Import could not be confirmed.'));await click('Cancel');await click('Run read query');await settle(()=>text(tree).includes('CSV imported'));assert.ok(!text(tree).includes('rollback'));
- await change('SQL statement','SELECT name,total FROM order_totals ORDER BY name');await click('Run read query');await settle(()=>text(tree).includes('41.5'));
- await click('Alter table');assert.ok(!byLabel('Reviewed ALTER TABLE SQL'));await change('Alter table','notes');await change('Added column name','reviewed_extra');await click('Preview ALTER TABLE');await settle(()=>text(byLabel('Reviewed ALTER TABLE SQL')).includes('reviewed_extra'));
- await change('Added column name','extra_final');assert.ok(!byLabel('Reviewed ALTER TABLE SQL'));assert.ok(Object.hasOwn(button('Confirm add column').attributes,'disabled'));
- await click('Preview ALTER TABLE');await settle(()=>text(byLabel('Reviewed ALTER TABLE SQL')).includes('extra_final'));await snapshot('23-add-column-review');await click('Confirm add column');await settle(()=>text(tree).includes('Column added. Schema refreshed and prior query results invalidated.'));assert.ok(!byLabel('Added column name'));assert.ok(!button('Preview ALTER TABLE'));assert.ok(!button('Confirm add column'));assert.ok(!byLabel('Reviewed ALTER TABLE SQL'));await click('Close');assert.ok(!byLabel('Inspect row 1, column 1'));
- await change('SQL statement','SELECT extra_final FROM notes');await click('Run read query');await settle(()=>byLabel('Inspect row 1, column 1'));await snapshot('24-add-column-readback');
- await click('Alter table');await click('Rename column');await change('Rename table','notes');await change('Rename source column','extra_final');await change('Renamed column name','renamed_extra');await click('Preview RENAME COLUMN');await settle(()=>text(tree).includes('This column is not eligible for this conservative rename:'));assert.ok(!byLabel('Reviewed RENAME COLUMN SQL'));await change('Rename table','reviewed_final');await change('Rename source column','title');await change('Renamed column name','renamed_title');await click('Preview RENAME COLUMN');await settle(()=>byLabel('Reviewed RENAME COLUMN SQL')&&text(byLabel('Reviewed RENAME COLUMN SQL')).includes('renamed_title'));await snapshot('25-rename-column-review');
- let releaseRename;globalThis.__schemaApplyTestGate=()=>new Promise(resolve=>{releaseRename=resolve;});
- await click('Confirm rename column');await settle(()=>releaseRename!==undefined);
- for(const label of ['Query library','Host connections','New object','Indexes','Close connection','New Connection','New Query','Add column'])assert.ok(Object.hasOwn(button(label).attributes,'disabled'),label+' must lock during schema apply');
- for(const label of ['Query library','Host connections','New object','Close connection'])await event(button(label),{type:'click'});assert.ok(byLabel('Rename SQLite column'),'pending apply must stay mounted');
- delete globalThis.__schemaApplyTestGate;releaseRename();
- await settle(()=>text(tree).includes('Column renamed. Schema refreshed and prior query results invalidated.'));assert.ok(!byLabel('Renamed column name'));await click('Close');assert.ok(!byLabel('Inspect row 1, column 1'));
- await change('SQL statement',"SELECT name FROM pragma_table_info('reviewed_final') WHERE name='renamed_title'");await click('Run read query');await settle(()=>byLabel('Inspect row 1, column 1'));await snapshot('26-rename-column-readback');
- // Real explicit ordinary + UNIQUE index deletion, preserving automatic indexes.
- await click('Indexes');await change('New index name','reviewed_unique_idx');await change('Index table','reviewed_final');await event(byLabel('Unique index'),{type:'click',checked:true});await click('Preview CREATE INDEX');await settle(()=>text(byLabel('Reviewed CREATE INDEX SQL')).includes('UNIQUE'));await click('Confirm create index');await settle(()=>text(tree).includes('Index created.'));await click('Close');
- await click('Indexes');await click('Remove index');await change('Index removal table','notes');await change('Index to remove','notes_title_idx');assert.ok(!nodes().some(n=>n.element==='option'&&String(n.attributes.value??'').startsWith('sqlite_autoindex')));await click('Preview DROP INDEX');await settle(()=>button('Confirm remove index')&&!Object.hasOwn(button('Confirm remove index').attributes,'disabled'));await snapshot('27-drop-index-review');await click('Confirm remove index');await settle(()=>button('Close'));await click('Close');
- await change('SQL statement',"SELECT count(*) AS count FROM sqlite_master WHERE type='index' AND name='notes_title_idx'");await click('Run read query');await settle(()=>byLabel('Inspect row 1, column 1'));await event(byLabel('Inspect row 1, column 1'),{type:'click'});assert.equal(byLabel('Full cell value').attributes.value,'0');await click('Close');
- await click('Indexes');await click('Remove index');await change('Index removal table','reviewed_final');await change('Index to remove','reviewed_unique_idx');await click('Preview DROP INDEX');await settle(()=>button('Confirm remove UNIQUE index')&&!Object.hasOwn(button('Confirm remove UNIQUE index').attributes,'disabled'));await snapshot('28-drop-unique-index-review');await click('Confirm remove UNIQUE index');await settle(()=>button('Close'));await click('Close');
- await change('SQL statement',"SELECT count(*) AS count FROM sqlite_master WHERE type='index' AND name='reviewed_unique_idx'");await click('Run read query');await settle(()=>byLabel('Inspect row 1, column 1'));await event(byLabel('Inspect row 1, column 1'),{type:'click'});assert.equal(byLabel('Full cell value').attributes.value,'0');await click('Close');await snapshot('29-drop-index-readback');
- await event(byLabel('Open table notes'),{type:'click'});await click('Data');await change('SQL statement','SELECT * FROM notes ORDER BY id');await click('Insert row');assert.ok(!byLabel('Reviewed INSERT SQL'));await change('Insert value: title','Reviewed single insert');await change('Insert value: status','open');await change('Insert mode: extra_final','default');await click('Preview INSERT');await settle(()=>byLabel('Reviewed INSERT SQL'));assert.match(text(byLabel('Insert parameters')),/Reviewed single insert/);await snapshot('30-insert-row-review');await click('Confirm insert one row');await settle(()=>text(tree).includes('One row inserted. Previous results cleared'));assert.ok(!byLabel('Insert value: title'));await click('Close');assert.ok(!byLabel('Inspect row 1, column 1'));await click('Run read query');await settle(()=>text(tree).includes('Reviewed single insert'));await snapshot('31-insert-row-readback');
- await click('Insert row');await change('Insert mode: id','value');await change('Insert value: id','4');await change('Insert value: title','Should rollback');await change('Insert value: status','open');await change('Insert mode: extra_final','null');await click('Preview INSERT');await settle(()=>byLabel('Reviewed INSERT SQL'));await click('Confirm insert one row');await settle(()=>text(tree).includes('Insert failed a constraint'));await click('Cancel');await click('Run read query');await settle(()=>text(tree).includes('Reviewed single insert'));assert.ok(!text(tree).includes('Should rollback'));
+const root = process.cwd();
+const hostRoot = process.env.NETCATTY_HOST_ROOT;
+if (!hostRoot || !path.isAbsolute(hostRoot)) {
+  throw new Error('Set NETCATTY_HOST_ROOT to the current Netcatty main checkout.');
+}
 
+const host = createRequire(path.join(hostRoot, 'package.json'));
+const plugin = createRequire(path.join(root, 'package.json'));
+const { JSDOM } = host('jsdom');
+const { build } = host('esbuild');
+const { validatePluginRemoteTree, validatePluginMutationBatch } = host('./domain/pluginRemoteTreePolicy.cjs');
 
+const evidence = path.resolve(process.env.NETCATTY_REACT_EVIDENCE || 'dist/react-main');
+await mkdir(evidence, { recursive: true });
 
- await click('Local snapshot');assert.match(text(tree),/unencrypted/);await click('Check saved snapshot');await settle(()=>text(tree).includes('No saved snapshot.'));await click('Save entire database snapshot');await settle(()=>text(tree).includes('Database snapshot saved.'));await snapshot('32-snapshot-saved');await click('Close');await click('Close connection');await click('Main regression sample');await settle(()=>byLabel('Open table notes'));await change('SQL statement','SELECT count(*) FROM notes');await change('SQL parameters','[]');await click('Run read query');await settle(()=>byLabel('Inspect row 1, column 1'));await event(byLabel('Inspect row 1, column 1'),{type:'click'});assert.equal(byLabel('Full cell value').attributes.value,'3');await click('Close');
- await click('Local snapshot');await click('Preview restore');await settle(()=>button('Confirm replace current database'));assert.match(text(tree),/Current unsaved contents will be permanently lost/);await snapshot('33-snapshot-restore-review');await click('Confirm replace current database');await settle(()=>text(tree).includes('Database restored.'));await click('Close');assert.ok(!byLabel('Inspect row 1, column 1'));await change('SQL statement','SELECT * FROM notes ORDER BY id');await click('Run read query');await settle(()=>text(tree).includes('Reviewed single insert'));await snapshot('34-snapshot-restored-readback');
- await click('Local snapshot');await click('Clear saved snapshot…');await click('Cancel clear');assert.ok([...storage.keys()].some(k=>k.startsWith('sqlite.snapshot.v1.')));await click('Clear saved snapshot…');await click('Confirm clear saved snapshot');await settle(()=>text(tree).includes('Saved snapshot cleared'));assert.ok(![...storage.keys()].some(k=>k.startsWith('sqlite.snapshot.v1.')));await click('Close');
- await change('SQL statement','select  id,title  from notes where id > 0');await click('Format whole SQL');await settle(()=>byLabel('Whole SQL formatting preview'));assert.equal(byLabel('SQL statement').attributes.value,'select  id,title  from notes where id > 0');await snapshot('35-format-whole-review');await click('Apply formatting');assert.equal(byLabel('SQL statement').attributes.value,'select id, title\nfrom notes\nwhere id > 0');await click('Undo formatting');assert.equal(byLabel('SQL statement').attributes.value,'select  id,title  from notes where id > 0');await click('Format whole SQL');await change('SQL statement','SELECT  2');assert.ok(!byLabel('Whole SQL formatting preview'));await event(byLabel('SQL statement'),{type:'compositionstart',data:'测'});assert.ok(Object.hasOwn(button('Format whole SQL').attributes,'disabled'));await event(byLabel('SQL statement'),{type:'compositionend',data:'测试'});await click('Format whole SQL');await click('Apply formatting');assert.equal(byLabel('SQL statement').attributes.value,'SELECT 2');await snapshot('36-format-whole-applied');await change('SQL statement','SELECT  3');assert.ok(!button('Undo formatting'));await change('SQL statement',"SELECT 'incomplete");await click('Format whole SQL');assert.ok(!byLabel('Whole SQL formatting preview'));assert.equal(byLabel('SQL statement').attributes.value,"SELECT 'incomplete");
- await change('SQL statement','SELECT name,total FROM order_totals ORDER BY name');await click('Run read query');await settle(()=>text(tree).includes('41.5'));
- await click('Query library');await click('Read saved SQL');await settle(()=>text(tree).includes('Saved SQL loaded; nothing executed.'));await change('Persistent SQL name','Durable totals');await click('Save SQL to this connection');await settle(()=>text(tree).includes('SQL saved for this connection.'));assert.ok([...storage.keys()].some(k=>k.startsWith('sql.library.v1.')));await snapshot('37-persistent-sql-saved');await click('Back to editor');await change('SQL statement','SELECT 99');await click('Query library');await click('Read saved SQL');await settle(()=>text(tree).includes('Durable totals'));await click('Load into editor');assert.equal(byLabel('SQL statement').attributes.value,'SELECT name,total FROM order_totals ORDER BY name');assert.ok(!byLabel('Inspect row 1, column 1'),'load must clear results without execution');await click('Query library');await click('Read saved SQL');await settle(()=>text(tree).includes('Durable totals'));await change('Persistent SQL name','Durable totals');await click('Save SQL to this connection');assert.ok(button('Confirm replace saved SQL'));await click('Cancel');await click('Delete saved SQL…');assert.ok(button('Confirm permanent deletion'));await snapshot('38-persistent-sql-delete-review');await click('Cancel');await click('Back to editor');await click('Run read query');await settle(()=>text(tree).includes('41.5'));
- await event(byLabel('Open table notes'),{type:'click'});await click('Data');await click('Run read query');await settle(()=>text(tree).includes('Reviewed single insert'));await click('Batch delete…');await event(byLabel('Select returned row 1'),{type:'click',checked:true});await event(byLabel('Select returned row 2'),{type:'click',checked:true});await click('Preview batch deletion');await settle(()=>button('Confirm batch deletion'));await snapshot('40-batch-delete-review');await click('Confirm batch deletion');await settle(()=>text(tree).includes('Selected rows deleted atomically.'));await snapshot('41-batch-delete-committed');await click('Close');assert.ok(!byLabel('Inspect row 1, column 1'));await click('Run read query');await settle(()=>text(tree).includes('Reviewed single insert'));assert.ok(!text(tree).includes('Synthetic launch checklist'));await snapshot('42-batch-delete-readback');await change('SQL statement','SELECT name,total FROM order_totals ORDER BY name');await click('Run read query');await settle(()=>text(tree).includes('41.5'));
- await click('Alter table');await click('Rename table');await change('Table to rename','notes');await change('New table name','notes_archived');await click('Preview table rename');await settle(()=>byLabel('Reviewed table rename SQL'));await snapshot('43-rename-table-review');await click('Confirm table rename');await settle(()=>text(tree).includes('Table renamed.'));assert.ok(byLabel('Open table notes_archived'));assert.ok(!byLabel('Open table notes'));await snapshot('44-rename-table-committed');await click('Close');await click('New Query');await change('SQL statement','SELECT name,total FROM order_totals ORDER BY name');await click('Run read query');await settle(()=>text(tree).includes('41.5'));
- await click('Alter table');await click('Drop column');await change('Drop column table','notes_archived');await change('Column to remove','status');await click('Preview DROP COLUMN');await settle(()=>byLabel('Reviewed DROP COLUMN SQL'));assert.ok(text(tree).includes('This cannot be undone here.'));await snapshot('45-drop-column-review');await click('Confirm permanent column deletion');await settle(()=>text(tree).includes('Column removed.'));await snapshot('46-drop-column-committed');await click('Close');await click('New Query');await change('SQL statement','SELECT id,title FROM notes_archived');await click('Run read query');await settle(()=>text(tree).includes('Reviewed single insert'));await snapshot('47-drop-column-readback');await click('New object');await click('View');await change('New view name','notes_projection');await change('View source table','notes_archived');await click('Preview CREATE VIEW');await settle(()=>byLabel('Reviewed CREATE VIEW SQL'));await snapshot('48-create-view-preview');await click('Confirm create view');await settle(()=>text(tree).includes('View created.'));await snapshot('49-create-view-committed');await click('Close');await click('New Query');await change('SQL statement','SELECT * FROM notes_projection');await click('Run read query');await settle(()=>text(tree).includes('Reviewed single insert'));await snapshot('50-create-view-readback');await event(byLabel('Open view notes_projection'),{type:'click'});await click('Remove view');assert.equal(byLabel('View to remove').attributes.value,'notes_projection');await click('Preview DROP VIEW');await settle(()=>byLabel('Reviewed DROP VIEW SQL'));await snapshot('51-drop-view-preview');await click('Confirm remove view');await settle(()=>text(tree).includes('View removed.'));assert.ok(!byLabel('Open view notes_projection'));await snapshot('52-drop-view-committed');await click('Close');await click('New Query');await change('SQL statement','SELECT id,title FROM notes_archived');await click('Run read query');await settle(()=>text(tree).includes('Reviewed single insert'));await snapshot('53-drop-view-source-readback');await event(byLabel('Open table notes_archived'),{type:'click'});await click('Estimated plan');await change('Plan filter column','id');await change('Plan value type','number');await change('Plan filter value','3');await click('Estimate plan');await settle(()=>byLabel('Generated SQL (not executed)'));assert.match(text(tree),/SEARCH/);assert.match(text(tree),/generated query was not executed/);await snapshot('54-estimated-plan');await click('Close');await event(byLabel('Open view order_totals'),{type:'click'});await click('Remove view');await click('Preview DROP VIEW');await settle(()=>byLabel('Reviewed DROP VIEW SQL'));await click('Local snapshot');assert.ok(!byLabel('Reviewed DROP VIEW SQL'));assert.match(text(tree),/unencrypted/);await click('Close');await click('New Query');await change('SQL statement','SELECT name,total FROM order_totals ORDER BY name');await click('Run read query');await settle(()=>text(tree).includes('41.5'));
- await change('SQL statement',"SELECT 9007199254740993 AS exact_id, CAST(x'610062' AS TEXT) AS nul_text, CAST(x'EFBBBF61' AS TEXT) AS bom_text");await change('SQL parameters','[]');await click('Run read query');await settle(()=>text(tree).includes('9007199254740993'));assert.match(text(tree),/JSON-escaped/);await event(byLabel('Inspect row 1, column 2'),{type:'click'});assert.equal(byLabel('JSON-escaped cell value').attributes.value,JSON.stringify('a\0b'));await snapshot('55-exact-results');await click('Close');await change('SQL statement','SELECT name,total FROM order_totals ORDER BY name');await click('Run read query');await settle(()=>text(tree).includes('41.5'));
- await act(async()=>{context.environment.locale='zh-CN';environmentListeners.forEach(fn=>fn(context.environment));await tick();});await settle(()=>button('执行只读查询'));assert.equal(byLabel('SQL 语句').attributes.value,'SELECT name,total FROM order_totals ORDER BY name');await snapshot('07-chinese');
- await click('主机连接');await settle(()=>button('Redis 工作台'));await click('Redis 工作台');await settle(()=>text(tree).includes('当前插件包未声明 Redis TLS 端点'));assert.ok(!byLabel('Redis 密码'),'Unconfigured native route must not show credentials');await snapshot('12-redis-unconfigured');await click('返回主机连接');await settle(()=>button('Redis 工作台'));
- console.log(JSON.stringify({status:'PASS',scope:'Real SQLite + main SDK/remote-DOM validators, injected storage/view/quickPick/clipboard transports; no native confirmation or Docker claim.',maxNodes,batches,snapshots:snapshotNames.size,workspaceDrafts:{save:true,restore:true,clear:true,cancel:true,storageFailure:true,noAutoExecute:true,storageCalls:draftStorageCalls.length,confirmationCalls:quickPickCalls.length}},null,2));
-}finally{await act(async()=>{receive({kind:'host-ui.close'});disposables.forEach(d=>d.dispose());await tick();});dom.window.close();}
+const dom = new JSDOM('<!doctype html><body></body>', {
+  url: 'https://synthetic.invalid',
+  pretendToBeVisual: true,
+});
+for (const key of [
+  'window',
+  'document',
+  'navigator',
+  'HTMLElement',
+  'Element',
+  'HTMLInputElement',
+  'HTMLTextAreaElement',
+  'HTMLSelectElement',
+  'HTMLFormElement',
+  'Node',
+  'MutationObserver',
+  'Event',
+  'MouseEvent',
+  'KeyboardEvent',
+  'CustomEvent',
+  'FocusEvent',
+  'CompositionEvent',
+]) {
+  Object.defineProperty(globalThis, key, {
+    configurable: true,
+    writable: true,
+    value: key === 'window' ? dom.window : dom.window[key],
+  });
+}
+globalThis.IS_REACT_ACT_ENVIRONMENT = true;
+
+const { act } = plugin('react');
+const bundle = path.join(evidence, 'plugin.cjs');
+await build({
+  entryPoints: ['src/index.tsx'],
+  outfile: bundle,
+  bundle: true,
+  platform: 'node',
+  format: 'cjs',
+  loader: { '.css': 'text' },
+  plugins: [
+    {
+      name: 'shared-react',
+      setup(b) {
+        b.onResolve({ filter: /^react(?:-dom)?(?:\/.*)?$/ }, (args) => ({
+          path: plugin.resolve(args.path),
+          external: true,
+        }));
+      },
+    },
+  ],
+});
+
+const VIEW = 'com.binaricat.netcatty-database.workbench';
+const instanceId = 'main-regression';
+const receivers = new Map();
+const storage = new Map();
+const secrets = new Map();
+const disposables = [];
+const environmentListeners = new Set();
+const registeredTools = [];
+
+let tree = { children: [] };
+let maxNodes = 0;
+let maxBatchBytes = 0;
+let batches = 0;
+const errors = [];
+
+const nodes = (rootNode = tree) => {
+  const all = [];
+  function visit(node) {
+    all.push(node);
+    node.children?.forEach(visit);
+  }
+  rootNode.children.forEach(visit);
+  return all;
+};
+const text = (node) => (node.type === 3 ? node.data : (node.children ?? []).map(text).join(''));
+const find = (fn) => nodes().find(fn);
+const findAll = (fn) => nodes().filter(fn);
+const buttonContaining = (substr) => find((n) => n.element === 'button' && text(n).includes(substr));
+const buttonExact = (label) => find((n) => n.element === 'button' && text(n).trim() === label);
+const receive = (message) => receivers.get(VIEW)?.({ instanceId, ...message });
+
+const context = {
+  ui: {
+    quickPick: async () => undefined,
+    openFile: async () => ({ cancelled: true }),
+    saveFile: async () => ({ cancelled: true }),
+  },
+  clipboard: {
+    writeText: async () => true,
+  },
+  secrets: {
+    get: async (k) => secrets.get(k),
+    set: async (k, v) => {
+      secrets.set(k, v);
+    },
+    delete: async (k) => {
+      secrets.delete(k);
+    },
+  },
+  enabledFeatures: new Set([
+    'views.host-drawn',
+    'views.vault-pages',
+    'metadata.brand-icon',
+    'ai.model-invocation',
+    'ai.agent-sessions',
+    'ai.sidebar-tools',
+    'vault.host-actions',
+    'host.interactions',
+    'network.byte-streams',
+    'network.host-byte-streams',
+  ]),
+  environment: {
+    locale: 'en',
+    theme: 'dark',
+    onDidChange(fn) {
+      environmentListeners.add(fn);
+      return {
+        dispose() {
+          environmentListeners.delete(fn);
+        },
+      };
+    },
+  },
+  subscriptions: {
+    add(d) {
+      disposables.push(d);
+    },
+  },
+  storage: {
+    keys: async () => [...storage.keys()],
+    get: async (key) => structuredClone(storage.get(key)),
+    set: async (key, value) => {
+      storage.set(key, structuredClone(value));
+    },
+    delete: async (key) => {
+      storage.delete(key);
+    },
+  },
+  agent: {
+    listBackends: async () => ({ items: [] }),
+    closeChat: async () => {},
+  },
+  vault: {
+    selectHosts: async () => ({ cancelled: true }),
+    requestConnect: async () => ({ cancelled: false, status: 'requested' }),
+  },
+  ai: {
+    openChat: async () => {
+      throw new Error('No live model configured in this fixture');
+    },
+    registerTools: async (tools) => {
+      registeredTools.push(...tools);
+      return { dispose() {} };
+    },
+    setContext: async () => {},
+    clearContext: async () => {},
+    openSidebar: async () => {},
+    closeSidebar: async () => {},
+  },
+  views: {
+    onDidReceiveMessage(id, listener) {
+      receivers.set(id, listener);
+      return {
+        dispose() {
+          receivers.delete(id);
+        },
+      };
+    },
+    getState: async () => null,
+    setState: async () => {},
+    postMessage(id, message) {
+      if (message.kind !== 'host-ui.update') return;
+      try {
+        assert.equal(id, VIEW);
+        const batchBytes = Buffer.byteLength(JSON.stringify(message), 'utf8');
+        maxBatchBytes = Math.max(maxBatchBytes, batchBytes);
+        assert.ok(batchBytes <= 131072, `host-ui.update batch exceeded 128 KiB: ${batchBytes}`);
+        validatePluginMutationBatch(message.mutations);
+        batches++;
+        for (const m of message.mutations) {
+          const n = m[1] === '~' ? tree : nodes().find((node) => node.id === m[1]);
+          assert.ok(n, 'mutation target exists: ' + JSON.stringify(m));
+          if (m[0] === 0) n.children.splice(m[3], 0, structuredClone(m[2]));
+          else if (m[0] === 1) n.children.splice(m[2], 1);
+          else if (m[0] === 2) n.data = m[2];
+          else if (m[3] === null) delete n.attributes[m[2]];
+          else n.attributes[m[2]] = m[3];
+        }
+        validatePluginRemoteTree(tree);
+        maxNodes = Math.max(maxNodes, nodes().length);
+      } catch (e) {
+        errors.push(e instanceof Error ? e.message : String(e));
+      }
+    },
+  },
+};
+
+const tick = () => new Promise((resolve) => setTimeout(resolve, 35));
+async function settle(predicate = () => true) {
+  for (let i = 0; i < 120; i++) {
+    await act(async () => {
+      await tick();
+    });
+    assert.deepEqual(errors, []);
+    if (predicate()) return;
+  }
+  throw new Error('UI did not settle: ' + text(tree).slice(0, 600));
+}
+async function fireEvent(node, props) {
+  assert.ok(node, 'Missing target node for event ' + JSON.stringify(props));
+  await act(async () => {
+    receive({ kind: 'host-ui.event', event: { nodeId: node.id, ...props } });
+    await tick();
+  });
+  assert.deepEqual(errors, []);
+}
+async function clickButton(label, exact = false) {
+  const n = exact ? buttonExact(label) : buttonContaining(label);
+  assert.ok(n, 'Missing button: ' + label);
+  assert.ok(!Object.hasOwn(n.attributes ?? {}, 'disabled'), 'Disabled button: ' + label);
+  await fireEvent(n, { type: 'click' });
+}
+
+const snapshotNames = new Set();
+async function snapshot(name) {
+  snapshotNames.add(name);
+  await writeFile(path.join(evidence, name + '.json'), JSON.stringify(tree, null, 2));
+}
+
+try {
+  // 1. Activate & mount Welcome View; confirm all images use asset: URLs and zero inline <svg>/<canvas>
+  await act(async () => {
+    await plugin(bundle).default.activate(context);
+    receive({ kind: 'host-ui.open', stateScope: VIEW });
+    await tick();
+  });
+  await settle(() => Boolean(buttonContaining('Launch Sample SQLite')));
+  assert.ok(buttonContaining('New Connection'));
+  assert.ok(buttonContaining('Open Local SQLite File'));
+  assert.equal(registeredTools.length, 7, 'All 7 Catty Database Agent tools must register');
+  assert.ok(
+    findAll((n) => n.element === 'img').every((n) => String(n.attributes?.src ?? '').startsWith('asset:')),
+    'All images must use asset: URIs',
+  );
+  assert.equal(findAll((n) => n.element === 'svg' || n.element === 'canvas').length, 0);
+  await snapshot('01-welcome');
+
+  // 2. Open New Connection drawer -> verify bounded 24-tile pagination & <= 128 KiB mutation payload
+  const isEngineTile = (n) =>
+    n.element === 'button' && String(n.attributes?.class ?? '').split(/\s+/).includes('ndb-engine-tile');
+  await clickButton('New Connection');
+  await settle(() => findAll(isEngineTile).length === 24);
+  assert.ok(text(tree).includes('PostgreSQL'));
+  assert.ok(text(tree).includes('OceanBase'));
+  assert.ok(text(tree).includes('113'));
+  await snapshot('02-connection-picker');
+
+  // Close drawer
+  const closeDrawerBtn = find((n) => n.element === 'button' && String(n.attributes?.['aria-label'] ?? '').includes('Close'));
+  assert.ok(closeDrawerBtn, 'Expected drawer close button');
+  await fireEvent(closeDrawerBtn, { type: 'click' });
+  await settle(() => findAll(isEngineTile).length === 0);
+
+  // 3. Launch live Sample SQLite (sql.js) -> verify schema explorer + SQL Query tab + live execution
+  await clickButton('Launch Sample SQLite');
+  await settle(() => text(tree).includes('customers') && text(tree).includes('orders') && text(tree).includes('products'));
+  const editorNode = find((n) => n.attributes?.['data-plugin-widget'] === 'code-editor');
+  assert.ok(editorNode, 'Monaco code-editor widget mounted');
+  await snapshot('03-sqlite-connected');
+
+  // Enter a real analytical SQL query via PluginCodeEditor widget event & execute on live SQLite
+  await fireEvent(editorNode, {
+    type: 'widget',
+    widgetEvent: 'change',
+    detail: {
+      value: 'SELECT c.tier, COUNT(*) AS cnt, SUM(o.total_amount) AS revenue FROM orders o JOIN customers c ON o.customer_id = c.id GROUP BY c.tier ORDER BY revenue DESC',
+    },
+  });
+  await clickButton('Run');
+  await settle(() => Boolean(find((n) => n.attributes?.['data-plugin-widget'] === 'data-grid')));
+  await snapshot('04-sql-result-grid');
+
+  // 4. Switch to inline SQL Chart subtab -> verify host bi-chart widget + bar-chart-2 icon + Pin CTA
+  await clickButton('Chart', true);
+  await settle(() => Boolean(find((n) => n.attributes?.['data-plugin-widget'] === 'bi-chart')));
+  assert.ok(buttonContaining('Pin to BI Dashboard'), 'SQL Chart subtab must expose Pin to BI Dashboard');
+  assert.equal(findAll((n) => n.element === 'svg' || n.element === 'canvas').length, 0);
+  await snapshot('05-sql-chart');
+
+  // 5. Pin to BI Dashboard -> verify BI Dashboard opens with pinned live chart card and Ask Catty Agent
+  await clickButton('Pin to BI Dashboard');
+  await settle(() => text(tree).includes('BI Dashboard') && Boolean(buttonContaining('Ask Catty Agent')));
+  assert.ok(find((n) => n.attributes?.['data-plugin-widget'] === 'bi-chart'));
+  assert.ok(find((n) => n.attributes?.['data-plugin-widget'] === 'data-grid'));
+  assert.equal(findAll((n) => String(n.attributes?.class ?? '').includes('ndb-bi-ask-bar')).length, 0);
+  await snapshot('06-bi-dashboard');
+
+  // 6. Switch live locale to zh-CN -> verify bilingual UI update
+  await act(async () => {
+    context.environment.locale = 'zh-CN';
+    environmentListeners.forEach((fn) => fn(context.environment));
+    await tick();
+  });
+  await settle(() => text(tree).includes('BI 看板') && text(tree).includes('工具'));
+  await snapshot('07-zh-cn');
+
+  assert.deepEqual(errors, []);
+  console.log(
+    JSON.stringify(
+      {
+        status: 'PASS',
+        scope: 'Real v0.3.0 DatabaseWorkbench + sql.js SQLite + Netcatty main remote-DOM & mutation validators',
+        maxNodes,
+        maxBatchBytes,
+        batches,
+        registeredTools: registeredTools.length,
+        snapshots: snapshotNames.size,
+      },
+      null,
+      2,
+    ),
+  );
+} finally {
+  await act(async () => {
+    receive({ kind: 'host-ui.close' });
+    disposables.forEach((d) => d.dispose());
+    await tick();
+  });
+  dom.window.close();
+}

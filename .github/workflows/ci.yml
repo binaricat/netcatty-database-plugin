@@ -38,7 +38,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: binaricat/netcatty
-          ref: 4a55492c17c3c792fbda4afc08d993f4165ca930
+          ref: 28b09513e60d2f162249c6cc5e88d58a9910d0d6
           path: host
       - name: Verify remote Docker availability
         run: docker version && docker info --format '{{json .ServerVersion}}'
